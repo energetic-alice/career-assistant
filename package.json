@@ -1,0 +1,33 @@
+{
+  "name": "career-assistant",
+  "version": "0.1.0",
+  "description": "Career Accelerator automation pipeline",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc && cp -r src/prompts dist/prompts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "tsx src/scripts/test-e2e.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "dotenv": "^16.5.0",
+    "fastify": "^5.3.3",
+    "googleapis": "^148.0.0",
+    "mammoth": "^1.9.0",
+    "marked": "^17.0.5",
+    "pdf-parse": "^1.1.1",
+    "telegraf": "^4.16.3",
+    "xlsx": "^0.18.5",
+    "zod": "^3.24.0",
+    "zod-to-json-schema": "^3.25.2"
+  },
+  "devDependencies": {
+    "@types/marked": "^5.0.2",
+    "@types/node": "^22.15.0",
+    "@types/pdf-parse": "^1.1.4",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}
