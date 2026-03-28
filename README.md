@@ -1,0 +1,196 @@
+# Career Assistant
+
+Автоматизация карьерного анализа: от анкеты участника до готового документа с рекомендациями.
+
+## Как это работает
+
+```
+Google Form  ──>  Google Apps Script  ──>  Webhook  ──>  Fastify Server
+                                                              │
+                                                    ┌─────────┴──────────┐
+                                                    │  AI Pipeline       │
+                                                    │  (4 шага Claude)   │
+                                                    └─────────┬──────────┘
+                                                              │
+                                                     Telegram Bot
+                                                  (Review Summary)
+                                                      │       │
+                                              [Утвердить]  [Правки]
+                                                  │           │
+                                            Google Doc    Перезапуск
+                                            со ссылкой    анализа
+```
+
+**Пайплайн анализа (4 шага):**
+
+1. **Profile Extraction** — извлечение структурированного профиля из анкеты и резюме
+2. **Direction Generation** — формулировка суперсилы и 3 карьерных направлений
+3. **Direction Analysis** — глубокий анализ каждого направления (рынок, конкуренция, AI-риски, план перехода)
+4. **Final Compilation** — сборка финального документа для участника
+
+Между шагами 3 и 4 — человеческая проверка через Telegram-бота.
+
+## Быстрый старт (локально)
+
+```bash
+# Установить зависимости
+npm install
+
+# Скопировать и заполнить .env
+cp .env.example .env
+
+# Запустить в dev-режиме (polling для Telegram, hot-reload)
+npm run dev
+```
+
+## Environment Variables
+
+| Переменная | Описание | Обязательна |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | API-ключ Claude | Да |
+| `TELEGRAM_BOT_TOKEN` | Токен Telegram-бота (от @BotFather) | Да |
+| `TELEGRAM_ADMIN_CHAT_ID` | Chat ID администратора для ревью | Да |
+| `GOOGLE_SERVICE_ACCOUNT_KEY` | Путь к JSON-файлу сервисного аккаунта (локально) | Одно из двух |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | JSON сервисного аккаунта целиком (для Render/прод) | Одно из двух |
+| `GOOGLE_DRIVE_FOLDER_ID` | ID папки Google Drive для сохранения документов | Да |
+| `WEBHOOK_SECRET` | Секрет для валидации webhook от Google Forms | Да |
+| `APP_URL` | Публичный URL сервера (включает webhook-режим для Telegram) | Нет (прод) |
+| `PORT` | Порт сервера (по умолчанию 3000) | Нет |
+
+**Telegram-бот:** если `APP_URL` задан — работает через webhook; если нет — через long-polling (удобно для локальной разработки).
+
+## Деплой на Render
+
+Сервис работает на [Render](https://render.com) (Web Service, Starter plan).
+
+**Настройки Render:**
+- Build Command: `npm install && npm run build`
+- Start Command: `npm start`
+- Auto-deploy из GitHub при push в `main`
+
+**Что нужно настроить после деплоя:**
+1. Добавить все env vars (см. таблицу выше)
+2. `APP_URL` — URL сервиса, который Render покажет после создания
+3. Расшарить папку с файлами Google Forms сервисному аккаунту (Viewer)
+
+## Google Forms: автоматический триггер
+
+В таблице ответов формы настроен Google Apps Script (`src/scripts/google-apps-script.js`), который при каждом новом ответе отправляет POST-запрос на сервер.
+
+**Настройка:**
+1. Google Sheets → Extensions → Apps Script
+2. Вставить код из `src/scripts/google-apps-script.js`
+3. Заменить `WEBHOOK_URL` и `WEBHOOK_SECRET`
+4. Triggers → Add Trigger → `onFormSubmit` → From spreadsheet → On form submit
+
+## Ручной запуск анализа (без формы)
+
+Если данные пришли не через форму (например, из переписки в Telegram), можно отправить webhook вручную:
+
+```bash
+curl -X POST "https://<server>/api/webhook/new-participant" \
+  -H "Content-Type: application/json" \
+  -H "x-webhook-secret: <WEBHOOK_SECRET>" \
+  -d '{
+    "namedValues": {
+      "Timestamp": ["..."],
+      "Твой ник в телеграм": ["@username"],
+      "Где ты сейчас?": ["Уже в IT, и хочу оставаться в IT"],
+      "Какое у тебя гражданство?": ["..."],
+      "В какой стране и каком городе ты живешь сейчас?": ["..."],
+      "На какую страну или страны ты планируешь работать?": ["..."],
+      "Твой идеальный формат работы": ["..."],
+      "Чем ты занимаешься сейчас?": ["Работаю в найме"],
+      "Кем ты работаешь сейчас и сколько зарабатываешь? (до налогов)": ["..."],
+      "Сколько у тебя опыта в текущей профессии?": ["5+ лет опыта"],
+      "А сколько хочешь зарабатывать и в какой валюте?": ["..."],
+      "А сколько хочешь зарабатывать через 3-5 лет?": ["..."],
+      "Какой результат ты хочешь получить от работы с Алисой?": ["..."],
+      "Есть ли у тебя уже пожелания или интерес какими направлениями хотелось бы заниматься?": ["..."],
+      "Расскажи подробно, почему именно это направление? Что в нем привлекает?": ["..."],
+      "Насколько ты готов(а) к переобучению?": ["..."],
+      "Сколько времени можешь уделять поиску работы и переквалификации (при необходимости)? В часах в неделю": ["..."],
+      "Опиши свою текущую карьерную ситуацию максимально подробно - что не нравится и какой главный затык": ["..."],
+      "Какие карьерные цели для тебя наиболее важны в ближайший год? (рост дохода, смена работы, повышение квалификации и т. д.)": ["..."],
+      "Были ли уже попытки что-то изменить в текущей ситуации, поменять работу, что-то доучить? Напиши максимально подробно": ["..."],
+      "Как ты относишься к рутине? Она тебя успокаивает или угнетает?": ["..."],
+      "Ты больше любишь:": ["..."],
+      "А какие задачи ты терпеть не можешь?": ["..."],
+      "Прикрепи свое резюме в любом формате (можно несколько версий)": [""],
+      "Прикрепи ссылку на свой Linkedin (если есть)": ["..."],
+      "resumeTextDirect": ["Текст резюме целиком, если нет файла"]
+    }
+  }'
+```
+
+**Ключевое поле:** `resumeTextDirect` — позволяет передать текст резюме напрямую, без загрузки файла из Google Drive. Используй его, когда данные приходят не из формы.
+
+Необязательные поля можно пропустить или оставить пустыми — пайплайн обработает то, что есть.
+
+## Структура проекта
+
+```
+src/
+├── index.ts                    # Точка входа: Fastify + Telegram bot
+├── bot/
+│   ├── bot-instance.ts         # Singleton Telegraf-инстанса
+│   ├── telegram-bot.ts         # Команды бота, webhook/polling
+│   └── admin-review.ts         # Ревью-flow: кнопки, фидбек, Google Docs
+├── pipeline/
+│   ├── intake.ts               # Webhook, парсинг анкеты, запуск пайплайна
+│   ├── run-analysis.ts         # Оркестрация 4 шагов Claude
+│   └── prompt-loader.ts        # Загрузка и сборка промптов
+├── prompts/
+│   ├── 01-profile-extraction.md
+│   ├── 02-direction-generation.md
+│   ├── 03-direction-analysis.md
+│   ├── 04-final-compilation.md
+│   ├── style-guide.md          # Стилистика ответов
+│   ├── decision-rules.md       # Правила принятия решений
+│   ├── training-examples.md    # Матрица 26 обучающих примеров
+│   ├── few-shot-examples.md    # 4 развёрнутых few-shot примера
+│   └── kb/                     # База знаний по доменам
+│       ├── competition-ru.md   # Конкуренция (РФ)
+│       ├── competition-eu.md   # Конкуренция (ЕС)
+│       ├── macro-trends.md     # AI-риски и тренды
+│       ├── backend.md
+│       ├── devops-sre.md
+│       ├── data-analytics.md
+│       ├── frontend-mobile.md
+│       ├── product-management.md
+│       ├── remote-work.md
+│       ├── salaries-ru.md
+│       └── salaries-eu.md
+├── schemas/
+│   ├── participant.ts          # Zod-схемы анкеты
+│   ├── analysis-outputs.ts     # Zod-схемы выходов AI
+│   └── pipeline-state.ts       # Состояния пайплайна
+├── services/
+│   ├── file-service.ts         # Скачивание и парсинг резюме (PDF/DOCX)
+│   ├── google-auth.ts          # Google Auth (файл или env var)
+│   ├── google-docs-service.ts  # Создание Google Docs
+│   └── review-summary.ts       # Форматирование Review Summary для Telegram
+└── scripts/
+    ├── test-e2e.ts             # E2E тест на тестовых данных
+    └── google-apps-script.js   # Скрипт для Google Sheets триггера
+```
+
+## API
+
+| Endpoint | Метод | Описание |
+|---|---|---|
+| `/health` | GET | Проверка что сервер жив |
+| `/api/webhook/new-participant` | POST | Webhook для новых анкет (требует `x-webhook-secret`) |
+| `/api/participants` | GET | Список всех участников в очереди |
+| `/api/participants/:id` | GET | Статус конкретного участника |
+| `/api/telegram-webhook` | POST | Telegram webhook (автоматически) |
+
+## Скрипты
+
+```bash
+npm run dev        # Разработка (tsx watch, polling)
+npm run build      # Сборка (tsc + копирование промптов)
+npm start          # Запуск production-билда
+npm run typecheck  # Проверка типов без сборки
+npm run test:e2e   # Запуск E2E теста на тестовых данных
+```
