@@ -232,7 +232,9 @@ async function processResumeAndRunAnalysis(
   const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
   const analysisInput = outputs.analysisInput as AnalysisInput;
 
-  if (resumeFileUrl) {
+  const alreadyHasResume = !!analysisInput.resumeText;
+
+  if (resumeFileUrl && !alreadyHasResume) {
     try {
       const { buffer, mimeType } = await downloadFromGoogleDrive(resumeFileUrl);
       const resumeText = await extractResumeText(buffer, mimeType);

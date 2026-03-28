@@ -107,6 +107,7 @@ export const rawQuestionnaireSchema = z.object({
   hatedTasks: z.string(),
   additionalThoughts: z.string().optional(),
   resumeFileUrl: z.string().optional(),
+  resumeTextDirect: z.string().optional(),
   linkedinUrl: z.string().optional(),
   linkedinSSI: z.string().optional(),
 });
@@ -158,9 +159,9 @@ export type AnalysisInput = z.infer<typeof analysisInputSchema>;
  * with extracted resumeText (populated later).
  */
 export function toAnalysisInput(raw: RawQuestionnaire): AnalysisInput {
-  const { whyAccelerator, resumeFileUrl, ...rest } = raw;
+  const { whyAccelerator, resumeFileUrl, resumeTextDirect, ...rest } = raw;
   return analysisInputSchema.parse({
     ...rest,
-    resumeText: undefined,
+    resumeText: resumeTextDirect || undefined,
   });
 }
