@@ -43,20 +43,6 @@ cp .env.example .env
 npm run dev
 ```
 
-## Environment Variables
-
-| Переменная | Описание | Обязательна |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | API-ключ Claude | Да |
-| `TELEGRAM_BOT_TOKEN` | Токен Telegram-бота (от @BotFather) | Да |
-| `TELEGRAM_ADMIN_CHAT_ID` | Chat ID администратора для ревью | Да |
-| `GOOGLE_SERVICE_ACCOUNT_KEY` | Путь к JSON-файлу сервисного аккаунта (локально) | Одно из двух |
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | JSON сервисного аккаунта целиком (для Render/прод) | Одно из двух |
-| `GOOGLE_DRIVE_FOLDER_ID` | ID папки Google Drive для сохранения документов | Да |
-| `WEBHOOK_SECRET` | Секрет для валидации webhook от Google Forms | Да |
-| `APP_URL` | Публичный URL сервера (включает webhook-режим для Telegram) | Нет (прод) |
-| `PORT` | Порт сервера (по умолчанию 3000) | Нет |
-
 **Telegram-бот:** если `APP_URL` задан — работает через webhook; если нет — через long-polling (удобно для локальной разработки).
 
 ## Деплой на Render
@@ -126,54 +112,6 @@ curl -X POST "https://<server>/api/webhook/new-participant" \
 **Ключевое поле:** `resumeTextDirect` — позволяет передать текст резюме напрямую, без загрузки файла из Google Drive. Используй его, когда данные приходят не из формы.
 
 Необязательные поля можно пропустить или оставить пустыми — пайплайн обработает то, что есть.
-
-## Структура проекта
-
-```
-src/
-├── index.ts                    # Точка входа: Fastify + Telegram bot
-├── bot/
-│   ├── bot-instance.ts         # Singleton Telegraf-инстанса
-│   ├── telegram-bot.ts         # Команды бота, webhook/polling
-│   └── admin-review.ts         # Ревью-flow: кнопки, фидбек, Google Docs
-├── pipeline/
-│   ├── intake.ts               # Webhook, парсинг анкеты, запуск пайплайна
-│   ├── run-analysis.ts         # Оркестрация 4 шагов Claude
-│   └── prompt-loader.ts        # Загрузка и сборка промптов
-├── prompts/
-│   ├── 01-profile-extraction.md
-│   ├── 02-direction-generation.md
-│   ├── 03-direction-analysis.md
-│   ├── 04-final-compilation.md
-│   ├── style-guide.md          # Стилистика ответов
-│   ├── decision-rules.md       # Правила принятия решений
-│   ├── training-examples.md    # Матрица 26 обучающих примеров
-│   ├── few-shot-examples.md    # 4 развёрнутых few-shot примера
-│   └── kb/                     # База знаний по доменам
-│       ├── competition-ru.md   # Конкуренция (РФ)
-│       ├── competition-eu.md   # Конкуренция (ЕС)
-│       ├── macro-trends.md     # AI-риски и тренды
-│       ├── backend.md
-│       ├── devops-sre.md
-│       ├── data-analytics.md
-│       ├── frontend-mobile.md
-│       ├── product-management.md
-│       ├── remote-work.md
-│       ├── salaries-ru.md
-│       └── salaries-eu.md
-├── schemas/
-│   ├── participant.ts          # Zod-схемы анкеты
-│   ├── analysis-outputs.ts     # Zod-схемы выходов AI
-│   └── pipeline-state.ts       # Состояния пайплайна
-├── services/
-│   ├── file-service.ts         # Скачивание и парсинг резюме (PDF/DOCX)
-│   ├── google-auth.ts          # Google Auth (файл или env var)
-│   ├── google-docs-service.ts  # Создание Google Docs
-│   └── review-summary.ts       # Форматирование Review Summary для Telegram
-└── scripts/
-    ├── test-e2e.ts             # E2E тест на тестовых данных
-    └── google-apps-script.js   # Скрипт для Google Sheets триггера
-```
 
 ## API
 
