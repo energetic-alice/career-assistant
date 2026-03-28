@@ -41,7 +41,10 @@ const COLUMN_MAP: Record<string, keyof RawQuestionnaire> = {
   "А сколько хочешь зарабатывать через 3-5 лет?": "desiredSalary3to5y",
   "Почему твой выбор пал именно на Карьерный акселератор? Что для тебя самое важное в программе, что зацепило?":
     "whyAccelerator",
+  "Почему твой выбор пал именно на работу с Алисой? Что для тебя самое важное, что зацепило?":
+    "whyAccelerator",
   "Какой результат ты хочешь получить на программе?": "desiredResult",
+  "Какой результат ты хочешь получить от работы с Алисой?": "desiredResult",
   "Есть ли у тебя уже пожелания или интерес какими направлениями хотелось бы заниматься?":
     "directionInterest",
   "Расскажи подробно, почему именно это направление? Что в нем привлекает?":
@@ -68,6 +71,8 @@ const COLUMN_MAP: Record<string, keyof RawQuestionnaire> = {
     "resumeFileUrl",
   "Прикрепи ссылку на свой Linkedin (если есть)": "linkedinUrl",
   "Если есть Linkedin, напиши цифру своего SSI-рейтинга": "linkedinSSI",
+  "Если есть Linkedin, напиши цифру своего SSI-рейтинга, он находится тут справа от большого кружка по ссылке: https://www.linkedin.com/sales/ssi":
+    "linkedinSSI",
 };
 
 /**
@@ -78,7 +83,7 @@ function parseNamedValues(
 ): Record<string, string> {
   const result: Record<string, string> = {};
   for (const [header, values] of Object.entries(namedValues)) {
-    const key = COLUMN_MAP[header];
+    const key = COLUMN_MAP[header] || COLUMN_MAP[header.trim()];
     if (key) {
       result[key] = values.join(", ");
     }
