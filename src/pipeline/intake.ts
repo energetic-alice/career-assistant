@@ -73,6 +73,8 @@ const COLUMN_MAP: Record<string, keyof RawQuestionnaire> = {
   "Если есть Linkedin, напиши цифру своего SSI-рейтинга": "linkedinSSI",
   "Если есть Linkedin, напиши цифру своего SSI-рейтинга, он находится тут справа от большого кружка по ссылке: https://www.linkedin.com/sales/ssi":
     "linkedinSSI",
+  "Если есть Linkedin, прикрепи скриншот своего SSI-рейтинга, он находится тут:":
+    "linkedinSSI",
 };
 
 /**
@@ -83,7 +85,9 @@ function parseNamedValues(
 ): Record<string, string> {
   const result: Record<string, string> = {};
   for (const [header, values] of Object.entries(namedValues)) {
-    const key = COLUMN_MAP[header] || COLUMN_MAP[header.trim()];
+    const trimmed = header.trim();
+    const firstLine = trimmed.split("\n")[0].trim();
+    const key = COLUMN_MAP[trimmed] || COLUMN_MAP[firstLine];
     if (key) {
       result[key] = values.join(", ");
     }
@@ -122,10 +126,22 @@ export function registerIntakeRoutes(app: FastifyInstance) {
           [key: string]: unknown;
         };
 
+        request.log.info({ bodyKeys: Object.keys(body) }, "Webhook received");
+
         let rawData: Record<string, string>;
 
         if (body.namedValues) {
+          const unmapped: string[] = [];
+          for (const header of Object.keys(body.namedValues)) {
+            if (!COLUMN_MAP[header] && !COLUMN_MAP[header.trim()]) {
+              unmapped.push(header);
+            }
+          }
+          if (unmapped.length > 0) {
+            request.log.warn({ unmapped }, "Unmapped form headers");
+          }
           rawData = parseNamedValues(body.namedValues);
+          request.log.info({ mappedFields: Object.keys(rawData) }, "Parsed fields");
         } else {
           rawData = body as Record<string, string>;
         }
