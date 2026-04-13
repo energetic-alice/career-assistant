@@ -1,5 +1,6 @@
 import type { Telegraf, Context } from "telegraf";
 import { Markup } from "telegraf";
+import { Input } from "telegraf";
 import type {
   CandidateProfile,
   DirectionsOutput,
@@ -13,6 +14,7 @@ import {
 } from "../pipeline/run-analysis.js";
 import { createGoogleDoc } from "../services/google-docs-service.js";
 import { getAdminChatId, getBot } from "./bot-instance.js";
+import { marked } from "marked";
 
 interface PendingReview {
   participantId: string;
@@ -87,17 +89,42 @@ async function handleApprove(
     );
 
     const title = `Карьерный анализ: ${review.phase1.profile.name}`;
-    const docUrl = await createGoogleDoc(title, finalDocument);
+    const safeTitle = title.replace(/[^a-zA-Zа-яА-ЯёЁ0-9_\- ]/g, "_");
+
+    const htmlBody = await marked(finalDocument);
+    const htmlFile = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${title}</title>
+<style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6}
+h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:8px;text-align:left}</style>
+</head><body>${htmlBody}</body></html>`;
+
+    const fileBuffer = Buffer.from(htmlFile, "utf-8");
+    await ctx.replyWithDocument(
+      Input.fromBuffer(fileBuffer, `${safeTitle}.html`),
+      { caption: "Финальный анализ (HTML). Можно открыть в браузере." },
+    );
+
+    let docUrl: string | null = null;
+    try {
+      docUrl = await createGoogleDoc(title, finalDocument);
+    } catch (docErr) {
+      console.warn("[Bot] Google Doc creation failed (quota?), HTML file sent instead:", docErr);
+    }
 
     pendingReviews.delete(participantId);
     activeConversation = null;
 
-    await ctx.reply(
-      `Готово! Документ создан:\n${docUrl}`,
-      { link_preview_options: { is_disabled: false } },
-    );
+    if (docUrl) {
+      await ctx.reply(`Google Doc: ${docUrl}`, {
+        link_preview_options: { is_disabled: false },
+      });
+    } else {
+      await ctx.reply(
+        "Google Doc не удалось создать (квота сервисного аккаунта исчерпана). HTML-файл выше содержит полный анализ.",
+      );
+    }
   } catch (err) {
-    console.error("[Bot] Phase 4 / Google Doc error:", err);
+    console.error("[Bot] Phase 4 error:", err);
     await ctx.reply(
       `Ошибка при создании документа: ${err instanceof Error ? err.message : String(err)}`,
     );
