@@ -48,6 +48,11 @@ export async function sendReviewToAdmin(
   ]);
 
   const links: string[] = [];
+  const tgNick = phase1.profile.telegramNick;
+  if (tgNick) {
+    const username = tgNick.replace(/^@/, "");
+    links.push(`<a href="https://t.me/${username}">Telegram</a>`);
+  }
   if (originalInput.linkedinUrl && originalInput.linkedinUrl !== "нет") {
     const url = originalInput.linkedinUrl.startsWith("http")
       ? originalInput.linkedinUrl
