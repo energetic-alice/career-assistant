@@ -1,5 +1,25 @@
 import { z } from "zod";
 
+/**
+ * Уровень конкуренции на рынке.
+ * В enum включены и «размытые» формулировки — модель иногда возвращает «средняя-высокая» и т.п.
+ */
+export const competitionDiscrete = z.enum([
+  "очень низкая",
+  "низкая",
+  "средняя",
+  "высокая",
+  "очень высокая",
+  "средняя-высокая",
+  "средне-высокая",
+  "низкая-средняя",
+  "низко-средняя",
+  "высокая-очень высокая",
+  "очень низкая-низкая",
+]);
+
+export type CompetitionLevel = z.infer<typeof competitionDiscrete>;
+
 // ─── Step 1: Profile Extraction Output ───
 
 export const candidateProfileSchema = z.object({
@@ -151,7 +171,7 @@ export const marketDataSchema = z.object({
   dynamicsPercentChange: z
     .string()
     .describe("% изменения за 1-2 года с конкретной цифрой, например: -20% за год"),
-  competition: z.enum(["очень низкая", "низкая", "средняя", "высокая", "очень высокая"]),
+  competition: competitionDiscrete,
   vacanciesPer100Specialists: z
     .number()
     .describe(
@@ -183,7 +203,7 @@ export const analyzedDirectionSchema = z.object({
     demand: z.string(),
     width: z.enum(["широкий", "средний", "нишевый"]),
     dynamics: z.string().describe("Растет/стабильно/падает + % за 1-2 года"),
-    competition: z.enum(["очень низкая", "низкая", "средняя", "высокая", "очень высокая"]),
+    competition: competitionDiscrete,
     vacanciesPer100Specialists: z
       .number()
       .describe("Из справочника конкуренции: вакансий на 100 специалистов"),
