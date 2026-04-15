@@ -84,7 +84,7 @@ export const candidateProfileSchema = z.object({
     .array(z.string())
     .describe("Ключевые достижения/цифры из резюме для позиционирования"),
 
-  linkedinSSI: z.number().optional().describe("SSI рейтинг LinkedIn"),
+  linkedinSSI: z.string().optional().describe("SSI рейтинг LinkedIn"),
 
   languageMode: z
     .enum(["ru-only", "ru-with-en-terms", "bilingual", "en-only"])
@@ -277,7 +277,7 @@ export const reviewSummarySchema = z.object({
   currentRole: z.string(),
   targetMarket: z.string(),
   englishLevel: z.string(),
-  linkedinSSI: z.number().optional(),
+  linkedinSSI: z.string().optional(),
   superpower: z.string(),
   directions: z.array(
     z.object({
