@@ -2,9 +2,16 @@ import Anthropic from "@anthropic-ai/sdk";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
 
-const RESUME_EXTRACTION_PROMPT = `Извлеки полный текст из этого PDF-документа (резюме/CV).
+const RESUME_EXTRACTION_PROMPT = `Извлеки полный текст из этого документа (резюме/CV).
 Сохрани структуру: заголовки, должности, даты, списки навыков, достижения с цифрами.
 Верни только извлеченный текст без комментариев.`;
+
+const IMAGE_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+]);
 
 /**
  * Extract text from a PDF using Claude's native document understanding.
@@ -48,9 +55,41 @@ async function extractPdfWithClaude(buffer: Buffer): Promise<string> {
   }
 }
 
+async function extractImageWithClaude(buffer: Buffer, mimeType: string): Promise<string> {
+  const client = new Anthropic();
+  const base64 = buffer.toString("base64");
+
+  const response = await client.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 8192,
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: mimeType as "image/png" | "image/jpeg" | "image/gif" | "image/webp",
+              data: base64,
+            },
+          },
+          { type: "text", text: RESUME_EXTRACTION_PROMPT },
+        ],
+      },
+    ],
+  });
+
+  const textBlock = response.content.find((b) => b.type === "text");
+  if (textBlock && textBlock.type === "text") {
+    return textBlock.text;
+  }
+  throw new Error("No text block in Claude response for image");
+}
+
 /**
  * Extract text from a resume buffer based on MIME type.
- * Uses Claude native PDF support for better accuracy on complex layouts.
+ * Supports PDF, DOCX, plain text, and images (PNG, JPEG, GIF, WEBP).
  */
 export async function extractResumeText(
   buffer: Buffer,
@@ -70,6 +109,10 @@ export async function extractResumeText(
 
   if (mimeType === "text/plain") {
     return buffer.toString("utf-8");
+  }
+
+  if (IMAGE_MIME_TYPES.has(mimeType)) {
+    return extractImageWithClaude(buffer, mimeType);
   }
 
   throw new Error(`Unsupported resume format: ${mimeType}`);

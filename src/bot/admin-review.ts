@@ -135,7 +135,6 @@ async function handleApprove(
     return;
   }
 
-  await ctx.editMessageReplyMarkup(undefined);
   await ctx.reply("Собираю финальный документ...");
 
   try {
@@ -194,6 +193,8 @@ h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border
       completedAt: review.completedAt,
     });
 
+    await ctx.editMessageReplyMarkup(undefined);
+
     if (docUrl) {
       await ctx.reply(`Google Doc: ${docUrl}`, {
         link_preview_options: { is_disabled: false },
@@ -207,7 +208,7 @@ h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border
   } catch (err) {
     console.error("[Bot] Phase 4 error:", err);
     await ctx.reply(
-      `Ошибка при создании документа: ${err instanceof Error ? err.message : String(err)}`,
+      `Ошибка при создании документа: ${err instanceof Error ? err.message : String(err)}\n\nНажми «Утвердить» ещё раз, чтобы повторить.`,
     );
   }
 }

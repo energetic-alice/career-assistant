@@ -44,10 +44,15 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
 
   registerAdminReview(bot);
 
-  await bot.telegram.setMyCommands([
-    { command: "start", description: "Информация о боте" },
-    { command: "status", description: "Текущее состояние очереди" },
-  ]);
+  try {
+    await bot.telegram.setMyCommands([
+      { command: "start", description: "Информация о боте" },
+      { command: "status", description: "Текущее состояние очереди" },
+    ]);
+    console.log("[Bot] Menu commands registered");
+  } catch (err) {
+    console.error("[Bot] Failed to set menu commands:", err);
+  }
 
   const appUrl = process.env.APP_URL;
 
