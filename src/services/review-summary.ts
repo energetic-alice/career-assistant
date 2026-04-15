@@ -76,6 +76,8 @@ export function buildReviewSummary(
     languageMode: profile.languageMode,
     currentRole: profile.currentBase.currentRole,
     targetMarket: targets.join(", "),
+    englishLevel: profile.currentBase.englishLevel,
+    linkedinSSI: profile.linkedinSSI,
     superpower: directions.superpower.formulation,
     directions: analysis.directions.map((d) => ({
       title: d.title,
@@ -95,7 +97,7 @@ export function formatReviewForTelegram(summary: ReviewSummary): string {
 
   lines.push(`<b>${summary.candidateName}</b>`);
   lines.push(`${summary.currentRole} | ${summary.targetMarket}`);
-  lines.push(`Режим: ${summary.languageMode}`);
+  lines.push(`Режим: ${summary.languageMode} | English: ${summary.englishLevel}${summary.linkedinSSI != null ? ` | SSI: ${summary.linkedinSSI}` : ""}`);
   lines.push("");
   lines.push(`<b>Суперсила:</b> ${summary.superpower}`);
   lines.push("");

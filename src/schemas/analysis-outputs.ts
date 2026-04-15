@@ -276,6 +276,8 @@ export const reviewSummarySchema = z.object({
   languageMode: z.string(),
   currentRole: z.string(),
   targetMarket: z.string(),
+  englishLevel: z.string(),
+  linkedinSSI: z.number().optional(),
   superpower: z.string(),
   directions: z.array(
     z.object({

@@ -1,4 +1,63 @@
-import { marked } from "marked";
+import { Marked } from "marked";
+
+const gdocMarked = new Marked({
+  renderer: {
+    heading({ text, depth }: { text: string; depth: number }) {
+      const sizes: Record<number, string> = {
+        1: "font-size:24px;font-weight:bold;margin:24px 0 12px 0;color:#1a1a1a;",
+        2: "font-size:20px;font-weight:bold;margin:20px 0 10px 0;color:#2d2d2d;",
+        3: "font-size:16px;font-weight:bold;margin:16px 0 8px 0;color:#3d3d3d;",
+      };
+      const style = sizes[depth] || sizes[3];
+      return `<h${depth} style="${style}">${text}</h${depth}>`;
+    },
+    table(token: { header: { text: string }[]; rows: { text: string }[][] }) {
+      const tableStyle = "border-collapse:collapse;width:100%;margin:12px 0;";
+      const thStyle = "border:1px solid #999;padding:8px 12px;background:#e8e8e8;font-weight:bold;text-align:left;";
+      const tdStyle = "border:1px solid #bbb;padding:8px 12px;text-align:left;";
+
+      let html = `<table style="${tableStyle}"><thead><tr>`;
+      for (const cell of token.header) {
+        html += `<th style="${thStyle}">${cell.text}</th>`;
+      }
+      html += "</tr></thead><tbody>";
+      for (const row of token.rows) {
+        html += "<tr>";
+        for (const cell of row) {
+          html += `<td style="${tdStyle}">${cell.text}</td>`;
+        }
+        html += "</tr>";
+      }
+      html += "</tbody></table>";
+      return html;
+    },
+    paragraph({ text }: { text: string }) {
+      return `<p style="margin:8px 0;line-height:1.5;">${text}</p>`;
+    },
+    list(token: { ordered: boolean; items: { text: string }[] }) {
+      const tag = token.ordered ? "ol" : "ul";
+      const style = "margin:8px 0;padding-left:24px;";
+      let inner = "";
+      for (const item of token.items) {
+        inner += `<li style="margin:4px 0;line-height:1.5;">${item.text}</li>`;
+      }
+      return `<${tag} style="${style}">${inner}</${tag}>`;
+    },
+    strong({ text }: { text: string }) {
+      return `<strong style="font-weight:bold;">${text}</strong>`;
+    },
+    em({ text }: { text: string }) {
+      return `<em style="font-style:italic;">${text}</em>`;
+    },
+    hr() {
+      return '<hr style="border:none;border-top:1px solid #ccc;margin:16px 0;">';
+    },
+  },
+});
+
+async function markdownToGdocHtml(md: string): Promise<string> {
+  return gdocMarked.parse(md) as Promise<string>;
+}
 
 /**
  * Creates a Google Doc from Markdown content.
@@ -24,7 +83,7 @@ async function createViaAppsScript(
   title: string,
   markdownContent: string,
 ): Promise<string> {
-  const htmlBody = await marked(markdownContent);
+  const htmlBody = await markdownToGdocHtml(markdownContent);
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
 
   const resp = await fetch(webAppUrl, {
@@ -60,10 +119,10 @@ async function createViaDriveApi(
   const auth = await getGoogleAuth(["https://www.googleapis.com/auth/drive.file"]);
   const drive = google.drive({ version: "v3", auth });
 
-  const htmlBody = await marked(markdownContent);
+  const htmlBody = await markdownToGdocHtml(markdownContent);
   const htmlDocument = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${title}</title></head>
-<body>${htmlBody}</body></html>`;
+<body style="font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:20px;">${htmlBody}</body></html>`;
 
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
 

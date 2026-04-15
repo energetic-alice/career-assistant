@@ -124,5 +124,55 @@ function doPost(e) {
   }
 }
 
+/* ── Переотправка всех строк из таблицы ── */
+
+/**
+ * Переотправить все заполненные строки из таблицы на сервер.
+ * Запускать вручную из Apps Script (Run → resendAll).
+ * Безопасно запускать повторно — сервер дедуплицирует по telegramNick.
+ */
+function resendAll() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+
+  Logger.log("Headers: " + JSON.stringify(headers));
+  Logger.log("Total rows (excl header): " + (data.length - 1));
+
+  for (var i = 1; i < data.length; i++) {
+    var namedValues = {};
+    for (var j = 0; j < headers.length; j++) {
+      var val = data[i][j];
+      if (val instanceof Date) {
+        val = Utilities.formatDate(val, Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm:ss");
+      }
+      namedValues[headers[j]] = [String(val)];
+    }
+
+    var nick = namedValues["Твой ник в телеграм"] ? namedValues["Твой ник в телеграм"][0] : "row " + i;
+    Logger.log("Sending row " + i + ": " + nick);
+
+    try {
+      var options = {
+        method: "post",
+        contentType: "application/json",
+        headers: { "X-Webhook-Secret": WEBHOOK_SECRET },
+        payload: JSON.stringify({ namedValues: namedValues }),
+        muteHttpExceptions: true,
+      };
+      var response = UrlFetchApp.fetch(WEBHOOK_URL, options);
+      Logger.log("Row " + i + " (" + nick + "): " + response.getResponseCode() + " " + response.getContentText().substring(0, 200));
+    } catch (err) {
+      Logger.log("Row " + i + " ERROR: " + err.toString());
+    }
+
+    if (i < data.length - 1) {
+      Utilities.sleep(2000);
+    }
+  }
+
+  Logger.log("Done. Sent " + (data.length - 1) + " rows.");
+}
+
 /* Ссылка на DriveApp нужна, чтобы OAuth запросил scope drive.file */
 function _ensureDriveScope() { DriveApp.getRootFolder(); }

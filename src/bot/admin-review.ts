@@ -18,6 +18,22 @@ import { marked } from "marked";
 import { getPipelineState, updatePipelineStage } from "../pipeline/intake.js";
 import { saveMap, loadMap, saveDocument } from "../services/state-store.js";
 
+const MEDAL_MAP: Record<string, string> = {
+  "\u{1F947}": "1.", // 🥇
+  "\u{1F948}": "2.", // 🥈
+  "\u{1F949}": "3.", // 🥉
+};
+
+const EMOJI_RE = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1FA00}-\u{1FA9F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/gu;
+
+function cleanDocEmoji(text: string): string {
+  let result = text;
+  for (const [emoji, replacement] of Object.entries(MEDAL_MAP)) {
+    result = result.replaceAll(emoji, replacement);
+  }
+  return result.replace(EMOJI_RE, "").replace(/ {2,}/g, " ");
+}
+
 type ReviewStatus = "pending" | "awaiting_feedback" | "approved" | "completed";
 
 interface PendingReview {
@@ -62,7 +78,8 @@ export async function sendReviewToAdmin(
 
   const keyboard = Markup.inlineKeyboard([
     Markup.button.callback("Утвердить", `approve:${participantId}`),
-    Markup.button.callback("Правки", `edit:${participantId}`),
+    Markup.button.callback("Мелкие правки", `edit:${participantId}`),
+    Markup.button.callback("Переделать", `redo:${participantId}`),
   ]);
 
   const links: string[] = [];
@@ -140,11 +157,12 @@ async function handleApprove(
   try {
     updatePipelineStage(participantId, "admin_reviewed");
 
-    const { finalDocument } = await runAnalysisPhase4(
+    const phase4 = await runAnalysisPhase4(
       review.phase1.profile,
       review.phase1.directions,
       review.phase1.analysis,
     );
+    const finalDocument = cleanDocEmoji(phase4.finalDocument);
 
     const title = `Карьерный анализ: ${review.phase1.profile.name}`;
     const safeTitle = title.replace(/[^a-zA-Zа-яА-ЯёЁ0-9_\- ]/g, "_");
@@ -193,8 +211,6 @@ h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border
       completedAt: review.completedAt,
     });
 
-    await ctx.editMessageReplyMarkup(undefined);
-
     if (docUrl) {
       await ctx.reply(`Google Doc: ${docUrl}`, {
         link_preview_options: { is_disabled: false },
@@ -233,10 +249,38 @@ async function handleEdit(
   review.awaitingFeedback = true;
   persistPendingReviews();
   activeConversation = participantId;
-  await ctx.editMessageReplyMarkup(undefined);
   await ctx.reply(
     "Напиши что изменить. Анализ будет пересчитан с учётом твоих замечаний.",
   );
+}
+
+async function handleRedo(
+  participantId: string,
+  ctx: Context,
+): Promise<void> {
+  let review = pendingReviews.get(participantId);
+  if (!review) {
+    review = recoverReview(participantId) ?? undefined;
+    if (review) {
+      pendingReviews.set(participantId, review);
+    }
+  }
+  if (!review) {
+    await ctx.reply("Анализ не найден или уже обработан.");
+    return;
+  }
+
+  await ctx.reply("Полная регенерация анализа с нуля...");
+
+  try {
+    const newPhase1 = await runAnalysisPhase1(review.originalInput);
+    await sendReviewToAdmin(participantId, newPhase1, review.originalInput);
+  } catch (err) {
+    console.error("[Bot] Redo error:", err);
+    await ctx.reply(
+      `Ошибка при регенерации: ${err instanceof Error ? err.message : String(err)}\n\nНажми «Переделать» ещё раз.`,
+    );
+  }
 }
 
 async function handleTextFeedback(ctx: Context): Promise<void> {
@@ -247,24 +291,68 @@ async function handleTextFeedback(ctx: Context): Promise<void> {
   const review = pendingReviews.get(activeConversation);
   if (!review || !review.awaitingFeedback) return;
 
+  const pid = review.participantId;
   review.awaitingFeedback = false;
   persistPendingReviews();
+  activeConversation = null;
 
-  await ctx.reply("Перезапускаю анализ с учётом замечаний...");
+  await ctx.reply("Применяю правки к документу (данные анализа не меняются)...");
 
   try {
-    const newInput: AnalysisPipelineInput = {
-      ...review.originalInput,
-      expertFeedback: text,
-    };
-    const newPhase1 = await runAnalysisPhase1(newInput);
-    const pid = review.participantId;
+    const phase4 = await runAnalysisPhase4(
+      review.phase1.profile,
+      review.phase1.directions,
+      review.phase1.analysis,
+      text,
+    );
+    const finalDocument = cleanDocEmoji(phase4.finalDocument);
 
-    await sendReviewToAdmin(pid, newPhase1, newInput);
+    const title = `Карьерный анализ: ${review.phase1.profile.name}`;
+    const safeTitle = title.replace(/[^a-zA-Zа-яА-ЯёЁ0-9_\- ]/g, "_");
+
+    const htmlBody = await marked(finalDocument);
+    const htmlFile = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${title}</title>
+<style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6}
+h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:8px;text-align:left}</style>
+</head><body>${htmlBody}</body></html>`;
+
+    saveDocument(pid, `${safeTitle}.html`, htmlFile);
+    saveDocument(pid, `${safeTitle}.md`, finalDocument);
+
+    const fileBuffer = Buffer.from(htmlFile, "utf-8");
+    await ctx.replyWithDocument(
+      Input.fromBuffer(fileBuffer, `${safeTitle}.html`),
+      { caption: "Обновлённый анализ с правками (HTML)." },
+    );
+
+    let docUrl: string | null = null;
+    try {
+      docUrl = await createGoogleDoc(title, finalDocument);
+    } catch (docErr) {
+      console.warn("[Bot] Google Doc creation failed:", docErr);
+    }
+
+    review.status = "completed";
+    review.completedAt = new Date().toISOString();
+    if (docUrl) review.docUrl = docUrl;
+    persistPendingReviews();
+
+    updatePipelineStage(pid, "completed", {
+      finalDocumentMd: finalDocument,
+      docUrl: docUrl ?? undefined,
+      completedAt: review.completedAt,
+    });
+
+    if (docUrl) {
+      await ctx.reply(`Google Doc: ${docUrl}`, {
+        link_preview_options: { is_disabled: false },
+      });
+    }
   } catch (err) {
-    console.error("[Bot] Redo error:", err);
+    console.error("[Bot] Minor edit error:", err);
     await ctx.reply(
-      `Ошибка при перезапуске: ${err instanceof Error ? err.message : String(err)}`,
+      `Ошибка при правках: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
 }
@@ -285,6 +373,9 @@ export function registerAdminReview(bot: Telegraf): void {
         break;
       case "edit":
         await handleEdit(participantId, ctx);
+        break;
+      case "redo":
+        await handleRedo(participantId, ctx);
         break;
     }
   });
