@@ -1,4 +1,8 @@
-import { Marked } from "marked";
+import { Marked, marked } from "marked";
+
+function inline(raw: string): string {
+  return marked.parseInline(raw) as string;
+}
 
 const gdocMarked = new Marked({
   renderer: {
@@ -18,13 +22,13 @@ const gdocMarked = new Marked({
 
       let html = `<table style="${tableStyle}"><thead><tr>`;
       for (const cell of token.header) {
-        html += `<th style="${thStyle}">${cell.text}</th>`;
+        html += `<th style="${thStyle}">${inline(cell.text)}</th>`;
       }
       html += "</tr></thead><tbody>";
       for (const row of token.rows) {
         html += "<tr>";
         for (const cell of row) {
-          html += `<td style="${tdStyle}">${cell.text}</td>`;
+          html += `<td style="${tdStyle}">${inline(cell.text)}</td>`;
         }
         html += "</tr>";
       }
