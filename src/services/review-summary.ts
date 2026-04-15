@@ -6,6 +6,16 @@ import type {
   ReviewFlag,
 } from "../schemas/analysis-outputs.js";
 
+function toCefrLevel(raw: string): string {
+  const lower = raw.toLowerCase();
+  if (lower.includes("нуля") || lower.includes("нуль") || lower.includes("a0") || lower.includes("никак")) return "A0";
+  if (lower.includes("читать") || lower.includes("переводчик") || lower.includes("a1")) return "A1-A2";
+  if (lower.includes("не-it") || lower.includes("говорю") || lower.includes("b1")) return "B1";
+  if (lower.includes("собеседован") || lower.includes("b2") || lower.includes("fluent")) return "B2+";
+  if (lower.includes("native") || lower.includes("c1") || lower.includes("c2")) return "C1-C2";
+  return raw;
+}
+
 export function buildReviewSummary(
   profile: CandidateProfile,
   directions: DirectionsOutput,
@@ -76,7 +86,7 @@ export function buildReviewSummary(
     languageMode: profile.languageMode,
     currentRole: profile.currentBase.currentRole,
     targetMarket: targets.join(", "),
-    englishLevel: profile.currentBase.englishLevel,
+    englishLevel: toCefrLevel(profile.currentBase.englishLevel),
     linkedinSSI: profile.linkedinSSI,
     superpower: directions.superpower.formulation,
     directions: analysis.directions.map((d) => ({
