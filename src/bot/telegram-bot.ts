@@ -49,7 +49,10 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
       { command: "start", description: "Информация о боте" },
       { command: "status", description: "Текущее состояние очереди" },
     ]);
-    console.log("[Bot] Menu commands registered");
+    await bot.telegram.setChatMenuButton({
+      menuButton: { type: "commands" },
+    });
+    console.log("[Bot] Menu commands and button registered");
   } catch (err) {
     console.error("[Bot] Failed to set menu commands:", err);
   }
