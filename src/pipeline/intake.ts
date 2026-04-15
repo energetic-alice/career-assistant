@@ -17,6 +17,7 @@ import {
 } from "./run-analysis.js";
 import { sendReviewToAdmin } from "../bot/admin-review.js";
 import { getBot } from "../bot/bot-instance.js";
+import { saveMap, loadMap } from "../services/state-store.js";
 
 /**
  * Maps Google Forms column headers (from namedValues) to our internal field names.
@@ -95,10 +96,14 @@ function parseNamedValues(
   return result;
 }
 
-/**
- * In-memory store (will be replaced with DB later).
- */
-export const pipelineStates = new Map<string, PipelineState>();
+const STORE_NAME = "pipelineStates";
+export const pipelineStates: Map<string, PipelineState> = loadMap<PipelineState>(STORE_NAME);
+
+console.log(`[Intake] Loaded ${pipelineStates.size} pipeline states from disk`);
+
+function persistPipelineStates(): void {
+  saveMap(STORE_NAME, pipelineStates);
+}
 
 export function getPipelineState(id: string): PipelineState | undefined {
   return pipelineStates.get(id);
@@ -106,6 +111,23 @@ export function getPipelineState(id: string): PipelineState | undefined {
 
 export function getAllPipelineStates(): PipelineState[] {
   return Array.from(pipelineStates.values());
+}
+
+export function updatePipelineStage(
+  id: string,
+  stage: PipelineState["stage"],
+  extraOutputs?: Record<string, unknown>,
+): void {
+  const state = pipelineStates.get(id);
+  if (!state) return;
+  state.stage = stage;
+  state.updatedAt = new Date().toISOString();
+  if (extraOutputs) {
+    const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
+    Object.assign(outputs, extraOutputs);
+    state.stageOutputs = outputs;
+  }
+  persistPipelineStates();
 }
 
 /**
@@ -165,6 +187,7 @@ export function registerIntakeRoutes(app: FastifyInstance) {
         };
 
         pipelineStates.set(participantId, state);
+        persistPipelineStates();
 
         request.log.info(
           { participantId, nick: questionnaire.telegramNick },
@@ -258,11 +281,13 @@ async function processResumeAndRunAnalysis(
 
       state.stage = "resume_parsed";
       state.updatedAt = new Date().toISOString();
+      persistPipelineStates();
     } catch (err) {
       const msg = `Resume processing failed: ${err instanceof Error ? err.message : String(err)}`;
       console.error(`[Intake] ${msg}`);
       state.error = msg;
       state.updatedAt = new Date().toISOString();
+      persistPipelineStates();
       await notifyAdminError(participantId, msg);
       return;
     }
@@ -277,6 +302,8 @@ async function processResumeAndRunAnalysis(
     state.stage = "admin_review_pending";
     state.updatedAt = new Date().toISOString();
     outputs.phase1Result = phase1;
+    outputs.pipelineInput = pipelineInput;
+    persistPipelineStates();
 
     await sendReviewToAdmin(participantId, phase1, pipelineInput);
     console.log(`[Intake] Review sent to admin for ${participantId}`);
@@ -285,6 +312,7 @@ async function processResumeAndRunAnalysis(
     console.error(`[Intake] ${msg}`);
     state.error = msg;
     state.updatedAt = new Date().toISOString();
+    persistPipelineStates();
     await notifyAdminError(participantId, msg);
   }
 }

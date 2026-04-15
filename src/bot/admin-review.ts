@@ -15,15 +15,31 @@ import {
 import { createGoogleDoc } from "../services/google-docs-service.js";
 import { getAdminChatId, getBot } from "./bot-instance.js";
 import { marked } from "marked";
+import { getPipelineState, updatePipelineStage } from "../pipeline/intake.js";
+import { saveMap, loadMap, saveDocument } from "../services/state-store.js";
+
+type ReviewStatus = "pending" | "awaiting_feedback" | "approved" | "completed";
 
 interface PendingReview {
   participantId: string;
   phase1: Phase1Result;
   originalInput: AnalysisPipelineInput;
   awaitingFeedback: boolean;
+  status: ReviewStatus;
+  approvedAt?: string;
+  completedAt?: string;
+  docUrl?: string;
+  docError?: string;
 }
 
-const pendingReviews = new Map<string, PendingReview>();
+const STORE_NAME = "pendingReviews";
+const pendingReviews: Map<string, PendingReview> = loadMap<PendingReview>(STORE_NAME);
+
+console.log(`[Bot] Loaded ${pendingReviews.size} pending reviews from disk`);
+
+function persistPendingReviews(): void {
+  saveMap(STORE_NAME, pendingReviews);
+}
 
 let activeConversation: string | null = null;
 
@@ -40,7 +56,9 @@ export async function sendReviewToAdmin(
     phase1,
     originalInput,
     awaitingFeedback: false,
+    status: "pending",
   });
+  persistPendingReviews();
 
   const keyboard = Markup.inlineKeyboard([
     Markup.button.callback("Утвердить", `approve:${participantId}`),
@@ -73,11 +91,45 @@ export async function sendReviewToAdmin(
   });
 }
 
+function recoverReview(participantId: string): PendingReview | null {
+  const state = getPipelineState(participantId);
+  if (!state) return null;
+  if (state.stage === "completed") return null;
+  const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
+  const phase1 = outputs.phase1Result as Phase1Result | undefined;
+  if (!phase1) return null;
+  const originalInput = outputs.pipelineInput as AnalysisPipelineInput | undefined;
+  if (!originalInput) {
+    const analysisInput = outputs.analysisInput as Record<string, unknown> | undefined;
+    if (!analysisInput) return null;
+    return {
+      participantId,
+      phase1,
+      originalInput: {
+        questionnaire: JSON.stringify(analysisInput, null, 2),
+        resumeText: (analysisInput.resumeText as string) || "",
+        linkedinUrl: (analysisInput.linkedinUrl as string) || "",
+        linkedinSSI: (analysisInput.linkedinSSI as string) || "",
+      },
+      awaitingFeedback: false,
+      status: "pending",
+    };
+  }
+  return { participantId, phase1, originalInput, awaitingFeedback: false, status: "pending" };
+}
+
 async function handleApprove(
   participantId: string,
   ctx: Context,
 ): Promise<void> {
-  const review = pendingReviews.get(participantId);
+  let review = pendingReviews.get(participantId);
+  if (!review) {
+    review = recoverReview(participantId) ?? undefined;
+    if (review) {
+      pendingReviews.set(participantId, review);
+      console.log(`[Bot] Recovered review for ${participantId} from pipelineStates`);
+    }
+  }
   if (!review) {
     await ctx.reply("Анализ не найден или уже обработан.");
     return;
@@ -87,6 +139,8 @@ async function handleApprove(
   await ctx.reply("Собираю финальный документ...");
 
   try {
+    updatePipelineStage(participantId, "admin_reviewed");
+
     const { finalDocument } = await runAnalysisPhase4(
       review.phase1.profile,
       review.phase1.directions,
@@ -103,11 +157,18 @@ async function handleApprove(
 h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:8px;text-align:left}</style>
 </head><body>${htmlBody}</body></html>`;
 
+    saveDocument(participantId, `${safeTitle}.html`, htmlFile);
+    saveDocument(participantId, `${safeTitle}.md`, finalDocument);
+
     const fileBuffer = Buffer.from(htmlFile, "utf-8");
     await ctx.replyWithDocument(
       Input.fromBuffer(fileBuffer, `${safeTitle}.html`),
       { caption: "Финальный анализ (HTML). Можно открыть в браузере." },
     );
+
+    review.status = "approved";
+    review.approvedAt = new Date().toISOString();
+    persistPendingReviews();
 
     let docUrl: string | null = null;
     let docError: string | null = null;
@@ -118,8 +179,20 @@ h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border
       console.warn("[Bot] Google Doc creation failed:", docError);
     }
 
-    pendingReviews.delete(participantId);
+    review.status = "completed";
+    review.completedAt = new Date().toISOString();
+    review.awaitingFeedback = false;
+    if (docUrl) review.docUrl = docUrl;
+    if (docError) review.docError = docError;
+    persistPendingReviews();
     activeConversation = null;
+
+    updatePipelineStage(participantId, "completed", {
+      finalDocumentMd: finalDocument,
+      docUrl: docUrl ?? undefined,
+      docError: docError ?? undefined,
+      completedAt: review.completedAt,
+    });
 
     if (docUrl) {
       await ctx.reply(`Google Doc: ${docUrl}`, {
@@ -143,13 +216,21 @@ async function handleEdit(
   participantId: string,
   ctx: Context,
 ): Promise<void> {
-  const review = pendingReviews.get(participantId);
+  let review = pendingReviews.get(participantId);
+  if (!review) {
+    review = recoverReview(participantId) ?? undefined;
+    if (review) {
+      pendingReviews.set(participantId, review);
+      console.log(`[Bot] Recovered review for ${participantId} from pipelineStates (edit)`);
+    }
+  }
   if (!review) {
     await ctx.reply("Анализ не найден или уже обработан.");
     return;
   }
 
   review.awaitingFeedback = true;
+  persistPendingReviews();
   activeConversation = participantId;
   await ctx.editMessageReplyMarkup(undefined);
   await ctx.reply(
@@ -166,6 +247,7 @@ async function handleTextFeedback(ctx: Context): Promise<void> {
   if (!review || !review.awaitingFeedback) return;
 
   review.awaitingFeedback = false;
+  persistPendingReviews();
 
   await ctx.reply("Перезапускаю анализ с учётом замечаний...");
 

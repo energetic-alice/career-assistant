@@ -53,8 +53,9 @@ function onFormSubmit(e) {
 
 /* ── Веб-приложение: создание Google Doc из HTML ── */
 /*
- * Требует включения Drive API (advanced service):
- * Apps Script → Services → + → Drive API → Add
+ * Использует Drive REST API v3 напрямую через UrlFetchApp.
+ * НЕ требует включения Drive API advanced service.
+ * Достаточно стандартного DriveApp scope.
  */
 
 function doPost(e) {
@@ -75,19 +76,41 @@ function doPost(e) {
       "<!DOCTYPE html><html><head><meta charset='utf-8'></head><body>" +
       html +
       "</body></html>";
-    var blob = Utilities.newBlob(fullHtml, "text/html", title + ".html");
 
-    var file = Drive.Files.insert(
-      { title: title, mimeType: "application/vnd.google-apps.document" },
-      blob,
-    );
-
+    var metadata = {
+      name: title,
+      mimeType: "application/vnd.google-apps.document",
+    };
     if (folderId) {
-      var driveFile = DriveApp.getFileById(file.id);
-      DriveApp.getFolderById(folderId).addFile(driveFile);
-      DriveApp.getRootFolder().removeFile(driveFile);
+      metadata.parents = [folderId];
     }
 
+    var boundary = "----GASBoundary" + Utilities.getUuid();
+    var payload =
+      "--" + boundary + "\r\n" +
+      "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
+      JSON.stringify(metadata) + "\r\n" +
+      "--" + boundary + "\r\n" +
+      "Content-Type: text/html; charset=UTF-8\r\n\r\n" +
+      fullHtml + "\r\n" +
+      "--" + boundary + "--";
+
+    var resp = UrlFetchApp.fetch(
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+      {
+        method: "post",
+        contentType: "multipart/related; boundary=" + boundary,
+        payload: Utilities.newBlob(payload).getBytes(),
+        headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
+        muteHttpExceptions: true,
+      },
+    );
+
+    if (resp.getResponseCode() !== 200) {
+      throw new Error("Drive API " + resp.getResponseCode() + ": " + resp.getContentText());
+    }
+
+    var file = JSON.parse(resp.getContentText());
     var url = "https://docs.google.com/document/d/" + file.id + "/edit";
 
     return ContentService.createTextOutput(
@@ -100,3 +123,6 @@ function doPost(e) {
     ).setMimeType(ContentService.MimeType.JSON);
   }
 }
+
+/* Ссылка на DriveApp нужна, чтобы OAuth запросил scope drive.file */
+function _ensureDriveScope() { DriveApp.getRootFolder(); }

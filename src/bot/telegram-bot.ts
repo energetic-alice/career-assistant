@@ -44,6 +44,11 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
 
   registerAdminReview(bot);
 
+  await bot.telegram.setMyCommands([
+    { command: "start", description: "Информация о боте" },
+    { command: "status", description: "Текущее состояние очереди" },
+  ]);
+
   const appUrl = process.env.APP_URL;
 
   if (appUrl && app) {
