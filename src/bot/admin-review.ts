@@ -111,7 +111,6 @@ export async function sendReviewToAdmin(
 function recoverReview(participantId: string): PendingReview | null {
   const state = getPipelineState(participantId);
   if (!state) return null;
-  if (state.stage === "completed") return null;
   const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
   const phase1 = outputs.phase1Result as Phase1Result | undefined;
   if (!phase1) return null;
