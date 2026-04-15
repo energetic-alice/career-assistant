@@ -7,7 +7,10 @@ const app = Fastify({ logger: true });
 
 registerIntakeRoutes(app);
 
-app.get("/health", async () => ({ status: "ok" }));
+app.get("/health", async () => ({
+  status: "ok",
+  docMethod: process.env.APPS_SCRIPT_DOC_URL ? "apps-script" : "drive-api",
+}));
 
 const port = Number(process.env.PORT) || 3000;
 

@@ -110,10 +110,12 @@ h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border
     );
 
     let docUrl: string | null = null;
+    let docError: string | null = null;
     try {
       docUrl = await createGoogleDoc(title, finalDocument);
     } catch (docErr) {
-      console.warn("[Bot] Google Doc creation failed (quota?), HTML file sent instead:", docErr);
+      docError = docErr instanceof Error ? docErr.message : String(docErr);
+      console.warn("[Bot] Google Doc creation failed:", docError);
     }
 
     pendingReviews.delete(participantId);
@@ -124,8 +126,9 @@ h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border
         link_preview_options: { is_disabled: false },
       });
     } else {
+      const method = process.env.APPS_SCRIPT_DOC_URL ? "Apps Script" : "Drive API";
       await ctx.reply(
-        "Google Doc не удалось создать (квота сервисного аккаунта исчерпана). HTML-файл выше содержит полный анализ.",
+        `Google Doc не удалось создать (${method}): ${docError}\nHTML-файл выше содержит полный анализ.`,
       );
     }
   } catch (err) {
