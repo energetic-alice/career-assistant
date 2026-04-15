@@ -13,7 +13,7 @@ const gdocMarked = new Marked({
         3: "font-size:16px;font-weight:bold;margin:16px 0 8px 0;color:#3d3d3d;",
       };
       const style = sizes[depth] || sizes[3];
-      return `<h${depth} style="${style}">${text}</h${depth}>`;
+      return `<h${depth} style="${style}">${inline(text)}</h${depth}>`;
     },
     table(token: { header: { text: string }[]; rows: { text: string }[][] }) {
       const tableStyle = "border-collapse:collapse;width:100%;margin:12px 0;";
@@ -36,14 +36,14 @@ const gdocMarked = new Marked({
       return html;
     },
     paragraph({ text }: { text: string }) {
-      return `<p style="margin:8px 0;line-height:1.5;">${text}</p>`;
+      return `<p style="margin:8px 0;line-height:1.5;">${inline(text)}</p>`;
     },
     list(token: { ordered: boolean; items: { text: string }[] }) {
       const tag = token.ordered ? "ol" : "ul";
       const style = "margin:8px 0;padding-left:24px;";
       let inner = "";
       for (const item of token.items) {
-        inner += `<li style="margin:4px 0;line-height:1.5;">${item.text}</li>`;
+        inner += `<li style="margin:4px 0;line-height:1.5;">${inline(item.text)}</li>`;
       }
       return `<${tag} style="${style}">${inner}</${tag}>`;
     },
