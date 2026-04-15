@@ -171,20 +171,32 @@ export function registerIntakeRoutes(app: FastifyInstance) {
         const questionnaire = rawQuestionnaireSchema.parse(rawData);
         const analysisInput = toAnalysisInput(questionnaire);
 
-        const participantId = crypto.randomUUID();
+        const nick = questionnaire.telegramNick.replace(/^@/, "").toLowerCase();
+        const existing = Array.from(pipelineStates.values()).find(
+          (s) => s.telegramNick.replace(/^@/, "").toLowerCase() === nick,
+        );
+
+        const participantId = existing?.participantId ?? crypto.randomUUID();
         const now = new Date().toISOString();
 
         const state: PipelineState = {
           participantId,
           telegramNick: questionnaire.telegramNick,
           stage: "intake_received",
-          createdAt: now,
+          createdAt: existing?.createdAt ?? now,
           updatedAt: now,
           stageOutputs: {
             rawQuestionnaire: questionnaire,
             analysisInput,
           },
         };
+
+        if (existing) {
+          request.log.info(
+            { participantId, nick: questionnaire.telegramNick },
+            "Re-processing existing participant",
+          );
+        }
 
         pipelineStates.set(participantId, state);
         persistPipelineStates();
