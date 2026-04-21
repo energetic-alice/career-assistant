@@ -60,12 +60,20 @@ export async function sendClientCard(
     unmapped: unmappedFields,
   });
 
+  // Telegram: caption документа ограничен 1024 симв., а карточка часто длиннее.
+  // Поэтому шлём карточку отдельным сообщением (лимит 4096), а документ
+  // прикрепляем следом уже без длинного caption.
+  await bot.telegram.sendMessage(chatId, cardHtml, {
+    parse_mode: "HTML",
+    link_preview_options: { is_disabled: true },
+  });
+
   const buffer = Buffer.from(htmlDoc, "utf-8");
   await bot.telegram.sendDocument(
     chatId,
     Input.fromBuffer(buffer, `Анкета_${safeNick}.html`),
     {
-      caption: cardHtml,
+      caption: `Анкета @${nick}`,
       parse_mode: "HTML",
       ...(options.replyMarkup ? { reply_markup: options.replyMarkup } : {}),
     },

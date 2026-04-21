@@ -5,6 +5,13 @@ import { STAGE_LABELS } from "../services/review-summary.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
 import { normalizeNick } from "../services/intake-mapper.js";
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 let webhookMode = false;
 
 export async function startBot(app?: FastifyInstance): Promise<void> {
@@ -70,32 +77,58 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
         : "";
 
       // Компактная инфо-строка рядом с ником: что делает + где живёт → на какой рынок метит + англ.
+      // Все значения прогоняем через escapeHtml, чтобы "&" / "<" / ">" в полях
+      // (например "R&D", "C++ & Python") не ломали parse_mode=HTML.
       const contextParts: string[] = [];
       if (cs?.currentProfession && cs.currentProfession !== "—") {
-        contextParts.push(cs.currentProfession);
+        contextParts.push(escapeHtml(cs.currentProfession));
       }
       const loc = cs?.location && cs.location !== "—" ? cs.location : "";
       const market = cs?.targetMarket && cs.targetMarket !== "—" ? cs.targetMarket : "";
-      if (loc && market) contextParts.push(`${loc} → ${market}`);
-      else if (loc) contextParts.push(loc);
-      else if (market) contextParts.push(`→ ${market}`);
+      if (loc && market) contextParts.push(`${escapeHtml(loc)} → ${escapeHtml(market)}`);
+      else if (loc) contextParts.push(escapeHtml(loc));
+      else if (market) contextParts.push(`→ ${escapeHtml(market)}`);
       if (cs?.englishLevel && cs.englishLevel !== "—") {
-        contextParts.push(`англ ${cs.englishLevel}`);
+        contextParts.push(`англ ${escapeHtml(cs.englishLevel)}`);
       }
       const context = contextParts.length ? ` (${contextParts.join(", ")})` : "";
 
-      const nameStr = name ? ` ${name}` : "";
+      const nameStr = name ? ` ${escapeHtml(name)}` : "";
       const stageLabel = STAGE_LABELS[s.stage] ?? s.stage;
 
-      lines.push(`<b>@${nick}</b>${nameStr}${context}`);
-      lines.push(`  ${stageLabel} — /client_${nick}`);
+      lines.push(`<b>@${escapeHtml(nick)}</b>${nameStr}${context}`);
+      lines.push(`  ${escapeHtml(stageLabel)} — /client_${nick}`);
       lines.push("");
     }
 
-    await ctx.reply(lines.join("\n"), {
-      parse_mode: "HTML",
-      link_preview_options: { is_disabled: true },
-    });
+    // Telegram режет тело сообщения 4096 симв. Чтобы /clients не терялся при
+    // больших списках, аккуратно режем по двойному переводу строки (границы
+    // между клиентами) и отправляем несколько сообщений.
+    const CHUNK_LIMIT = 3500;
+    const text = lines.join("\n");
+    const chunks: string[] = [];
+    if (text.length <= CHUNK_LIMIT) {
+      chunks.push(text);
+    } else {
+      let buf = "";
+      for (const block of text.split("\n\n")) {
+        const withBlock = buf ? `${buf}\n\n${block}` : block;
+        if (withBlock.length > CHUNK_LIMIT && buf) {
+          chunks.push(buf);
+          buf = block;
+        } else {
+          buf = withBlock;
+        }
+      }
+      if (buf) chunks.push(buf);
+    }
+
+    for (const chunk of chunks) {
+      await ctx.reply(chunk, {
+        parse_mode: "HTML",
+        link_preview_options: { is_disabled: true },
+      });
+    }
   });
 
   // Поддержка коротких команд /client_<nick>, выпадающих из /clients.
