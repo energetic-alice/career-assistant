@@ -179,17 +179,12 @@ export function registerIntakeRoutes(app: FastifyInstance) {
 
   /**
    * One-off seed importer: overwrites pipelineStates with provided map.
-   * Guarded by BOTH x-webhook-secret AND ALLOW_SEED_IMPORT=true env var.
+   * Guarded by x-webhook-secret (same secret as the Google Form webhook).
    * Body: { [participantId]: PipelineState }
    */
   app.post(
     "/api/admin/import-seed",
     async (request: FastifyRequest, reply: FastifyReply) => {
-      if (process.env.ALLOW_SEED_IMPORT !== "true") {
-        return reply.status(403).send({
-          error: "Seed import is disabled. Set ALLOW_SEED_IMPORT=true to enable.",
-        });
-      }
       const secret = request.headers["x-webhook-secret"];
       if (secret !== process.env.WEBHOOK_SECRET) {
         return reply.status(401).send({ error: "Invalid webhook secret" });

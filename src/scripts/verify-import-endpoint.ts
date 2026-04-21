@@ -6,7 +6,6 @@ import { registerIntakeRoutes } from "../pipeline/intake.js";
 
 const SEED = path.resolve(process.cwd(), "data/pipelineStates.seed.json");
 
-process.env.ALLOW_SEED_IMPORT = "true";
 process.env.WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "test-secret";
 process.env.DATA_DIR = path.resolve(process.cwd(), "data/__test"); // isolate from real store
 
@@ -46,16 +45,6 @@ async function main(): Promise<void> {
   const fp = path.join(process.env.DATA_DIR!, "pipelineStates.json");
   const persisted = JSON.parse(fs.readFileSync(fp, "utf-8"));
   console.log("  persisted count:", Object.keys(persisted).length);
-
-  console.log("\nTest 5: ALLOW_SEED_IMPORT=false should 403");
-  process.env.ALLOW_SEED_IMPORT = "false";
-  const r5 = await app.inject({
-    method: "POST",
-    url: "/api/admin/import-seed",
-    headers: { "x-webhook-secret": process.env.WEBHOOK_SECRET! },
-    payload: body,
-  });
-  console.log("  status:", r5.statusCode, r5.json());
 
   await app.close();
   fs.rmSync(process.env.DATA_DIR!, { recursive: true, force: true });
