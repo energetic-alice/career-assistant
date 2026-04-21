@@ -184,6 +184,7 @@ export function registerIntakeRoutes(app: FastifyInstance) {
    */
   app.post(
     "/api/admin/import-seed",
+    { bodyLimit: 32 * 1024 * 1024 }, // 32 MB — seed бывает жирноват
     async (request: FastifyRequest, reply: FastifyReply) => {
       const secret = request.headers["x-webhook-secret"];
       if (secret !== process.env.WEBHOOK_SECRET) {
