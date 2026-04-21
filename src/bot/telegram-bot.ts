@@ -68,9 +68,24 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
         ? [cs.firstName, cs.lastName].filter((x) => x && x !== "—").join(" ") ||
           [cs.firstNameLatin, cs.lastNameLatin].filter((x) => x && x !== "—").join(" ")
         : "";
+
+      // Компактная инфо-строка рядом с ником: что делает + где живёт → на какой рынок метит.
+      const contextParts: string[] = [];
+      if (cs?.currentProfession && cs.currentProfession !== "—") {
+        contextParts.push(cs.currentProfession);
+      }
+      const loc = cs?.location && cs.location !== "—" ? cs.location : "";
+      const market = cs?.targetMarket && cs.targetMarket !== "—" ? cs.targetMarket : "";
+      if (loc && market) contextParts.push(`${loc} → ${market}`);
+      else if (loc) contextParts.push(loc);
+      else if (market) contextParts.push(`→ ${market}`);
+      const context = contextParts.length ? ` (${contextParts.join(", ")})` : "";
+
+      const nameStr = name ? ` ${name}` : "";
       const stageLabel = STAGE_LABELS[s.stage] ?? s.stage;
-      const head = name ? `<b>${name}</b> @${nick}` : `@${nick}`;
-      lines.push(`${head}\n  ${stageLabel}\n  /client_${nick}`);
+
+      lines.push(`<b>@${nick}</b>${nameStr}${context}`);
+      lines.push(`  ${stageLabel} — /client_${nick}`);
       lines.push("");
     }
 
