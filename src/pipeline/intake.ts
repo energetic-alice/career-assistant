@@ -103,6 +103,12 @@ export function registerIntakeRoutes(app: FastifyInstance) {
         const participantId = existing?.participantId ?? crypto.randomUUID();
         const now = new Date().toISOString();
 
+        // Сохраняем legacy-хвост (Google Doc + тариф из seed), чтобы повторный
+        // intake того же клиента через новую анкету не стирал исторический анализ.
+        const prevOutputs = (existing?.stageOutputs ?? {}) as Record<string, unknown>;
+        const legacyDocUrl = prevOutputs.legacyDocUrl as string | undefined;
+        const legacyTariff = prevOutputs.legacyTariff as string | undefined;
+
         const state: PipelineState = {
           participantId,
           telegramNick: questionnaire.telegramNick,
@@ -114,6 +120,8 @@ export function registerIntakeRoutes(app: FastifyInstance) {
             analysisInput,
             ...(rawNamedValues ? { rawNamedValues } : {}),
             ...(unmappedFields.length > 0 ? { unmappedFields } : {}),
+            ...(legacyDocUrl ? { legacyDocUrl } : {}),
+            ...(legacyTariff ? { legacyTariff } : {}),
           },
         };
 
