@@ -93,7 +93,7 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
       }
       const context = contextParts.length ? ` (${contextParts.join(", ")})` : "";
 
-      const nameStr = name ? ` ${escapeHtml(name)}` : "";
+      const nameStr = name ? ` <b>${escapeHtml(name)}</b>` : "";
       const stageLabel = STAGE_LABELS[s.stage] ?? s.stage;
 
       lines.push(`<b>@${escapeHtml(nick)}</b>${nameStr}${context}`);
