@@ -16,7 +16,7 @@ import {
 } from "./run-analysis.js";
 import { getBot } from "../bot/bot-instance.js";
 import { saveMap, loadMap } from "../services/state-store.js";
-import { parseNamedValues } from "../services/intake-mapper.js";
+import { normalizeNick, parseNamedValues } from "../services/intake-mapper.js";
 
 export { parseNamedValues };
 
@@ -95,9 +95,9 @@ export function registerIntakeRoutes(app: FastifyInstance) {
         const questionnaire = rawQuestionnaireSchema.parse(rawData);
         const analysisInput = toAnalysisInput(questionnaire);
 
-        const nick = questionnaire.telegramNick.replace(/^@/, "").toLowerCase();
+        const nick = normalizeNick(questionnaire.telegramNick);
         const existing = Array.from(pipelineStates.values()).find(
-          (s) => s.telegramNick.replace(/^@/, "").toLowerCase() === nick,
+          (s) => normalizeNick(s.telegramNick) === nick,
         );
 
         const participantId = existing?.participantId ?? crypto.randomUUID();
@@ -111,7 +111,7 @@ export function registerIntakeRoutes(app: FastifyInstance) {
 
         const state: PipelineState = {
           participantId,
-          telegramNick: questionnaire.telegramNick,
+          telegramNick: nick,
           stage: "intake_received",
           createdAt: existing?.createdAt ?? now,
           updatedAt: now,

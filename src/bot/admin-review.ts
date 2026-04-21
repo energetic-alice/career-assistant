@@ -9,6 +9,7 @@ import {
 } from "../services/review-summary.js";
 import type { RawQuestionnaire } from "../schemas/participant.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
+import { normalizeNick } from "../services/intake-mapper.js";
 
 type InlineKeyboardMarkup = ReturnType<typeof Markup.inlineKeyboard>["reply_markup"];
 
@@ -51,7 +52,7 @@ export async function sendClientCard(
     legacyTariff,
   });
 
-  const nick = state.telegramNick.replace(/^@/, "") || "client";
+  const nick = normalizeNick(state.telegramNick) || "client";
   const safeNick = nick.replace(/[^a-zA-Z0-9_\-]/g, "_");
 
   const htmlDoc = formatQuestionnaireForTelegram(rawQuestionnaire, rawNamedValues, {
@@ -85,7 +86,7 @@ export async function sendIntakeNotification(participantId: string): Promise<voi
   const state = getPipelineState(participantId);
   if (!state) return;
 
-  const nick = state.telegramNick.replace(/^@/, "") || "client";
+  const nick = normalizeNick(state.telegramNick) || "client";
 
   await bot.telegram.sendMessage(
     chatId,

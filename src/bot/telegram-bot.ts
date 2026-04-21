@@ -3,6 +3,7 @@ import { initBot, getBot } from "./bot-instance.js";
 import { registerAdminReview } from "./admin-review.js";
 import { STAGE_LABELS } from "../services/review-summary.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
+import { normalizeNick } from "../services/intake-mapper.js";
 
 let webhookMode = false;
 
@@ -53,15 +54,15 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
     }
 
     const sorted = [...states].sort((a, b) =>
-      a.telegramNick.replace(/^@/, "").toLowerCase().localeCompare(
-        b.telegramNick.replace(/^@/, "").toLowerCase(),
+      normalizeNick(a.telegramNick).localeCompare(
+        normalizeNick(b.telegramNick),
         "ru",
       ),
     );
 
     const lines: string[] = [`<b>Клиенты (${sorted.length}):</b>`, ""];
     for (const s of sorted) {
-      const nick = s.telegramNick.replace(/^@/, "") || "—";
+      const nick = normalizeNick(s.telegramNick) || "—";
       const cs = (s.stageOutputs as { clientSummary?: ClientSummary } | undefined)?.clientSummary;
       const name = cs
         ? [cs.firstName, cs.lastName].filter((x) => x && x !== "—").join(" ") ||
@@ -81,12 +82,12 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
 
   // Поддержка коротких команд /client_<nick>, выпадающих из /clients.
   bot.hears(/^\/client_([\w\d_]+)(@\w+)?$/i, async (ctx) => {
-    const target = ctx.match[1].toLowerCase();
+    const target = normalizeNick(ctx.match[1]);
     const { getAllPipelineStates } = await import("../pipeline/intake.js");
     const { sendClientCard } = await import("./admin-review.js");
 
     const matches = getAllPipelineStates().filter(
-      (s) => s.telegramNick.replace(/^@/, "").toLowerCase() === target,
+      (s) => normalizeNick(s.telegramNick) === target,
     );
     if (matches.length === 0) {
       await ctx.reply(`Клиент @${target} не найден.`);
@@ -106,12 +107,12 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
       return;
     }
 
-    const target = arg.replace(/^@/, "").toLowerCase();
+    const target = normalizeNick(arg);
     const { getAllPipelineStates } = await import("../pipeline/intake.js");
     const { sendClientCard } = await import("./admin-review.js");
 
     const matches = getAllPipelineStates().filter(
-      (s) => s.telegramNick.replace(/^@/, "").toLowerCase() === target,
+      (s) => normalizeNick(s.telegramNick) === target,
     );
 
     if (matches.length === 0) {

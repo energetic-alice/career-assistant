@@ -28,12 +28,10 @@ async function buildState(
   stage: "awaiting_analysis" | "completed_legacy",
   extras: Record<string, unknown> = {},
 ): Promise<PipelineState> {
-  const nickFromRow = parsed.raw["Твой ник в телеграм"]?.trim() ?? "";
-  const telegramNick = nickFromRow.startsWith("@")
-    ? nickFromRow
-    : nickFromRow.startsWith("https://")
-      ? `@${normalizeNick(nickFromRow)}`
-      : `@${nickFromRow}`;
+  // Храним канонический (нормализованный) ник: без "@", без "t.me/", lowercase.
+  // UI сам добавит "@" при рендере. Это единственный источник правды по
+  // идентификации клиента — все сравнения идут через normalizeNick.
+  const telegramNick = normalizeNick(parsed.raw["Твой ник в телеграм"] ?? "");
 
   const analysisInput = toAnalysisInput(parsed.questionnaire);
 

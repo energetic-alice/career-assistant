@@ -3,21 +3,11 @@ import {
   rawQuestionnaireSchema,
   type RawQuestionnaire,
 } from "../schemas/participant.js";
-import { parseNamedValues } from "./intake-mapper.js";
+import { normalizeNick, parseNamedValues } from "./intake-mapper.js";
 
-/**
- * Normalize a Telegram nickname:
- *   "@Foo"              → "foo"
- *   "https://t.me/bar"  → "bar"
- *   " BAZ "             → "baz"
- */
-export function normalizeNick(raw: string): string {
-  return raw
-    .trim()
-    .replace(/^https?:\/\/t\.me\//i, "")
-    .replace(/^@/, "")
-    .toLowerCase();
-}
+// Re-export для обратной совместимости. Канонический normalizeNick теперь
+// живёт в intake-mapper, чтобы у webhook/bot не было зависимости от xlsx.
+export { normalizeNick };
 
 /**
  * Map of headers from the OLD (legacy) questionnaire → internal RawQuestionnaire fields.

@@ -1,6 +1,26 @@
 import type { RawQuestionnaire } from "../schemas/participant.js";
 
 /**
+ * Canonical Telegram-nick normalization. ЕДИНАЯ точка для всего проекта —
+ * seed, webhook, telegram-bot-команды и UI должны ходить через эту функцию,
+ * иначе ники "margaritako4", "@margaritako4" и "t.me/margaritako4" приведут
+ * к дублям в pipelineStates.
+ *
+ *   "@Foo"                 → "foo"
+ *   "https://t.me/bar"     → "bar"
+ *   "t.me/bar"             → "bar"
+ *   " BAZ "                → "baz"
+ */
+export function normalizeNick(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^t\.me\//i, "")
+    .replace(/^@/, "")
+    .toLowerCase();
+}
+
+/**
  * Maps Google Forms column headers (from namedValues) to our internal field names.
  * Order follows the current questionnaire form exactly.
  * Shared between the intake webhook and the XLSX seed importer.
