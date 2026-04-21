@@ -69,7 +69,7 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
           [cs.firstNameLatin, cs.lastNameLatin].filter((x) => x && x !== "—").join(" ")
         : "";
 
-      // Компактная инфо-строка рядом с ником: что делает + где живёт → на какой рынок метит.
+      // Компактная инфо-строка рядом с ником: что делает + где живёт → на какой рынок метит + англ.
       const contextParts: string[] = [];
       if (cs?.currentProfession && cs.currentProfession !== "—") {
         contextParts.push(cs.currentProfession);
@@ -79,6 +79,9 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
       if (loc && market) contextParts.push(`${loc} → ${market}`);
       else if (loc) contextParts.push(loc);
       else if (market) contextParts.push(`→ ${market}`);
+      if (cs?.englishLevel && cs.englishLevel !== "—") {
+        contextParts.push(`англ ${cs.englishLevel}`);
+      }
       const context = contextParts.length ? ` (${contextParts.join(", ")})` : "";
 
       const nameStr = name ? ` ${name}` : "";
@@ -96,8 +99,20 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
   });
 
   // Поддержка коротких команд /client_<nick>, выпадающих из /clients.
-  bot.hears(/^\/client_([\w\d_]+)(@\w+)?$/i, async (ctx) => {
-    const target = normalizeNick(ctx.match[1]);
+  // Telegraf `bot.hears(regex)` не матчит сообщения с bot-command entity,
+  // а каждую команду /client_<ник> статически регистрировать нельзя — ники
+  // приходят и уходят. Поэтому ловим через общий text-хэндлер и диспатчим
+  // сами (если не совпало — передаём дальше через next()).
+  bot.on("text", async (ctx, next) => {
+    const text = (ctx.message as { text?: string })?.text ?? "";
+    const m = /^\/client_([\w\d]+)(@\w+)?\s*$/i.exec(text);
+    if (!m) {
+      return next();
+    }
+
+    const target = normalizeNick(m[1]);
+    console.log(`[Bot] /client_${target} from chat=${ctx.chat?.id}`);
+
     const { getAllPipelineStates } = await import("../pipeline/intake.js");
     const { sendClientCard } = await import("./admin-review.js");
 
@@ -109,7 +124,14 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
       return;
     }
     matches.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-    await sendClientCard(ctx.chat!.id, matches[0].participantId);
+    try {
+      await sendClientCard(ctx.chat!.id, matches[0].participantId);
+    } catch (err) {
+      console.error("[Bot] /client_X failed:", err);
+      await ctx.reply(
+        `Ошибка при отправке карточки: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   });
 
   bot.command("client", async (ctx) => {
