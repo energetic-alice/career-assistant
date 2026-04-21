@@ -3,6 +3,8 @@ import { z } from "zod";
 export const pipelineStageEnum = z.enum([
   "intake_received",
   "resume_parsed",
+  "awaiting_analysis",
+  "analysis_running",
   "profile_extracted",
   "directions_generated",
   "market_data_fetched",
@@ -11,6 +13,7 @@ export const pipelineStageEnum = z.enum([
   "admin_reviewed",
   "final_compiled",
   "completed",
+  "completed_legacy",
 ]);
 
 export type PipelineStage = z.infer<typeof pipelineStageEnum>;

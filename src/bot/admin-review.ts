@@ -1,359 +1,127 @@
 import type { Telegraf, Context } from "telegraf";
 import { Markup } from "telegraf";
 import { Input } from "telegraf";
-import type {
-  CandidateProfile,
-  DirectionsOutput,
-  AnalysisOutput,
-} from "../schemas/analysis-outputs.js";
-import {
-  runAnalysisPhase1,
-  runAnalysisPhase4,
-  type AnalysisPipelineInput,
-  type Phase1Result,
-} from "../pipeline/run-analysis.js";
-import { createGoogleDoc } from "../services/google-docs-service.js";
 import { getAdminChatId, getBot } from "./bot-instance.js";
-import { marked } from "marked";
-import { getPipelineState, updatePipelineStage } from "../pipeline/intake.js";
-import { saveMap, loadMap, saveDocument } from "../services/state-store.js";
+import { getPipelineState } from "../pipeline/intake.js";
+import {
+  formatQuestionnaireForTelegram,
+  formatClientCardForTelegram,
+} from "../services/review-summary.js";
+import type { RawQuestionnaire } from "../schemas/participant.js";
+import type { ClientSummary } from "../schemas/client-summary.js";
 
-const MEDAL_MAP: Record<string, string> = {
-  "\u{1F947}": "1.", // 🥇
-  "\u{1F948}": "2.", // 🥈
-  "\u{1F949}": "3.", // 🥉
-};
+type InlineKeyboardMarkup = ReturnType<typeof Markup.inlineKeyboard>["reply_markup"];
 
-const EMOJI_RE = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1FA00}-\u{1FA9F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/gu;
-
-function cleanDocEmoji(text: string): string {
-  let result = text;
-  for (const [emoji, replacement] of Object.entries(MEDAL_MAP)) {
-    result = result.replaceAll(emoji, replacement);
-  }
-  return result.replace(EMOJI_RE, "").replace(/ {2,}/g, " ");
-}
-
-type ReviewStatus = "pending" | "awaiting_feedback" | "approved" | "completed";
-
-interface PendingReview {
-  participantId: string;
-  phase1: Phase1Result;
-  originalInput: AnalysisPipelineInput;
-  awaitingFeedback: boolean;
-  status: ReviewStatus;
-  approvedAt?: string;
-  completedAt?: string;
-  docUrl?: string;
-  docError?: string;
-}
-
-const STORE_NAME = "pendingReviews";
-const pendingReviews: Map<string, PendingReview> = loadMap<PendingReview>(STORE_NAME);
-
-console.log(`[Bot] Loaded ${pendingReviews.size} pending reviews from disk`);
-
-function persistPendingReviews(): void {
-  saveMap(STORE_NAME, pendingReviews);
-}
-
-let activeConversation: string | null = null;
-
-export async function sendReviewToAdmin(
+/**
+ * Reusable: send the client card together with the questionnaire as an .html
+ * attachment (caption = the card itself in HTML).
+ * Used both as intake notification and as response to /client <nick>.
+ */
+export async function sendClientCard(
+  chatId: string | number,
   participantId: string,
-  phase1: Phase1Result,
-  originalInput: AnalysisPipelineInput,
+  options: {
+    profileName?: string;
+    /** Inline keyboard to attach to the document (e.g. "Предварительный анализ"). */
+    replyMarkup?: InlineKeyboardMarkup;
+  } = {},
 ): Promise<void> {
   const bot = getBot();
-  const chatId = getAdminChatId();
-
-  pendingReviews.set(participantId, {
-    participantId,
-    phase1,
-    originalInput,
-    awaitingFeedback: false,
-    status: "pending",
-  });
-  persistPendingReviews();
-
-  const keyboard = Markup.inlineKeyboard([
-    Markup.button.callback("Утвердить", `approve:${participantId}`),
-    Markup.button.callback("Мелкие правки", `edit:${participantId}`),
-    Markup.button.callback("Переделать", `redo:${participantId}`),
-  ]);
-
-  const links: string[] = [];
-  const tgNick = phase1.profile.telegramNick;
-  if (tgNick) {
-    const username = tgNick.replace(/^@/, "");
-    links.push(`<a href="https://t.me/${username}">Telegram</a>`);
-  }
-  if (originalInput.linkedinUrl && originalInput.linkedinUrl !== "нет") {
-    const url = originalInput.linkedinUrl.startsWith("http")
-      ? originalInput.linkedinUrl
-      : `https://${originalInput.linkedinUrl}`;
-    links.push(`<a href="${url}">LinkedIn</a>`);
-  }
-  if (originalInput.resumeUrl) {
-    links.push(`<a href="${originalInput.resumeUrl}">Резюме</a>`);
-  }
-  const linksLine = links.length > 0 ? `\n${links.join(" | ")}\n` : "";
-
-  const message = phase1.reviewSummaryText + linksLine;
-
-  await bot.telegram.sendMessage(chatId, message, {
-    parse_mode: "HTML",
-    link_preview_options: { is_disabled: true },
-    ...keyboard,
-  });
-}
-
-function recoverReview(participantId: string): PendingReview | null {
   const state = getPipelineState(participantId);
-  if (!state) return null;
+  if (!state) {
+    await bot.telegram.sendMessage(chatId, "Клиент не найден.");
+    return;
+  }
   const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
-  const phase1 = outputs.phase1Result as Phase1Result | undefined;
-  if (!phase1) return null;
-  const originalInput = outputs.pipelineInput as AnalysisPipelineInput | undefined;
-  if (!originalInput) {
-    const analysisInput = outputs.analysisInput as Record<string, unknown> | undefined;
-    if (!analysisInput) return null;
-    return {
-      participantId,
-      phase1,
-      originalInput: {
-        questionnaire: JSON.stringify(analysisInput, null, 2),
-        resumeText: (analysisInput.resumeText as string) || "",
-        linkedinUrl: (analysisInput.linkedinUrl as string) || "",
-        linkedinSSI: (analysisInput.linkedinSSI as string) || "",
-      },
-      awaitingFeedback: false,
-      status: "pending",
-    };
-  }
-  return { participantId, phase1, originalInput, awaitingFeedback: false, status: "pending" };
-}
+  const rawQuestionnaire = outputs.rawQuestionnaire as RawQuestionnaire | undefined;
+  const rawNamedValues = outputs.rawNamedValues as Record<string, string> | undefined;
+  const unmappedFields = (outputs.unmappedFields as string[] | undefined) ?? [];
+  const clientSummary = outputs.clientSummary as ClientSummary | undefined;
+  const legacyDocUrl = outputs.legacyDocUrl as string | undefined;
+  const legacyTariff = outputs.legacyTariff as string | undefined;
 
-async function handleApprove(
-  participantId: string,
-  ctx: Context,
-): Promise<void> {
-  let review = pendingReviews.get(participantId);
-  if (!review) {
-    review = recoverReview(participantId) ?? undefined;
-    if (review) {
-      pendingReviews.set(participantId, review);
-      console.log(`[Bot] Recovered review for ${participantId} from pipelineStates`);
-    }
-  }
-  if (!review) {
-    await ctx.reply("Анализ не найден или уже обработан.");
-    return;
-  }
+  const cardHtml = formatClientCardForTelegram({
+    telegramNick: state.telegramNick,
+    stage: state.stage,
+    clientSummary,
+    profileName: options.profileName,
+    rawQuestionnaire,
+    rawNamedValues,
+    legacyDocUrl,
+    legacyTariff,
+  });
 
-  await ctx.reply("Собираю финальный документ...");
+  const nick = state.telegramNick.replace(/^@/, "") || "client";
+  const safeNick = nick.replace(/[^a-zA-Z0-9_\-]/g, "_");
 
-  try {
-    updatePipelineStage(participantId, "admin_reviewed");
+  const htmlDoc = formatQuestionnaireForTelegram(rawQuestionnaire, rawNamedValues, {
+    title: `Анкета @${nick}`,
+    unmapped: unmappedFields,
+  });
 
-    const phase4 = await runAnalysisPhase4(
-      review.phase1.profile,
-      review.phase1.directions,
-      review.phase1.analysis,
-    );
-    const finalDocument = cleanDocEmoji(phase4.finalDocument);
-
-    const title = `Карьерный анализ: ${review.phase1.profile.name}`;
-    const safeTitle = title.replace(/[^a-zA-Zа-яА-ЯёЁ0-9_\- ]/g, "_");
-
-    const htmlBody = await marked(finalDocument);
-    const htmlFile = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${title}</title>
-<style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6}
-h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:8px;text-align:left}</style>
-</head><body>${htmlBody}</body></html>`;
-
-    saveDocument(participantId, `${safeTitle}.html`, htmlFile);
-    saveDocument(participantId, `${safeTitle}.md`, finalDocument);
-
-    const fileBuffer = Buffer.from(htmlFile, "utf-8");
-    await ctx.replyWithDocument(
-      Input.fromBuffer(fileBuffer, `${safeTitle}.html`),
-      { caption: "Финальный анализ (HTML). Можно открыть в браузере." },
-    );
-
-    review.status = "approved";
-    review.approvedAt = new Date().toISOString();
-    persistPendingReviews();
-
-    let docUrl: string | null = null;
-    let docError: string | null = null;
-    try {
-      docUrl = await createGoogleDoc(title, finalDocument);
-    } catch (docErr) {
-      docError = docErr instanceof Error ? docErr.message : String(docErr);
-      console.warn("[Bot] Google Doc creation failed:", docError);
-    }
-
-    review.status = "completed";
-    review.completedAt = new Date().toISOString();
-    review.awaitingFeedback = false;
-    if (docUrl) review.docUrl = docUrl;
-    if (docError) review.docError = docError;
-    persistPendingReviews();
-    activeConversation = null;
-
-    updatePipelineStage(participantId, "completed", {
-      finalDocumentMd: finalDocument,
-      docUrl: docUrl ?? undefined,
-      docError: docError ?? undefined,
-      completedAt: review.completedAt,
-    });
-
-    if (docUrl) {
-      await ctx.reply(`Google Doc: ${docUrl}`, {
-        link_preview_options: { is_disabled: false },
-      });
-    } else {
-      const method = process.env.APPS_SCRIPT_DOC_URL ? "Apps Script" : "Drive API";
-      await ctx.reply(
-        `Google Doc не удалось создать (${method}): ${docError}\nHTML-файл выше содержит полный анализ.`,
-      );
-    }
-  } catch (err) {
-    console.error("[Bot] Phase 4 error:", err);
-    await ctx.reply(
-      `Ошибка при создании документа: ${err instanceof Error ? err.message : String(err)}\n\nНажми «Утвердить» ещё раз, чтобы повторить.`,
-    );
-  }
-}
-
-async function handleEdit(
-  participantId: string,
-  ctx: Context,
-): Promise<void> {
-  let review = pendingReviews.get(participantId);
-  if (!review) {
-    review = recoverReview(participantId) ?? undefined;
-    if (review) {
-      pendingReviews.set(participantId, review);
-      console.log(`[Bot] Recovered review for ${participantId} from pipelineStates (edit)`);
-    }
-  }
-  if (!review) {
-    await ctx.reply("Анализ не найден или уже обработан.");
-    return;
-  }
-
-  review.awaitingFeedback = true;
-  persistPendingReviews();
-  activeConversation = participantId;
-  await ctx.reply(
-    "Напиши что изменить. Анализ будет пересчитан с учётом твоих замечаний.",
+  const buffer = Buffer.from(htmlDoc, "utf-8");
+  await bot.telegram.sendDocument(
+    chatId,
+    Input.fromBuffer(buffer, `Анкета_${safeNick}.html`),
+    {
+      caption: cardHtml,
+      parse_mode: "HTML",
+      ...(options.replyMarkup ? { reply_markup: options.replyMarkup } : {}),
+    },
   );
 }
 
-async function handleRedo(
-  participantId: string,
-  ctx: Context,
-): Promise<void> {
-  let review = pendingReviews.get(participantId);
-  if (!review) {
-    review = recoverReview(participantId) ?? undefined;
-    if (review) {
-      pendingReviews.set(participantId, review);
-    }
-  }
-  if (!review) {
-    await ctx.reply("Анализ не найден или уже обработан.");
-    return;
-  }
+/**
+ * Called from intake right after Phase 0 (client summary) is ready.
+ * Sends:
+ *   1. brief "🆕 New form filled @nick" message
+ *   2. client card (with questionnaire attached) + button "Предварительный анализ"
+ *
+ * Heavy analysis (Phase 1/4) is currently DISABLED — см. TODO(phase1a) ниже.
+ */
+export async function sendIntakeNotification(participantId: string): Promise<void> {
+  const bot = getBot();
+  const chatId = getAdminChatId();
+  const state = getPipelineState(participantId);
+  if (!state) return;
 
-  await ctx.reply("Полная регенерация анализа с нуля...");
+  const nick = state.telegramNick.replace(/^@/, "") || "client";
 
-  try {
-    const newPhase1 = await runAnalysisPhase1(review.originalInput);
-    await sendReviewToAdmin(participantId, newPhase1, review.originalInput);
-  } catch (err) {
-    console.error("[Bot] Redo error:", err);
-    await ctx.reply(
-      `Ошибка при регенерации: ${err instanceof Error ? err.message : String(err)}\n\nНажми «Переделать» ещё раз.`,
-    );
-  }
+  await bot.telegram.sendMessage(
+    chatId,
+    `🆕 Новая анкета заполнена: <a href="https://t.me/${nick}">@${nick}</a>`,
+    { parse_mode: "HTML", link_preview_options: { is_disabled: true } },
+  );
+
+  const keyboard =
+    state.stage === "completed_legacy"
+      ? undefined
+      : Markup.inlineKeyboard([
+          [
+            Markup.button.callback(
+              "🔍 Предварительный анализ",
+              `analyze:${participantId}`,
+            ),
+          ],
+        ]);
+
+  await sendClientCard(chatId, participantId, {
+    replyMarkup: keyboard?.reply_markup,
+  });
 }
 
-async function handleTextFeedback(ctx: Context): Promise<void> {
-  if (!activeConversation) return;
-  const text = (ctx.message as { text?: string })?.text;
-  if (!text) return;
+// ─────────────────────────────────────────────────────────────────────────────
+// TODO(phase1a): re-enable Phase 1 (directions + market) and Phase 4 (final doc)
+// after the interactive Phase 1A/1B flow is shipped. For now the "Предварительный
+// анализ" button answers with a stub, and the old approve/edit/redo review
+// sub-flow is disabled so we don't break on a changed schema.
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const review = pendingReviews.get(activeConversation);
-  if (!review || !review.awaitingFeedback) return;
-
-  const pid = review.participantId;
-  review.awaitingFeedback = false;
-  persistPendingReviews();
-  activeConversation = null;
-
-  await ctx.reply("Применяю правки к документу (данные анализа не меняются)...");
-
-  try {
-    const phase4 = await runAnalysisPhase4(
-      review.phase1.profile,
-      review.phase1.directions,
-      review.phase1.analysis,
-      text,
-    );
-    const finalDocument = cleanDocEmoji(phase4.finalDocument);
-
-    const title = `Карьерный анализ: ${review.phase1.profile.name}`;
-    const safeTitle = title.replace(/[^a-zA-Zа-яА-ЯёЁ0-9_\- ]/g, "_");
-
-    const htmlBody = await marked(finalDocument);
-    const htmlFile = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${title}</title>
-<style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6}
-h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:8px;text-align:left}</style>
-</head><body>${htmlBody}</body></html>`;
-
-    saveDocument(pid, `${safeTitle}.html`, htmlFile);
-    saveDocument(pid, `${safeTitle}.md`, finalDocument);
-
-    const fileBuffer = Buffer.from(htmlFile, "utf-8");
-    await ctx.replyWithDocument(
-      Input.fromBuffer(fileBuffer, `${safeTitle}.html`),
-      { caption: "Обновлённый анализ с правками (HTML)." },
-    );
-
-    let docUrl: string | null = null;
-    try {
-      docUrl = await createGoogleDoc(title, finalDocument);
-    } catch (docErr) {
-      console.warn("[Bot] Google Doc creation failed:", docErr);
-    }
-
-    review.status = "completed";
-    review.completedAt = new Date().toISOString();
-    if (docUrl) review.docUrl = docUrl;
-    persistPendingReviews();
-
-    updatePipelineStage(pid, "completed", {
-      finalDocumentMd: finalDocument,
-      docUrl: docUrl ?? undefined,
-      completedAt: review.completedAt,
-    });
-
-    if (docUrl) {
-      await ctx.reply(`Google Doc: ${docUrl}`, {
-        link_preview_options: { is_disabled: false },
-      });
-    }
-  } catch (err) {
-    console.error("[Bot] Minor edit error:", err);
-    await ctx.reply(
-      `Ошибка при правках: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
+async function handleAnalyze(_participantId: string, ctx: Context): Promise<void> {
+  await ctx.reply(
+    "🚧 Предварительный анализ временно отключён — собираем обновлённый flow. " +
+      "Клиент в списке, анкета сохранена.",
+  );
 }
 
 export function registerAdminReview(bot: Telegraf): void {
@@ -367,21 +135,15 @@ export function registerAdminReview(bot: Telegraf): void {
     if (!participantId) return;
 
     switch (action) {
-      case "approve":
-        await handleApprove(participantId, ctx);
+      case "analyze":
+        await handleAnalyze(participantId, ctx);
         break;
-      case "edit":
-        await handleEdit(participantId, ctx);
-        break;
-      case "redo":
-        await handleRedo(participantId, ctx);
+      default:
+        // TODO(phase1a): wire up approve/edit/redo/phase1a_* callbacks
         break;
     }
   });
 
-  bot.on("text", async (ctx) => {
-    const chatId = getAdminChatId();
-    if (String(ctx.chat.id) !== chatId) return;
-    await handleTextFeedback(ctx);
-  });
+  // TODO(phase1a): re-enable text feedback handler when the review flow is back.
+  // bot.on("text", async (ctx) => { ... });
 }

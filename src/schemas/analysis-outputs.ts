@@ -20,6 +20,26 @@ export const competitionDiscrete = z.enum([
 
 export type CompetitionLevel = z.infer<typeof competitionDiscrete>;
 
+// ─── Shared enums ───
+
+export const regionEnum = z.enum([
+  "eu",
+  "us",
+  "uk",
+  "ru",
+  "cis",
+  "latam",
+  "asia-pacific",
+  "middle-east",
+  "global",
+]);
+
+export type Region = z.infer<typeof regionEnum>;
+
+export const cefrEnum = z.enum(["0", "A1", "A2", "B1", "B2", "C1", "C2"]);
+
+export type CEFRLevel = z.infer<typeof cefrEnum>;
+
 // ─── Step 1: Profile Extraction Output ───
 
 export const candidateProfileSchema = z.object({
@@ -37,7 +57,12 @@ export const candidateProfileSchema = z.object({
     domainExpertise: z.array(z.string()).describe("Доменная экспертиза"),
     managementExperience: z.string().optional().describe("Управленческий опыт"),
     education: z.string(),
-    englishLevel: z.string(),
+    englishLevel: cefrEnum.describe(
+      "Уровень английского нормализованный в CEFR. " +
+      "'Никак, около нуля' = 0. 'Могу читать/писать, иногда переводчик' = A2. " +
+      "'Говорю и понимаю не-IT темы' = B1. 'Могу проходить собеседования' = B2. " +
+      "Если неясно — определи по резюме (рус = 0/A1, англ = B2+).",
+    ),
     currentSalary: z.string(),
     currentOccupation: z.string(),
   }),
@@ -47,6 +72,15 @@ export const candidateProfileSchema = z.object({
     desiredSalary3to5y: z.string(),
     targetCountries: z.string(),
     workFormat: z.string(),
+    targetMarketRegions: z
+      .array(regionEnum)
+      .describe(
+        "Нормализованные целевые рынки из targetCountries + workFormat. " +
+        "Remote EU/Europe/любая EU-страна = eu. UK всегда отдельно. " +
+        "Сингапур/Малайзия/Австралия/Япония = asia-pacific. " +
+        "Office в конкретной EU-стране = тоже eu. Россия = ru. " +
+        "СНГ без РФ (Казахстан, Грузия, Армения, Узбекистан) = cis.",
+      ),
     retrainingReadiness: z.string(),
     weeklyHours: z.string(),
     desiredResult: z.string(),
@@ -63,12 +97,34 @@ export const candidateProfileSchema = z.object({
   }),
 
   barriers: z.object({
-    accessibleMarkets: z
-      .array(z.string())
-      .describe("Доступные рынки труда исходя из локации и гражданства"),
+    // --- Claude заполняет из анкеты ---
+    physicalCountry: z.string().describe(
+      "Страна проживания, нормализованная на английском: Russia, Germany, Argentina, Kazakhstan...",
+    ),
+    citizenships: z.array(z.string()).describe(
+      "Гражданства (нормализованные на англ): ['Belarus'], ['Kazakhstan','Russia']",
+    ),
+    isRemoteOnly: z.boolean().describe(
+      "Ищет только удалённую работу, не готов к релокации",
+    ),
+    explicitlyExcludesRU: z.boolean().describe(
+      "Кандидат ЯВНО указал что не хочет работать на РФ-рынок. По умолчанию false.",
+    ),
     languageBarrier: z.string().describe("Достаточен ли английский для целевого рынка"),
     visaWorkPermit: z.string().describe("Право на работу / необходимость визы"),
     otherBarriers: z.array(z.string()).describe("Прочие ограничения"),
+
+    // --- Вычисляется кодом после Step 1 (computeMarketAccess) ---
+    accessibleMarkets: z.array(regionEnum).optional()
+      .describe("Вычисляется кодом. Не заполнять."),
+    isPhysicallyInRU: z.boolean().optional()
+      .describe("Вычисляется кодом."),
+    isPhysicallyInEU: z.boolean().optional()
+      .describe("Вычисляется кодом."),
+    hasRuWorkPermit: z.boolean().optional()
+      .describe("Вычисляется кодом. РФ/BY/ЕАЭС паспорт или ВНЖ РФ."),
+    hasEUWorkPermit: z.boolean().optional()
+      .describe("Вычисляется кодом. EU/UK паспорт/ВНЖ или рабочая виза."),
   }),
 
   directionInterest: z.object({
@@ -85,12 +141,6 @@ export const candidateProfileSchema = z.object({
     .describe("Ключевые достижения/цифры из резюме для позиционирования"),
 
   linkedinSSI: z.string().optional().describe("SSI рейтинг LinkedIn"),
-
-  languageMode: z
-    .enum(["ru-only", "ru-with-en-terms", "bilingual", "en-only"])
-    .describe(
-      "ru-only: англ на нуле, RU рынок; ru-with-en-terms: базовый English, RU/СНГ рынок; bilingual: хороший English, международный рынок; en-only: native English speaker"
-    ),
 });
 
 export type CandidateProfile = z.infer<typeof candidateProfileSchema>;
@@ -118,41 +168,10 @@ export const directionSchema = z.object({
 export type Direction = z.infer<typeof directionSchema>;
 
 export const directionsOutputSchema = z.object({
-  superpower: z.object({
-    formulation: z
-      .string()
-      .describe(
-        "Конкретная формулировка позиционирования. Язык зависит от languageMode: ru-only — на русском, остальные — на английском"
-      ),
-    explanation: z.string().describe("Почему именно этого кандидата выберут"),
-    competitiveAdvantage: z.string().describe("В чём конкурентное преимущество"),
-    marketAlignment: z
-      .string()
-      .describe("Совпадает ли суперсила с рынком, или нужно переформулировать"),
-  }),
-
-  strategicAlert: z.object({
-    currentStackOutlook: z.enum([
-      "хороший долгосрочный трек",
-      "краткосрочный мост",
-      "сужающийся рискованный стек",
-    ]),
-    needsTransition: z.boolean(),
-    transitionDirection: z.string().optional(),
-    reasoning: z.string(),
-  }),
-
-  directions: z.array(directionSchema).length(3),
-
-  rejectedDirections: z
-    .array(
-      z.object({
-        title: z.string().describe("Роль, которую НЕ включили в топ-3"),
-        reason: z.string().describe("Честное объяснение на 1-2 предложения, почему не подходит"),
-      })
-    )
+  directions: z.array(directionSchema).min(5).max(9)
     .describe(
-      "Роли, которые кандидат озвучил в анкете, но не вошли в топ-3; а также текущая роль, если она не среди предложенных"
+      "5-9 направлений. Обязательно включают текущую роль кандидата и все явно озвученные " +
+      "directionInterest (даже если ты считаешь их неоптимальными — отсев будет на следующем шаге)."
     ),
 });
 
@@ -187,6 +206,24 @@ export const marketDataSchema = z.object({
     .string()
     .optional()
     .describe("Сырые результаты поиска для контекста"),
+  dataSource: z
+    .string()
+    .optional()
+    .describe("Основной источник данных: itjobswatch.co.uk, hh.ru, reed.co.uk и т.д."),
+  titleVariations: z
+    .array(
+      z.object({
+        title: z.string(),
+        vacancies: z.string(),
+        salary: z.string().optional(),
+      }),
+    )
+    .optional()
+    .describe("Вариации тайтлов с числом вакансий — из itjobswatch или hh.ru"),
+  bestSearchTitle: z
+    .string()
+    .optional()
+    .describe("Тайтл, дающий максимум релевантных вакансий"),
 });
 
 export type MarketData = z.infer<typeof marketDataSchema>;
@@ -244,6 +281,14 @@ export const analyzedDirectionSchema = z.object({
     .string()
     .optional()
     .describe("Если не лучший долгосрочный трек: куда логично перейти дальше"),
+
+  recommendedTitle: z
+    .string()
+    .optional()
+    .describe(
+      "Рекомендуемый тайтл для поиска вакансий на основе рыночных данных. " +
+      "Например: 'DevOps' вместо 'DevOps Engineer' если первый даёт больше вакансий.",
+    ),
 });
 
 export type AnalyzedDirection = z.infer<typeof analyzedDirectionSchema>;
@@ -258,6 +303,20 @@ export const analysisOutputSchema = z.object({
   }),
 
   honestRisks: z.array(z.string()).describe("Узкие рынки, завышенные ожидания, барьеры, тупики"),
+
+  replacedDirections: z
+    .array(
+      z.object({
+        originalTitle: z.string().describe("Тайтл направления, которое заменяется"),
+        newTitle: z.string().describe("Новое предлагаемое направление (роль + стек + домен)"),
+        reason: z.string().describe("Почему заменяем: слишком узкий рынок, нет данных, не подходит кандидату"),
+      }),
+    )
+    .optional()
+    .describe(
+      "Если на основе рыночных данных одно или несколько направлений явно плохие — предложи замену. " +
+      "Pipeline перезапустит анализ для новых направлений.",
+    ),
 });
 
 export type AnalysisOutput = z.infer<typeof analysisOutputSchema>;
@@ -273,12 +332,11 @@ export type ReviewFlag = z.infer<typeof reviewFlagSchema>;
 
 export const reviewSummarySchema = z.object({
   candidateName: z.string(),
-  languageMode: z.string(),
   currentRole: z.string(),
   targetMarket: z.string(),
   englishLevel: z.string(),
   linkedinSSI: z.string().optional(),
-  superpower: z.string(),
+  superpower: z.string().optional(),
   directions: z.array(
     z.object({
       title: z.string(),

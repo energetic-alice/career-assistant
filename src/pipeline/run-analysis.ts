@@ -8,15 +8,27 @@ import {
   type CandidateProfile,
   type DirectionsOutput,
   type AnalysisOutput,
+  type Direction,
 } from "../schemas/analysis-outputs.js";
 import {
+  loadPrompt00,
   loadPrompt01,
   loadPrompt02,
   loadPrompt03,
   loadPrompt04,
   inferRelevantDomains,
 } from "./prompt-loader.js";
+import { clientSummarySchema, type ClientSummary } from "../schemas/client-summary.js";
 import { buildReviewSummary, formatReviewForTelegram } from "../services/review-summary.js";
+import { fetchMarketDataForDirections } from "../services/perplexity-service.js";
+import {
+  loadMarketOverview,
+  optimizeTitles,
+  loadRoleReports,
+  computeMarketAccess,
+  buildFullMarketSummary,
+  type TitleOptimizationResult,
+} from "../services/market-data-service.js";
 
 const client = new Anthropic();
 const MODEL = "claude-sonnet-4-20250514";
@@ -80,6 +92,8 @@ export interface Phase1Result {
   directions: DirectionsOutput;
   analysis: AnalysisOutput;
   reviewSummaryText: string;
+  perplexityMarketData?: unknown;
+  titleOptimization?: TitleOptimizationResult[];
   timings: Record<string, number>;
 }
 
@@ -98,55 +112,194 @@ export interface AnalysisPipelineResult {
 }
 
 /**
- * Phase 1: Steps 1-3 (profile extraction, direction generation, direction analysis).
- * Returns structured data + review summary for admin approval.
+ * Phase 0: One-shot client summary for the Telegram client card.
+ *
+ * Runs ONCE per participant right after intake (and resume parsing if any),
+ * persisted in `state.stageOutputs.clientSummary` and reused everywhere.
+ * Cheap, fast, independent from the heavy analysis pipeline.
+ */
+export async function runClientSummary(input: {
+  rawNamedValues: Record<string, string>;
+  resumeText?: string;
+  linkedinUrl?: string;
+  linkedinSSI?: string;
+}): Promise<ClientSummary> {
+  console.log("[Phase 0] Building client summary...");
+  const t0 = Date.now();
+  const prompt = await loadPrompt00({
+    rawNamedValues: JSON.stringify(input.rawNamedValues, null, 2),
+    resumeText: input.resumeText ?? "",
+    linkedinUrl: input.linkedinUrl ?? "",
+    linkedinSSI: input.linkedinSSI ?? "",
+  });
+  const summary = await callClaudeStructured(
+    prompt,
+    clientSummarySchema,
+    "client_summary",
+    2048,
+  );
+  console.log(`[Phase 0] Done in ${Date.now() - t0}ms (${summary.firstNameLatin} ${summary.lastNameLatin})`);
+  return summary;
+}
+
+/**
+ * Phase 1: Market-aware pipeline v2.
+ *
+ * Step 1:  Profile extraction
+ * Step 0*: Pre-load market reports for target regions
+ * Step 2:  Direction generation (with marketOverview)
+ * Step 3:  Title optimization (itjobswatch / hh.ru)
+ * Step 4:  KB check — ensure role reports exist
+ * Step 5:  Actualization (source-aware Perplexity)
+ * Step 6:  Analysis (with feedback loop — max 2 iterations)
+ *
+ * *Step 0 runs after Step 1 because we need the profile to know target regions.
  */
 export async function runAnalysisPhase1(
   input: AnalysisPipelineInput,
 ): Promise<Phase1Result> {
   const timings: Record<string, number> = {};
 
+  // ── Step 1: Profile extraction ──────────────────────────────────────────
   console.log("[Step 1] Extracting candidate profile...");
   let t0 = Date.now();
   const prompt01 = await loadPrompt01({
     questionnaire: input.questionnaire,
     resumeText: input.resumeText,
-    linkedinUrl: input.linkedinUrl,
     linkedinSSI: input.linkedinSSI,
   });
-  const profile = await callClaudeStructured(
+  let profile = await callClaudeStructured(
     prompt01,
     candidateProfileSchema,
     "extract_profile",
   );
   timings["step1_profile"] = Date.now() - t0;
-  console.log(`[Step 1] Done in ${timings["step1_profile"]}ms. Language mode: ${profile.languageMode}`);
+  console.log(`[Step 1] Done in ${timings["step1_profile"]}ms. English: ${profile.currentBase.englishLevel}`);
 
-  console.log("[Step 2] Generating directions...");
+  // ── Step 1b: Compute market access flags ──────────────────────────────
+  profile = computeMarketAccess(profile);
+  const regions = profile.careerGoals.targetMarketRegions;
+  console.log(`[Step 1] Target regions: ${regions.join(", ")}`);
+  console.log(`[Step 1] Accessible markets: ${profile.barriers.accessibleMarkets?.join(", ")}`);
+  console.log(`[Step 1] PhysRU=${profile.barriers.isPhysicallyInRU} PhysEU=${profile.barriers.isPhysicallyInEU} RUwp=${profile.barriers.hasRuWorkPermit} EUwp=${profile.barriers.hasEUWorkPermit}`);
+
+  // ── Step 0: Pre-load KB + scraped market summary ──────────────────────
+  console.log("[Step 0] Pre-loading market overview...");
+  t0 = Date.now();
+  let marketOverview: string;
+  try {
+    const [kbOverview, scrapedSummary] = await Promise.all([
+      loadMarketOverview(regions),
+      buildFullMarketSummary(profile),
+    ]);
+    marketOverview = kbOverview + "\n\n---\n\n" + scrapedSummary.markdown;
+    timings["step0_preload"] = Date.now() - t0;
+    console.log(`[Step 0] Done in ${timings["step0_preload"]}ms (${marketOverview.length} chars, ${scrapedSummary.roles.length} roles in table)`);
+  } catch (err) {
+    timings["step0_preload"] = Date.now() - t0;
+    console.error("[Step 0] Pre-load failed, continuing without market data:", err);
+    marketOverview = "Рыночные данные не загружены. Используй свои знания о рынке IT 2026.";
+  }
+
+  // ── Step 2: Direction generation (market-informed) ─────────────────────
+  console.log("[Step 2] Generating directions (with market overview)...");
   t0 = Date.now();
   const prompt02 = await loadPrompt02({
     candidateProfile: JSON.stringify(profile, null, 2),
+    marketOverview,
   });
-  const directions = await callClaudeStructured(
+  let directions = await callClaudeStructured(
     prompt02,
     directionsOutputSchema,
     "generate_directions",
     12000,
   );
   timings["step2_directions"] = Date.now() - t0;
-  console.log(`[Step 2] Done in ${timings["step2_directions"]}ms. Directions: ${directions.directions.map((d) => d.title).join(" | ")}`);
+  console.log(`[Step 2] Done in ${timings["step2_directions"]}ms. ${directions.directions.length} directions: ${directions.directions.map((d) => d.title).join(" | ")}`);
 
-  console.log("[Step 3] Analyzing directions...");
+  // ── Steps 3-6: single pass (no feedback loop — Step 6 selects top-3) ──
+  const currentDirections = directions.directions;
+  let titleOptResults: TitleOptimizationResult[] = [];
+  let perplexityRawData: unknown = null;
+
+  // ── Step 3: Title optimization ─────────────────────────────────────
+  if (process.env.PERPLEXITY_API_KEY) {
+    console.log("[Step 3] Optimizing titles...");
+    t0 = Date.now();
+    try {
+      titleOptResults = await optimizeTitles(currentDirections, regions);
+      timings["step3_titles"] = Date.now() - t0;
+      for (const r of titleOptResults) {
+        console.log(`[Step 3] "${r.directionTitle}" → best: "${r.bestTitle}" (market: ${r.totalMarketSize})`);
+      }
+    } catch (err) {
+      timings["step3_titles"] = Date.now() - t0;
+      console.error("[Step 3] Title optimization failed:", err);
+    }
+  } else {
+    console.log("[Step 3] PERPLEXITY_API_KEY not set, skipping title optimization");
+  }
+
+  // ── Step 4: KB check — ensure role reports exist ───────────────────
+  console.log("[Step 4] Checking/fetching role reports...");
+  t0 = Date.now();
+  let roleReports: string;
+  try {
+    roleReports = await loadRoleReports(currentDirections, regions);
+    timings["step4_kb"] = Date.now() - t0;
+    console.log(`[Step 4] Done in ${timings["step4_kb"]}ms (${roleReports.length} chars)`);
+  } catch (err) {
+    timings["step4_kb"] = Date.now() - t0;
+    console.error("[Step 4] Role reports failed:", err);
+    roleReports = "Детальные отчёты по ролям не загружены.";
+  }
+
+  // ── Step 5: Actualization (source-aware Perplexity) ────────────────
+  let marketData = input.marketData || "Данные рынка не предоставлены, используй справочник конкуренции.";
+
+  if (process.env.PERPLEXITY_API_KEY) {
+    console.log("[Step 5] Fetching market data from Perplexity (source-aware)...");
+    t0 = Date.now();
+    try {
+      const perplexityResult = await fetchMarketDataForDirections(
+        currentDirections,
+        profile,
+      );
+      marketData = perplexityResult.formattedText;
+      perplexityRawData = perplexityResult.rawData;
+      timings["step5_market"] = Date.now() - t0;
+      console.log(`[Step 5] Done in ${timings["step5_market"]}ms`);
+    } catch (err) {
+      timings["step5_market"] = Date.now() - t0;
+      console.error("[Step 5] Perplexity failed, using fallback:", err);
+    }
+  } else {
+    console.log("[Step 5] PERPLEXITY_API_KEY not set, skipping market data fetch");
+  }
+
+  // ── Step 5.5: Build scraped market summary for analysis ──────────
+  let scrapedMarketData = "";
+  try {
+    const scrapedSummary = await buildFullMarketSummary(profile);
+    scrapedMarketData = scrapedSummary.markdown;
+  } catch (err) {
+    console.error("[Step 5.5] Scraped market summary failed:", err);
+  }
+
+  // ── Step 6: Analysis (5-9 → top-3) ────────────────────────────────
+  console.log(`[Step 6] Analyzing ${currentDirections.length} directions → selecting top-3...`);
   t0 = Date.now();
   const relevantDomains = inferRelevantDomains(
-    directions.directions.map((d) => d.title),
+    currentDirections.map((d) => d.title),
   );
-  console.log(`[Step 3] Relevant domains: ${relevantDomains.join(", ")}`);
+  console.log(`[Step 6] Relevant domains: ${relevantDomains.join(", ")}`);
 
   const prompt03 = await loadPrompt03({
     candidateProfile: JSON.stringify(profile, null, 2),
     directionsOutput: JSON.stringify(directions, null, 2),
-    marketData: input.marketData || "Данные рынка не предоставлены, используй справочник конкуренции.",
+    marketData,
+    scrapedMarketData,
+    roleReports,
     relevantDomains,
   });
   const analysis = await callClaudeStructured(
@@ -155,8 +308,19 @@ export async function runAnalysisPhase1(
     "analyze_directions",
     16000,
   );
-  timings["step3_analysis"] = Date.now() - t0;
-  console.log(`[Step 3] Done in ${timings["step3_analysis"]}ms`);
+  timings["step6_analysis"] = Date.now() - t0;
+  console.log(`[Step 6] Done in ${timings["step6_analysis"]}ms. Top-3: ${analysis.directions.map((d) => d.title).join(" | ")}`);
+
+  if (analysis.replacedDirections?.length) {
+    console.log(`[Step 6] Отклонено ${analysis.replacedDirections.length} направлений:`);
+    for (const r of analysis.replacedDirections) {
+      console.log(`  ✗ "${r.originalTitle}": ${r.reason}`);
+    }
+  }
+
+  if (!analysis) {
+    throw new Error("Analysis was not produced");
+  }
 
   const reviewSummary = buildReviewSummary(profile, directions, analysis);
   const reviewSummaryText = formatReviewForTelegram(reviewSummary);
@@ -166,7 +330,15 @@ export async function runAnalysisPhase1(
   const totalTime = Object.values(timings).reduce((a, b) => a + b, 0);
   console.log(`\n[Phase 1 Total] ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s)`);
 
-  return { profile, directions, analysis, reviewSummaryText, timings };
+  return {
+    profile,
+    directions,
+    analysis,
+    reviewSummaryText,
+    perplexityMarketData: perplexityRawData,
+    titleOptimization: titleOptResults,
+    timings,
+  };
 }
 
 /**

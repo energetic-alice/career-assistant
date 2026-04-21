@@ -1,6 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { initBot, getBot } from "./bot-instance.js";
 import { registerAdminReview } from "./admin-review.js";
+import { STAGE_LABELS } from "../services/review-summary.js";
+import type { ClientSummary } from "../schemas/client-summary.js";
 
 let webhookMode = false;
 
@@ -42,12 +44,99 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
     ctx.reply(lines.join("\n"));
   });
 
+  bot.command("clients", async (ctx) => {
+    const { getAllPipelineStates } = await import("../pipeline/intake.js");
+    const states = getAllPipelineStates();
+    if (states.length === 0) {
+      await ctx.reply("Клиентов пока нет.");
+      return;
+    }
+
+    const sorted = [...states].sort((a, b) =>
+      a.telegramNick.replace(/^@/, "").toLowerCase().localeCompare(
+        b.telegramNick.replace(/^@/, "").toLowerCase(),
+        "ru",
+      ),
+    );
+
+    const lines: string[] = [`<b>Клиенты (${sorted.length}):</b>`, ""];
+    for (const s of sorted) {
+      const nick = s.telegramNick.replace(/^@/, "") || "—";
+      const cs = (s.stageOutputs as { clientSummary?: ClientSummary } | undefined)?.clientSummary;
+      const name = cs
+        ? [cs.firstName, cs.lastName].filter((x) => x && x !== "—").join(" ") ||
+          [cs.firstNameLatin, cs.lastNameLatin].filter((x) => x && x !== "—").join(" ")
+        : "";
+      const stageLabel = STAGE_LABELS[s.stage] ?? s.stage;
+      const head = name ? `<b>${name}</b> @${nick}` : `@${nick}`;
+      lines.push(`${head}\n  ${stageLabel}\n  /client_${nick}`);
+      lines.push("");
+    }
+
+    await ctx.reply(lines.join("\n"), {
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
+    });
+  });
+
+  // Поддержка коротких команд /client_<nick>, выпадающих из /clients.
+  bot.hears(/^\/client_([\w\d_]+)(@\w+)?$/i, async (ctx) => {
+    const target = ctx.match[1].toLowerCase();
+    const { getAllPipelineStates } = await import("../pipeline/intake.js");
+    const { sendClientCard } = await import("./admin-review.js");
+
+    const matches = getAllPipelineStates().filter(
+      (s) => s.telegramNick.replace(/^@/, "").toLowerCase() === target,
+    );
+    if (matches.length === 0) {
+      await ctx.reply(`Клиент @${target} не найден.`);
+      return;
+    }
+    matches.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    await sendClientCard(ctx.chat!.id, matches[0].participantId);
+  });
+
+  bot.command("client", async (ctx) => {
+    const text = (ctx.message as { text?: string })?.text ?? "";
+    const arg = text.replace(/^\/client(@\w+)?\s*/i, "").trim();
+    if (!arg) {
+      await ctx.reply(
+        "Использование: /client <ник>\nНапример: /client @margaritako4 или /client margaritako4",
+      );
+      return;
+    }
+
+    const target = arg.replace(/^@/, "").toLowerCase();
+    const { getAllPipelineStates } = await import("../pipeline/intake.js");
+    const { sendClientCard } = await import("./admin-review.js");
+
+    const matches = getAllPipelineStates().filter(
+      (s) => s.telegramNick.replace(/^@/, "").toLowerCase() === target,
+    );
+
+    if (matches.length === 0) {
+      await ctx.reply(`Клиент @${target} не найден.`);
+      return;
+    }
+
+    matches.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    if (matches.length > 1) {
+      await ctx.reply(
+        `Найдено ${matches.length} записей с ником @${target}. Показываю самую свежую.`,
+      );
+    }
+
+    await sendClientCard(ctx.chat!.id, matches[0].participantId);
+  });
+
   registerAdminReview(bot);
 
   try {
     await bot.telegram.setMyCommands([
       { command: "start", description: "Информация о боте" },
-      { command: "status", description: "Текущее состояние очереди" },
+      { command: "clients", description: "Список клиентов со статусами" },
+      { command: "client", description: "Карточка клиента: /client <ник>" },
+      { command: "status", description: "Сводка очереди по стейджам" },
     ]);
     await bot.telegram.setChatMenuButton({
       menuButton: { type: "commands" },

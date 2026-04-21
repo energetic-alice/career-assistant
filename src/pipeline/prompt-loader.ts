@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { KNOWN_ROLES } from "../services/market-data-service.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPTS_DIR = join(__dirname, "..", "prompts");
@@ -23,10 +24,23 @@ async function getKB(name: string): Promise<string> {
   return loadFile(join(KB_DIR, `${name}.md`));
 }
 
+export async function loadPrompt00(vars: {
+  rawNamedValues: string;
+  resumeText: string;
+  linkedinUrl: string;
+  linkedinSSI: string;
+}): Promise<string> {
+  let template = await loadFile(join(PROMPTS_DIR, "00-client-summary.md"));
+  template = template.replace("{{rawNamedValues}}", vars.rawNamedValues);
+  template = template.replace("{{resumeText}}", vars.resumeText || "(резюме недоступно)");
+  template = template.replace("{{linkedinUrl}}", vars.linkedinUrl || "(нет)");
+  template = template.replace("{{linkedinSSI}}", vars.linkedinSSI || "(не указан)");
+  return template;
+}
+
 export async function loadPrompt01(vars: {
   questionnaire: string;
   resumeText: string;
-  linkedinUrl: string;
   linkedinSSI: string;
 }): Promise<string> {
   let template = await loadFile(join(PROMPTS_DIR, "01-profile-extraction.md"));
@@ -35,7 +49,6 @@ export async function loadPrompt01(vars: {
   template = template.replace("{{style-guide}}", styleGuide);
   template = template.replace("{{questionnaire}}", vars.questionnaire);
   template = template.replace("{{resumeText}}", vars.resumeText);
-  template = template.replace("{{linkedinUrl}}", vars.linkedinUrl);
   template = template.replace("{{linkedinSSI}}", vars.linkedinSSI);
 
   return template;
@@ -43,6 +56,7 @@ export async function loadPrompt01(vars: {
 
 export async function loadPrompt02(vars: {
   candidateProfile: string;
+  marketOverview?: string;
 }): Promise<string> {
   let template = await loadFile(join(PROMPTS_DIR, "02-direction-generation.md"));
   const styleGuide = await getReference("style-guide");
@@ -53,6 +67,14 @@ export async function loadPrompt02(vars: {
   template = template.replace("{{decision-rules}}", decisionRules);
   template = template.replace("{{training-examples}}", trainingExamples);
   template = template.replace("{{candidateProfile}}", vars.candidateProfile);
+  template = template.replace(
+    "{{marketOverview}}",
+    vars.marketOverview || "Рыночные данные не загружены. Используй свои знания о рынке IT 2026.",
+  );
+  template = template.replace(
+    "{{knownRoles}}",
+    KNOWN_ROLES.map((r, i) => `${i + 1}. ${r}`).join("\n"),
+  );
 
   return template;
 }
@@ -61,6 +83,8 @@ export async function loadPrompt03(vars: {
   candidateProfile: string;
   directionsOutput: string;
   marketData: string;
+  scrapedMarketData?: string;
+  roleReports?: string;
   relevantDomains: string[];
 }): Promise<string> {
   let template = await loadFile(join(PROMPTS_DIR, "03-direction-analysis.md"));
@@ -86,6 +110,14 @@ export async function loadPrompt03(vars: {
   template = template.replace("{{candidateProfile}}", vars.candidateProfile);
   template = template.replace("{{directionsOutput}}", vars.directionsOutput);
   template = template.replace("{{marketData}}", vars.marketData);
+  template = template.replace(
+    "{{scrapedMarketData}}",
+    vars.scrapedMarketData || "Скрейпинг-данные не загружены.",
+  );
+  template = template.replace(
+    "{{roleReports}}",
+    vars.roleReports || "Детальные отчёты по ролям не загружены.",
+  );
   template = template.replace("{{competitionReference}}", competitionRef);
   template = template.replace("{{domainKBs}}", domainKBs.join("\n\n---\n\n"));
 

@@ -3,7 +3,6 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import {
   rawQuestionnaireSchema,
   toAnalysisInput,
-  type RawQuestionnaire,
   type AnalysisInput,
 } from "../schemas/participant.js";
 import type { PipelineState } from "../schemas/pipeline-state.js";
@@ -12,89 +11,14 @@ import {
   extractResumeText,
 } from "../services/file-service.js";
 import {
-  runAnalysisPhase1,
+  runClientSummary,
   type AnalysisPipelineInput,
 } from "./run-analysis.js";
-import { sendReviewToAdmin } from "../bot/admin-review.js";
 import { getBot } from "../bot/bot-instance.js";
 import { saveMap, loadMap } from "../services/state-store.js";
+import { parseNamedValues } from "../services/intake-mapper.js";
 
-/**
- * Maps Google Forms column headers (from namedValues) to our internal field names.
- * Order follows the questionnaire form exactly.
- */
-const COLUMN_MAP: Record<string, keyof RawQuestionnaire> = {
-  "Timestamp": "timestamp",
-  "Отметка времени": "timestamp",
-  "Твой ник в телеграм": "telegramNick",
-  "Где ты сейчас?": "itStatus",
-  "Какое у тебя гражданство?": "citizenship",
-  "В какой стране и каком городе ты живешь сейчас?": "currentLocation",
-  "На какую страну или страны ты планируешь работать?": "targetCountries",
-  "Твой идеальный формат работы": "workFormat",
-  "А как у тебя с английским?": "englishLevel",
-  "Какое у тебя высшее образование?": "education",
-  "Чем ты занимаешься сейчас?": "currentOccupation",
-  "Кем ты работаешь сейчас и сколько зарабатываешь? (до налогов)":
-    "currentJobAndSalary",
-  "Сколько у тебя опыта в текущей профессии?": "yearsExperience",
-  "А сколько хочешь зарабатывать и в какой валюте?": "desiredSalary",
-  "А сколько хочешь зарабатывать через 3-5 лет?": "desiredSalary3to5y",
-  "Почему твой выбор пал именно на Карьерный акселератор? Что для тебя самое важное в программе, что зацепило?":
-    "whyAccelerator",
-  "Почему твой выбор пал именно на работу с Алисой? Что для тебя самое важное, что зацепило?":
-    "whyAccelerator",
-  "Какой результат ты хочешь получить на программе?": "desiredResult",
-  "Какой результат ты хочешь получить от работы с Алисой?": "desiredResult",
-  "Есть ли у тебя уже пожелания или интерес какими направлениями хотелось бы заниматься?":
-    "directionInterest",
-  "Расскажи подробно, почему именно это направление? Что в нем привлекает?":
-    "whyThisDirection",
-  "Насколько ты готов(а) к переобучению?": "retrainingReadiness",
-  "Сколько времени можешь уделять поиску работы и переквалификации (при необходимости)? В часах в неделю":
-    "weeklyHours",
-  "Опиши свою текущую карьерную ситуацию максимально подробно - что не нравится и какой главный затык":
-    "currentSituation",
-  "Какие карьерные цели для тебя наиболее важны в ближайший год? (рост дохода, смена работы, повышение квалификации и т. д.)":
-    "careerGoals",
-  "Были ли уже попытки что-то изменить в текущей ситуации, поменять работу, что-то доучить? Напиши максимально подробно":
-    "previousAttempts",
-  "Как ты относишься к коммуникации и созвонам?": "communicationStyle",
-  "К какому уровню ты интуитивно стремишься в горизонте 3-5 лет: сильный индивидуальный специалист, тимлид/менеджер, эксперт‑консультант (без команды), свой продукт/бизнес? Почему?":
-    "aspirationLevel",
-  "Как ты относишься к рутине? Она тебя успокаивает или угнетает?":
-    "routineAttitude",
-  "Ты больше любишь:": "workPreference",
-  "А какие задачи ты терпеть не можешь?": "hatedTasks",
-  "Любые дополнения и мысли по теме карьеры, что не уместилось в прошлые ответы, но чем хочется еще поделиться и что может быть важным":
-    "additionalThoughts",
-  "Прикрепи свое резюме в любом формате (можно несколько версий)":
-    "resumeFileUrl",
-  "Прикрепи ссылку на свой Linkedin (если есть)": "linkedinUrl",
-  "Если есть Linkedin, напиши цифру своего SSI-рейтинга": "linkedinSSI",
-  "Если есть Linkedin, напиши цифру своего SSI-рейтинга, он находится тут справа от большого кружка по ссылке: https://www.linkedin.com/sales/ssi":
-    "linkedinSSI",
-  "Если есть Linkedin, прикрепи скриншот своего SSI-рейтинга, он находится тут:":
-    "linkedinSSI",
-};
-
-/**
- * Convert Google Forms namedValues (key → string[]) to flat object.
- */
-function parseNamedValues(
-  namedValues: Record<string, string[]>,
-): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const [header, values] of Object.entries(namedValues)) {
-    const trimmed = header.trim();
-    const firstLine = trimmed.split("\n")[0].trim();
-    const key = COLUMN_MAP[trimmed] || COLUMN_MAP[firstLine];
-    if (key) {
-      result[key] = values.join(", ");
-    }
-  }
-  return result;
-}
+export { parseNamedValues };
 
 const STORE_NAME = "pipelineStates";
 export const pipelineStates: Map<string, PipelineState> = loadMap<PipelineState>(STORE_NAME);
@@ -151,18 +75,18 @@ export function registerIntakeRoutes(app: FastifyInstance) {
         request.log.info({ bodyKeys: Object.keys(body) }, "Webhook received");
 
         let rawData: Record<string, string>;
+        let rawNamedValues: Record<string, string> | undefined;
+        let unmappedFields: string[] = [];
 
         if (body.namedValues) {
-          const unmapped: string[] = [];
-          for (const header of Object.keys(body.namedValues)) {
-            if (!COLUMN_MAP[header] && !COLUMN_MAP[header.trim()]) {
-              unmapped.push(header);
-            }
+          const parsed = parseNamedValues(body.namedValues);
+          rawData = parsed.mapped;
+          rawNamedValues = parsed.rawValues;
+          unmappedFields = parsed.unmapped;
+
+          if (unmappedFields.length > 0) {
+            request.log.warn({ unmapped: unmappedFields }, "Unmapped form headers");
           }
-          if (unmapped.length > 0) {
-            request.log.warn({ unmapped }, "Unmapped form headers");
-          }
-          rawData = parseNamedValues(body.namedValues);
           request.log.info({ mappedFields: Object.keys(rawData) }, "Parsed fields");
         } else {
           rawData = body as Record<string, string>;
@@ -188,6 +112,8 @@ export function registerIntakeRoutes(app: FastifyInstance) {
           stageOutputs: {
             rawQuestionnaire: questionnaire,
             analysisInput,
+            ...(rawNamedValues ? { rawNamedValues } : {}),
+            ...(unmappedFields.length > 0 ? { unmappedFields } : {}),
           },
         };
 
@@ -242,6 +168,59 @@ export function registerIntakeRoutes(app: FastifyInstance) {
       return reply.send(state);
     },
   );
+
+  /**
+   * One-off seed importer: overwrites pipelineStates with provided map.
+   * Guarded by BOTH x-webhook-secret AND ALLOW_SEED_IMPORT=true env var.
+   * Body: { [participantId]: PipelineState }
+   */
+  app.post(
+    "/api/admin/import-seed",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      if (process.env.ALLOW_SEED_IMPORT !== "true") {
+        return reply.status(403).send({
+          error: "Seed import is disabled. Set ALLOW_SEED_IMPORT=true to enable.",
+        });
+      }
+      const secret = request.headers["x-webhook-secret"];
+      if (secret !== process.env.WEBHOOK_SECRET) {
+        return reply.status(401).send({ error: "Invalid webhook secret" });
+      }
+
+      try {
+        const body = request.body as Record<string, PipelineState>;
+        if (!body || typeof body !== "object") {
+          return reply.status(400).send({ error: "Body must be object" });
+        }
+
+        pipelineStates.clear();
+        const byStage: Record<string, number> = {};
+        for (const [id, state] of Object.entries(body)) {
+          if (!state || typeof state !== "object") continue;
+          pipelineStates.set(id, state);
+          byStage[state.stage] = (byStage[state.stage] || 0) + 1;
+        }
+        persistPipelineStates();
+
+        request.log.info(
+          { imported: pipelineStates.size, byStage },
+          "Seed import applied",
+        );
+
+        return reply.status(200).send({
+          success: true,
+          imported: pipelineStates.size,
+          byStage,
+        });
+      } catch (err) {
+        request.log.error(err, "Seed import error");
+        return reply.status(500).send({
+          error: "Seed import failed",
+          details: err instanceof Error ? err.message : String(err),
+        });
+      }
+    },
+  );
 }
 
 function buildPipelineInput(analysisInput: AnalysisInput, resumeFileUrl?: string): AnalysisPipelineInput {
@@ -270,8 +249,14 @@ async function notifyAdminError(participantId: string, error: string): Promise<v
 }
 
 /**
- * Download and parse resume in the background, then run analysis Phase 1
- * and send review to admin via Telegram.
+ * Background pipeline triggered after webhook intake:
+ *   1) parse resume
+ *   2) Phase 0: client summary (cheap Claude call for the Telegram card)
+ *   3) prepare full pipelineInput and persist it
+ *   4) notify admin (card + "Предварительный анализ" button) — STOP here
+ *
+ * Heavy Phase 1 is NOT auto-triggered; the consultant clicks the button in
+ * Telegram, which calls handleAnalyze() in admin-review.ts.
  */
 async function processResumeAndRunAnalysis(
   participantId: string,
@@ -305,26 +290,44 @@ async function processResumeAndRunAnalysis(
     }
   }
 
+  // ── Phase 0: client summary (cheap, fast, used by the Telegram card) ──
+  const rawNamedValues = outputs.rawNamedValues as
+    | Record<string, string>
+    | undefined;
+  if (rawNamedValues && !outputs.clientSummary) {
+    try {
+      const clientSummary = await runClientSummary({
+        rawNamedValues,
+        resumeText: analysisInput.resumeText,
+        linkedinUrl: analysisInput.linkedinUrl,
+        linkedinSSI: analysisInput.linkedinSSI,
+      });
+      outputs.clientSummary = clientSummary;
+      state.updatedAt = new Date().toISOString();
+      persistPipelineStates();
+    } catch (err) {
+      console.error(
+        `[Intake] Client summary failed for ${participantId}:`,
+        err instanceof Error ? err.message : err,
+      );
+      // не валим пайплайн — карточка просто покажет fallback
+    }
+  }
+
+  // Готовим (и сохраняем) input для последующего Phase 1, но НЕ запускаем.
+  const pipelineInput = buildPipelineInput(analysisInput, resumeFileUrl);
+  outputs.pipelineInput = pipelineInput;
+  state.stage = "awaiting_analysis";
+  state.updatedAt = new Date().toISOString();
+  persistPipelineStates();
+
   try {
-    const pipelineInput = buildPipelineInput(analysisInput, resumeFileUrl);
-
-    console.log(`[Intake] Starting Phase 1 for ${participantId}...`);
-    const phase1 = await runAnalysisPhase1(pipelineInput);
-
-    state.stage = "admin_review_pending";
-    state.updatedAt = new Date().toISOString();
-    outputs.phase1Result = phase1;
-    outputs.pipelineInput = pipelineInput;
-    persistPipelineStates();
-
-    await sendReviewToAdmin(participantId, phase1, pipelineInput);
-    console.log(`[Intake] Review sent to admin for ${participantId}`);
+    const { sendIntakeNotification } = await import("../bot/admin-review.js");
+    await sendIntakeNotification(participantId);
+    console.log(`[Intake] Intake notification sent for ${participantId}`);
   } catch (err) {
-    const msg = `Analysis pipeline failed: ${err instanceof Error ? err.message : String(err)}`;
+    const msg = `Intake notification failed: ${err instanceof Error ? err.message : String(err)}`;
     console.error(`[Intake] ${msg}`);
-    state.error = msg;
-    state.updatedAt = new Date().toISOString();
-    persistPipelineStates();
     await notifyAdminError(participantId, msg);
   }
 }
