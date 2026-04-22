@@ -339,7 +339,7 @@ export async function sanitizeRoleSlugs(summary: ClientSummary): Promise<ClientS
 }
 
 /**
- * Phase 1 — Shortlist: лёгкая генерация 8–10 направлений без глубоких
+ * Phase 1 — Shortlist: лёгкая генерация 10–14 направлений без глубоких
  * внешних запросов (Perplexity, детальные role reports, prompt-03).
  *
  * Используется для Gate 1: админ смотрит сырой shortlist в Telegram,
@@ -437,8 +437,11 @@ export async function runShortlist(
   directions.directions = await postValidateDirections(directions.directions, {
     targetMarketRegions: profile.careerGoals.targetMarketRegions,
   });
+  // Страховка от случаев когда Клод проигнорировал «отсортируй по score DESC».
+  directions.directions.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
   console.log(
-    `[Shortlist/Step 2] After post-validate: ${directions.directions.length} directions`,
+    `[Shortlist/Step 2] After post-validate + score-sort: ${directions.directions.length} directions ` +
+      `(scores: ${directions.directions.map((d) => d.score ?? "?").join(", ")})`,
   );
 
   let enriched: EnrichedDirection[] = [];
@@ -472,7 +475,7 @@ export async function runShortlist(
  * Перегенерация одного направления в рамках Gate 1.
  *
  * Зовёт prompt-02 заново с теми же контекстом (profile/marketOverview/
- * scorerTop20) и ищет в новом 8–10 списке первое направление с парой
+ * scorerTop20) и ищет в новом 10–14 списке первое направление с парой
  * `(roleSlug, bucket)`, которой ещё нет в `existingDirections`. Если
  * ничего не нашлось — возвращает `null`.
  *
@@ -502,6 +505,9 @@ export async function regenerateOneDirection(
   const validated = await postValidateDirections(fresh.directions, {
     targetMarketRegions: shortlist.profile.careerGoals.targetMarketRegions,
   });
+  // Сортируем кандидатов по score DESC, чтобы в качестве замены выдать ЛУЧШЕЕ
+  // новое направление, а не просто первое по порядку.
+  validated.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 
   const existingKey = new Set(
     existingDirections.map((d) => `${d.roleSlug}|${d.bucket}`),

@@ -62,12 +62,23 @@ export interface ShortlistState {
   scorerTop20?: string;
   regions: Region[];
   slots: DirectionSlot[];
+  /**
+   * Запасные направления (отранжированы по score DESC). При регенерации
+   * сначала берём отсюда — это мгновенно и экономит вызов Claude. Если
+   * reserve пуст — fallback на `regenerateOneDirection` (новый вызов 02).
+   */
+  reserve: DirectionSlot[];
   /** Anti-race: одна регенерация за раз. */
   busy?: boolean;
   /** Координаты header-сообщения для edit. */
   headerChatId?: number | string;
   headerMessageId?: number;
 }
+
+/**
+ * Сколько направлений показываем сразу (остальное уходит в reserve).
+ */
+const ACTIVE_SLOTS = 10;
 
 const STORE_KEY = "shortlist";
 const APPROVED_KEY = "approved";
@@ -127,6 +138,7 @@ function migrateLegacy(raw: ShortlistState & LegacyShortlistState): ShortlistSta
     scorerTop20: raw.scorerTop20,
     regions: raw.regions,
     slots,
+    reserve: [],
     busy: raw.busy,
   };
 }
@@ -136,7 +148,12 @@ function fromShortlistResult(result: ShortlistResult): ShortlistState {
   for (const row of result.enriched) {
     enrichedByKey.set(`${row.roleSlug}|${row.bucket}`, row);
   }
-  const slots: DirectionSlot[] = result.directions.directions.map((d) => {
+  // Directions уже отсортированы runShortlist по score DESC, но на всякий —
+  // сортируем здесь ещё раз, чтобы reserve/active были устойчивы к legacy данным.
+  const sorted = [...result.directions.directions].sort(
+    (a, b) => (b.score ?? 0) - (a.score ?? 0),
+  );
+  const allSlots: DirectionSlot[] = sorted.map((d) => {
     const bucketKey = d.bucket === "ru" ? "ru" : "abroad";
     return {
       slotId: newSlotId(),
@@ -150,7 +167,8 @@ function fromShortlistResult(result: ShortlistResult): ShortlistState {
     marketOverview: result.marketOverview,
     scorerTop20: result.scorerTop20,
     regions: result.regions,
-    slots,
+    slots: allSlots.slice(0, ACTIVE_SLOTS),
+    reserve: allSlots.slice(ACTIVE_SLOTS),
   };
 }
 
@@ -195,28 +213,19 @@ const BUCKET_LABEL: Record<Direction["bucket"], string> = {
   usa: "🇺🇸 USA",
 };
 
-const TYPE_LABEL: Record<Direction["type"], string> = {
-  "основной трек": "основной",
-  "запасной вариант": "запасной",
-  "краткосрочный мост": "мост",
-  "долгосрочная ставка": "долгая ставка",
-};
-
 /**
  * Цветной бейдж по adjacencyScorePercent: наш proxy для "хорошо/средне/плохо
  * подходит" на уровне shortlist'а. На deep-анализе появится более серьёзный
  * scoring, а пока это самый понятный клиенту сигнал.
  */
-function scoreBadge(d: Direction, enriched?: EnrichedDirection): string {
+function scoreBadge(d: Direction): string {
   // Клиент сам попросил, но мы не рекомендуем — особый бейдж.
   if (d.recommended === false) return "🚫";
-  const adj = d.adjacencyScorePercent ?? 0;
-  const aiExtreme = enriched?.aiRisk === "extreme";
-  const lowVacancies =
-    enriched?.vacancies != null && enriched.vacancies > 0 && enriched.vacancies < 150;
-  if (aiExtreme) return "🔴";
-  if (adj >= 70 && !lowVacancies) return "🟢";
-  if (adj >= 50) return "🟡";
+  // Клод проставляет `score` (0-100) как интегральную оценку направления;
+  // для legacy данных без score — fallback на adjacencyScorePercent.
+  const raw = d.score ?? d.adjacencyScorePercent ?? 0;
+  if (raw >= 80) return "🟢";
+  if (raw >= 55) return "🟡";
   return "🔴";
 }
 
@@ -258,14 +267,15 @@ function formatDirection(
 ): string {
   const d = slot.direction;
   const enriched = slot.enriched;
-  const badge = scoreBadge(d, enriched);
+  const badge = scoreBadge(d);
   const bucket = BUCKET_LABEL[d.bucket] ?? d.bucket;
-  const typeLabel = TYPE_LABEL[d.type] ?? d.type;
 
   const header = `<b>${badge} ${idx + 1}/${total}. ${escapeHtml(d.title)}</b>`;
-  const metaLine = [bucket, typeLabel, `adj ${d.adjacencyScorePercent}%`]
-    .map(escapeHtml)
-    .join(" · ");
+  const scoreStr = d.score != null ? `score ${d.score}` : null;
+  const metaParts: string[] = [bucket];
+  if (scoreStr) metaParts.push(scoreStr);
+  metaParts.push(`adj ${d.adjacencyScorePercent}%`);
+  const metaLine = metaParts.map(escapeHtml).join(" · ");
 
   // whyFits по-прежнему режем (~600 символов хватает, чтобы не упереться в
   // лимит сообщения вместе с markup/хвостом).
@@ -280,9 +290,6 @@ function formatDirection(
       ? d.rejectionReason
       : "Клиент попросил, но объективно не подходит — обсудить на созвоне.";
     footer.push(`🚫 <b>Не рекомендуем:</b> ${escapeHtml(reason)}`);
-  }
-  if (d.bridgeTo) {
-    footer.push(`🌉 мост к <code>${escapeHtml(d.bridgeTo)}</code>`);
   }
   if (d.offIndex) {
     footer.push(`⚠ off-index slug <code>${escapeHtml(d.roleSlug)}</code>`);
@@ -306,7 +313,7 @@ function formatHeader(state: ShortlistState, nick: string): string {
   let red = 0;
   let rejected = 0;
   for (const s of state.slots) {
-    const b = scoreBadge(s.direction, s.enriched);
+    const b = scoreBadge(s.direction);
     if (b === "🟢") green += 1;
     else if (b === "🟡") yellow += 1;
     else if (b === "🚫") rejected += 1;
@@ -316,7 +323,7 @@ function formatHeader(state: ShortlistState, nick: string): string {
   if (rejected > 0) counterParts.push(`🚫 ${rejected}`);
   const lines: string[] = [
     `<b>📋 Shortlist @${escapeHtml(nick)}</b>`,
-    `Направлений: <b>${total}</b> · ${counterParts.join(" · ")}`,
+    `Направлений: <b>${total}</b> · ${counterParts.join(" · ")} · в запасе ${state.reserve.length}`,
   ];
   if (total < 3) {
     lines.push("<i>⚠ Меньше 3 направлений — Approve заблокирован.</i>");
@@ -586,6 +593,33 @@ async function handleDelete(
   saveShortlist(participantId, shortlist);
 }
 
+/**
+ * Ищем в `reserve` ближайшую подходящую замену для удаляемого слота.
+ *
+ * Правило: пара `(roleSlug, bucket)` замены не должна совпадать ни с одним
+ * уже активным слотом в `slots` (включая удаляемый — его тоже заменяем, а
+ * возвращать "то же самое" бессмысленно). Reserve уже отсортирован по score
+ * DESC, поэтому берём первый подходящий.
+ */
+function pickReserveReplacement(
+  shortlist: ShortlistState,
+  slotIdBeingReplaced: string,
+): DirectionSlot | undefined {
+  const activeKeys = new Set(
+    shortlist.slots.map((s) => `${s.direction.roleSlug}|${s.direction.bucket}`),
+  );
+  for (let i = 0; i < shortlist.reserve.length; i += 1) {
+    const candidate = shortlist.reserve[i];
+    const key = `${candidate.direction.roleSlug}|${candidate.direction.bucket}`;
+    if (activeKeys.has(key)) continue;
+    // Забираем из reserve.
+    shortlist.reserve.splice(i, 1);
+    return candidate;
+  }
+  void slotIdBeingReplaced;
+  return undefined;
+}
+
 async function handleRegen(
   participantId: string,
   slotId: string,
@@ -606,24 +640,67 @@ async function handleRegen(
     await ctx.answerCbQuery("Уже идёт регенерация, подожди…");
     return;
   }
-  shortlist.busy = true;
-  saveShortlist(participantId, shortlist);
 
   const removedSlot = shortlist.slots[idx];
   const chatId = ctx.chat!.id;
 
+  // Fast path: замена лежит в reserve — мгновенно подставляем, без Claude.
+  const fromReserve = pickReserveReplacement(shortlist, slotId);
+  if (fromReserve) {
+    try {
+      await ctx.answerCbQuery(
+        `↻ Заменяю «${removedSlot.direction.title}» из запаса…`,
+      );
+    } catch {
+      // ignore
+    }
+    try {
+      const currentIdx = findSlotIdx(shortlist, slotId);
+      if (currentIdx >= 0) {
+        const [rm] = shortlist.slots.splice(currentIdx, 1);
+        await deleteDirectionMessage(rm);
+      }
+      // Сохраняем slotId свежий, чтобы callback_data была уникальной.
+      const newSlot: DirectionSlot = {
+        slotId: newSlotId(),
+        direction: fromReserve.direction,
+        enriched: fromReserve.enriched,
+      };
+      shortlist.slots.push(newSlot);
+      await sendDirection(chatId, participantId, shortlist, newSlot);
+      await refreshDirectionNumbers(participantId, shortlist);
+      await editHeader(participantId, shortlist);
+      saveShortlist(participantId, shortlist);
+      console.log(
+        `[Shortlist] ${participantId}: regen slot=${slotId} → from reserve "${newSlot.direction.title}" (reserve left: ${shortlist.reserve.length})`,
+      );
+    } catch (err) {
+      console.error("[Shortlist] reserve regen failed:", err);
+      await getBot().telegram.sendMessage(
+        chatId,
+        `❌ Замена из запаса упала: ${escapeHtml(
+          err instanceof Error ? err.message : String(err),
+        )}`,
+        { parse_mode: "HTML" },
+      );
+    }
+    return;
+  }
+
+  // Slow path: reserve пустой или все слоты overlap — вызываем Claude заново.
+  shortlist.busy = true;
+  saveShortlist(participantId, shortlist);
+
   try {
-    await ctx.answerCbQuery(`↻ Регенерирую «${removedSlot.direction.title}»…`);
+    await ctx.answerCbQuery(
+      `↻ Запас пуст, генерирую замену «${removedSlot.direction.title}»… ~20 сек.`,
+    );
   } catch {
     // ignore
   }
 
   void (async () => {
     try {
-      // regenerateOneDirection исключает любую пару (slug|bucket), которая
-      // уже есть в existingDirections — передаём ВСЕ текущие directions
-      // (включая тот, что пользователь хочет заменить, чтобы не получить его
-      // же обратно).
       const result = toShortlistResult(shortlist);
       const existing = shortlist.slots.map((s) => s.direction);
       const replacement = await regenerateOneDirection(result, existing);
@@ -640,14 +717,12 @@ async function handleRegen(
         return;
       }
 
-      // 1) удаляем сообщение и слот удаляемого направления
       const currentIdx = findSlotIdx(shortlist, slotId);
       if (currentIdx >= 0) {
         const [rm] = shortlist.slots.splice(currentIdx, 1);
         await deleteDirectionMessage(rm);
       }
 
-      // 2) добавляем замену в конец списка
       const newSlot: DirectionSlot = {
         slotId: newSlotId(),
         direction: replacement.direction,
@@ -655,7 +730,6 @@ async function handleRegen(
       };
       shortlist.slots.push(newSlot);
 
-      // 3) шлём новое сообщение в конец и обновляем нумерацию у соседей
       await sendDirection(chatId, participantId, shortlist, newSlot);
       await refreshDirectionNumbers(participantId, shortlist);
       await editHeader(participantId, shortlist);

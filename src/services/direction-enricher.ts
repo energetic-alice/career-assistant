@@ -37,10 +37,8 @@ const MAX_DUPES_IN_FAMILY = 3;
  *    до MAX_DUPES_IN_FAMILY направлений с одним slug (разные ниши одного семейства)
  *  - normalises offIndex flag based on KNOWN_ROLES membership
  *  - junior level → warning (клиент мог явно попросить)
- *  - для type="краткосрочный мост":
- *      - если bridgeTo не указан → downgrade в "запасной вариант" с warn
- *      - если bridgeTo указывает на несуществующую в списке долгосрочную ставку
- *        → downgrade в "запасной вариант" с warn
+ *  - Phase 1: type/bridgeTo не проставляются (решение — на Phase 2). Если всё
+ *    же пришло `type="краткосрочный мост"` без bridgeTo — чистим оба поля.
  *
  * Returns a NEW array (does not mutate input).
  */
@@ -98,38 +96,20 @@ export async function postValidateDirections(
     firstPass.push(d);
   }
 
-  // ── second pass: validate bridge links across the whole array ──
-  // Мост может указывать на "основной трек" ИЛИ "долгосрочную ставку" —
-  // это целевые, "куда ведёт мост". НЕ на "запасной вариант" (альтернатива,
-  // не цель) и НЕ на другой "мост".
-  const validBridgeTargets = new Set(
-    firstPass
-      .filter((d) => d.type === "основной трек" || d.type === "долгосрочная ставка")
-      .map((d) => d.roleSlug),
-  );
+  // Phase 1: type/bridgeTo deprecated. Если клод случайно их проставил —
+  // чистим, чтобы не уводить Phase 2/3 промпты в сторону преждевременным
+  // решением.
   for (const d of firstPass) {
-    if (d.type !== "краткосрочный мост") {
-      if (d.bridgeTo) {
-        console.warn(
-          `[postValidate] "${d.title}": bridgeTo="${d.bridgeTo}" указан, но type="${d.type}" — игнорируется`,
-        );
-        d.bridgeTo = undefined;
-      }
-      continue;
-    }
-    const target = (d.bridgeTo || "").trim();
-    if (!target) {
+    if (d.type !== undefined) {
       console.warn(
-        `[postValidate] DOWNGRADE "${d.title}" (slug=${d.roleSlug}): мост без bridgeTo → "запасной вариант"`,
+        `[postValidate] "${d.title}": type="${d.type}" (Phase 1 deprecated) — чистим`,
       );
-      d.type = "запасной вариант";
-      continue;
+      d.type = undefined;
     }
-    if (!validBridgeTargets.has(target)) {
+    if (d.bridgeTo !== undefined) {
       console.warn(
-        `[postValidate] DOWNGRADE "${d.title}" (slug=${d.roleSlug}): bridgeTo="${target}" не указывает на "основной трек"/"долгосрочная ставка" из списка → "запасной вариант"`,
+        `[postValidate] "${d.title}": bridgeTo="${d.bridgeTo}" (Phase 1 deprecated) — чистим`,
       );
-      d.type = "запасной вариант";
       d.bridgeTo = undefined;
     }
   }
