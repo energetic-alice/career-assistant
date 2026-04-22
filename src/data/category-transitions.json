@@ -1,0 +1,272 @@
+{
+  "generatedAt": "2026-04-21T22:08:35.607Z",
+  "smoothingK": 3,
+  "totalObservations": 60,
+  "skipped": [
+    {
+      "caseIdx": 2,
+      "reason": "non-IT current (null)"
+    },
+    {
+      "caseIdx": 9,
+      "reason": "non-IT current (null)"
+    },
+    {
+      "caseIdx": 13,
+      "reason": "non-IT current (null)"
+    },
+    {
+      "caseIdx": 20,
+      "reason": "non-IT current (null)"
+    },
+    {
+      "caseIdx": 25,
+      "reason": "non-IT current (null)"
+    },
+    {
+      "caseIdx": 26,
+      "reason": "non-IT current (null)"
+    }
+  ],
+  "pairs": {
+    "analytics": {
+      "analytics": {
+        "n": 7,
+        "sum": 537,
+        "mean": 77,
+        "cases": [
+          "#1 business_analyst→business_analyst (92%)",
+          "#1 business_analyst→data_analyst (85%)",
+          "#1 business_analyst→product_analyst (60%)",
+          "#5 business_analyst→business_analyst (75%)",
+          "#5 business_analyst→data_analyst (70%)",
+          "#24 systems_analyst→systems_analyst (95%)",
+          "#24 systems_analyst→business_analyst (60%)"
+        ]
+      },
+      "backend": {
+        "n": 1,
+        "sum": 75,
+        "mean": 75,
+        "cases": [
+          "#24 systems_analyst→backend_java (75%)"
+        ]
+      },
+      "data": {
+        "n": 1,
+        "sum": 25,
+        "mean": 25,
+        "cases": [
+          "#5 business_analyst→data_engineer (25%)"
+        ]
+      }
+    },
+    "backend": {
+      "backend": {
+        "n": 11,
+        "sum": 865,
+        "mean": 79,
+        "cases": [
+          "#3 backend_net→backend_java (65%)",
+          "#3 backend_net→backend_go (50%)",
+          "#8 backend_java→backend_java (95%)",
+          "#8 backend_java→backend_java (80%)",
+          "#12 backend_java→backend_java (97%)",
+          "#12 backend_java→backend_go (70%)",
+          "#16 backend_ruby→backend_ruby (98%)",
+          "#16 backend_ruby→backend_go (70%)",
+          "#22 backend_php→backend_php (90%)",
+          "#22 backend_php→backend_php (85%)",
+          "#22 backend_php→backend_python (65%)"
+        ]
+      },
+      "infra": {
+        "n": 3,
+        "sum": 190,
+        "mean": 63,
+        "cases": [
+          "#8 backend_java→devops (55%)",
+          "#12 backend_java→devops (70%)",
+          "#16 backend_ruby→devops (65%)"
+        ]
+      },
+      "management": {
+        "n": 1,
+        "sum": 85,
+        "mean": 85,
+        "cases": [
+          "#3 backend_net→tech_lead (85%)"
+        ]
+      }
+    },
+    "data": {
+      "analytics": {
+        "n": 1,
+        "sum": 78,
+        "mean": 78,
+        "cases": [
+          "#4 data_engineer→product_analyst (78%)"
+        ]
+      },
+      "data": {
+        "n": 6,
+        "sum": 475,
+        "mean": 79,
+        "cases": [
+          "#4 data_engineer→data_engineer (95%)",
+          "#6 data_engineer→data_engineer (65%)",
+          "#6 data_engineer→data_engineer (55%)",
+          "#11 data_engineer→data_engineer (90%)",
+          "#11 data_engineer→data_engineer (75%)",
+          "#11 data_engineer→data_engineer (95%)"
+        ]
+      },
+      "management": {
+        "n": 2,
+        "sum": 157,
+        "mean": 79,
+        "cases": [
+          "#4 data_engineer→tech_lead (72%)",
+          "#6 data_engineer→tech_lead (85%)"
+        ]
+      }
+    },
+    "design": {
+      "design": {
+        "n": 3,
+        "sum": 240,
+        "mean": 80,
+        "cases": [
+          "#19 ui_ux_designer→ui_ux_designer (95%)",
+          "#19 ui_ux_designer→ui_ux_designer (70%)",
+          "#19 ui_ux_designer→ui_ux_designer (75%)"
+        ]
+      }
+    },
+    "frontend": {
+      "analytics": {
+        "n": 1,
+        "sum": 55,
+        "mean": 55,
+        "cases": [
+          "#7 frontend_react→systems_analyst (55%)"
+        ]
+      },
+      "frontend": {
+        "n": 3,
+        "sum": 283,
+        "mean": 94,
+        "cases": [
+          "#7 frontend_react→frontend_vue (98%)",
+          "#17 frontend_angular→frontend_angular (90%)",
+          "#21 frontend_react→frontend_react (95%)"
+        ]
+      },
+      "fullstack": {
+        "n": 3,
+        "sum": 210,
+        "mean": 70,
+        "cases": [
+          "#7 frontend_react→fullstack (70%)",
+          "#17 frontend_angular→fullstack (70%)",
+          "#21 frontend_react→fullstack (70%)"
+        ]
+      },
+      "infra": {
+        "n": 1,
+        "sum": 45,
+        "mean": 45,
+        "cases": [
+          "#17 frontend_angular→devops (45%)"
+        ]
+      },
+      "mobile": {
+        "n": 1,
+        "sum": 80,
+        "mean": 80,
+        "cases": [
+          "#21 frontend_react→mobileapp_react_native (80%)"
+        ]
+      }
+    },
+    "fullstack": {
+      "backend": {
+        "n": 1,
+        "sum": 85,
+        "mean": 85,
+        "cases": [
+          "#23 fullstack→backend_nodejs (85%)"
+        ]
+      },
+      "fullstack": {
+        "n": 1,
+        "sum": 100,
+        "mean": 100,
+        "cases": [
+          "#23 fullstack→fullstack (100%)"
+        ]
+      },
+      "infra": {
+        "n": 1,
+        "sum": 55,
+        "mean": 55,
+        "cases": [
+          "#23 fullstack→devops (55%)"
+        ]
+      }
+    },
+    "management": {
+      "management": {
+        "n": 5,
+        "sum": 390,
+        "mean": 78,
+        "cases": [
+          "#10 project_manager→product_manager (85%)",
+          "#10 project_manager→project_manager (70%)",
+          "#10 project_manager→product_manager (65%)",
+          "#18 product_manager→product_manager (90%)",
+          "#18 product_manager→project_manager (80%)"
+        ]
+      },
+      "marketing": {
+        "n": 1,
+        "sum": 75,
+        "mean": 75,
+        "cases": [
+          "#18 product_manager→marketing_manager (75%)"
+        ]
+      }
+    },
+    "marketing": {
+      "marketing": {
+        "n": 3,
+        "sum": 240,
+        "mean": 80,
+        "cases": [
+          "#15 marketing_manager→marketing_manager (90%)",
+          "#15 marketing_manager→marketing_manager (70%)",
+          "#15 marketing_manager→marketing_manager (80%)"
+        ]
+      }
+    },
+    "mobile": {
+      "data": {
+        "n": 2,
+        "sum": 65,
+        "mean": 33,
+        "cases": [
+          "#14 mobileapp_react_native→data_engineer (40%)",
+          "#14 mobileapp_react_native→ml_engineer (25%)"
+        ]
+      },
+      "infra": {
+        "n": 1,
+        "sum": 50,
+        "mean": 50,
+        "cases": [
+          "#14 mobileapp_react_native→devops (50%)"
+        ]
+      }
+    }
+  }
+}
