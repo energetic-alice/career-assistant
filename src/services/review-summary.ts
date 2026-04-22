@@ -164,8 +164,9 @@ const QUESTIONNAIRE_LABELS: Record<keyof RawQuestionnaire, string> = {
   linkedinSSI: "LinkedIn SSI",
 };
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function escapeHtml(s: unknown): string {
+  if (s == null) return "";
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 const QUESTIONNAIRE_HTML_STYLE = `
@@ -414,12 +415,18 @@ function renderFromClientSummary(
   ].join(" · ");
 
   // ── Хайлайты буллет-листом ────────────────────────────────────────────
-  const highlightItems: string[] = Array.isArray(s.highlights)
-    ? s.highlights
-    : (s.highlights as unknown as string)
-        .split(/\s+·\s+|(?<=\.)\s+(?=[А-ЯA-Z])/) // legacy: " · " или ". " между фразами
-        .map((x) => x.replace(/\.$/, "").trim())
-        .filter(Boolean);
+  // highlights может быть: массивом (новая схема), строкой (legacy) или
+  // отсутствовать вообще (недогенерённый/импортированный state).
+  const highlightsRaw: unknown = s.highlights;
+  let highlightItems: string[] = [];
+  if (Array.isArray(highlightsRaw)) {
+    highlightItems = highlightsRaw.filter((x): x is string => typeof x === "string");
+  } else if (typeof highlightsRaw === "string") {
+    highlightItems = highlightsRaw
+      .split(/\s+·\s+|(?<=\.)\s+(?=[А-ЯA-Z])/) // legacy: " · " или ". " между фразами
+      .map((x: string) => x.replace(/\.$/, "").trim())
+      .filter(Boolean);
+  }
   const highlightsBlock = highlightItems.length
     ? highlightItems.map((h) => `• ${escapeHtml(h)}`).join("\n")
     : "—";

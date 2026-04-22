@@ -6,8 +6,9 @@ import type { ClientSummary } from "../schemas/client-summary.js";
 import { normalizeNick } from "../services/intake-mapper.js";
 import { formatRegions } from "../services/market-access.js";
 
-function escapeHtml(s: string): string {
-  return s
+function escapeHtml(s: unknown): string {
+  if (s == null) return "";
+  return String(s)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");

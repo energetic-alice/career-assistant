@@ -117,8 +117,9 @@ function toShortlistResult(state: ShortlistState): ShortlistResult {
 // Formatting + keyboard
 // ─────────────────────────────────────────────────────────────────────────────
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function escapeHtml(s: unknown): string {
+  if (s == null) return "";
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 const BUCKET_LABEL: Record<Direction["bucket"], string> = {
