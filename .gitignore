@@ -1,12 +1,14 @@
 node_modules/
 dist/
 test-output/
-# Runtime data only (pipelineStates, market-index, logs). Source code lives
-# in src/data/ and must NOT be ignored (see exceptions below).
-/data/
+# Runtime data (pipelineStates, logs, local payloads). Source code lives
+# in src/data/ and must NOT be ignored, plus market-index.json is a
+# pre-built catalog shipped to prod.
+/data/*
 *.json
 !package.json
 !package-lock.json
 !tsconfig.json
 !src/data/**
+!/data/market-index.json
 .env

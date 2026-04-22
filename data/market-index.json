@@ -1,0 +1,1540 @@
+{
+  "backend_python": {
+    "slug": "backend_python",
+    "displayTitle": "Backend Developer (Python)",
+    "category": "backend",
+    "aliases": [
+      "Backend Developer (Python)",
+      "Backend Developer",
+      "backend python",
+      "Python разработчик",
+      "Python программист",
+      "Python developer",
+      "Python инженер",
+      "Backend Python",
+      "Django",
+      "FastAPI",
+      "Flask",
+      "Python engineer",
+      "Django разработчик",
+      "FastAPI разработчик",
+      "Flask разработчик",
+      "Python backend"
+    ],
+    "ru": {
+      "vacancies": 552,
+      "medianSalaryMid": 308000,
+      "trend": null,
+      "source": "hh.ru (ru_backend_python.md)",
+      "competitionPer100Specialists": 1.5
+    },
+    "uk": {
+      "vacancies": 380,
+      "medianSalaryMid": 75000,
+      "trend": {
+        "now": 387,
+        "yearAgo": 245,
+        "twoYearsAgo": 527,
+        "ratio": 0.73
+      },
+      "source": "itjobswatch.co.uk (uk_backend_python.md)",
+      "competitionPer100Specialists": 3
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "backend_java": {
+    "slug": "backend_java",
+    "displayTitle": "Backend Developer (Java)",
+    "category": "backend",
+    "aliases": [
+      "Backend Developer (Java)",
+      "Backend Developer",
+      "backend java",
+      "Java разработчик",
+      "Java программист",
+      "Java developer",
+      "Java инженер",
+      "Backend Java",
+      "Java Spring разработчик",
+      "Java engineer",
+      "Spring разработчик",
+      "Java backend"
+    ],
+    "ru": {
+      "vacancies": 865,
+      "medianSalaryMid": 347000,
+      "trend": null,
+      "source": "hh.ru (ru_backend_java.md)",
+      "competitionPer100Specialists": 1.5
+    },
+    "uk": {
+      "vacancies": 910,
+      "medianSalaryMid": 72500,
+      "trend": {
+        "now": 2337,
+        "yearAgo": 2775,
+        "twoYearsAgo": 6558,
+        "ratio": 0.36
+      },
+      "source": "itjobswatch.co.uk (uk_backend_java.md)",
+      "competitionPer100Specialists": 2.5
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "backend_go": {
+    "slug": "backend_go",
+    "displayTitle": "Backend Developer (Go)",
+    "category": "backend",
+    "aliases": [
+      "Backend Developer (Go)",
+      "Backend Developer",
+      "backend go",
+      "Go разработчик",
+      "Golang разработчик",
+      "Golang developer",
+      "Go программист",
+      "Backend Go",
+      "Go инженер",
+      "Go developer",
+      "Go engineer",
+      "Golang engineer",
+      "Go backend"
+    ],
+    "ru": {
+      "vacancies": 465,
+      "medianSalaryMid": 348000,
+      "trend": null,
+      "source": "hh.ru (ru_backend_go.md)",
+      "competitionPer100Specialists": 3
+    },
+    "uk": {
+      "vacancies": 144,
+      "medianSalaryMid": 90000,
+      "trend": {
+        "now": 459,
+        "yearAgo": 727,
+        "twoYearsAgo": 851,
+        "ratio": 0.54
+      },
+      "source": "itjobswatch.co.uk (uk_backend_go.md)",
+      "competitionPer100Specialists": 6
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "backend_nodejs": {
+    "slug": "backend_nodejs",
+    "displayTitle": "Backend Developer (Node.js)",
+    "category": "backend",
+    "aliases": [
+      "Backend Developer (Node.js)",
+      "Backend Developer",
+      "backend nodejs",
+      "Node.js разработчик",
+      "Node.js developer",
+      "Node.js программист",
+      "Node разработчик",
+      "Backend Node.js",
+      "NestJS разработчик",
+      "Node developer",
+      "Node backend"
+    ],
+    "ru": {
+      "vacancies": 309,
+      "medianSalaryMid": 299000,
+      "trend": null,
+      "source": "hh.ru (ru_backend_nodejs.md)",
+      "competitionPer100Specialists": 1.7
+    },
+    "uk": {
+      "vacancies": 356,
+      "medianSalaryMid": 75000,
+      "trend": {
+        "now": 900,
+        "yearAgo": 1014,
+        "twoYearsAgo": 2165,
+        "ratio": 0.42
+      },
+      "source": "itjobswatch.co.uk (uk_backend_nodejs.md)",
+      "competitionPer100Specialists": 3.5
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "backend_net": {
+    "slug": "backend_net",
+    "displayTitle": "Backend Developer (C# / .NET)",
+    "category": "backend",
+    "aliases": [
+      "Backend Developer (C# / .NET)",
+      "Backend Developer",
+      "backend net",
+      "C# разработчик",
+      ".NET разработчик",
+      "C# программист",
+      "C# developer",
+      "Backend C#",
+      "ASP.NET разработчик",
+      ".NET инженер",
+      ".NET developer",
+      "C# engineer"
+    ],
+    "ru": {
+      "vacancies": 397,
+      "medianSalaryMid": 317000,
+      "trend": null,
+      "source": "hh.ru (ru_backend_net.md)",
+      "competitionPer100Specialists": 1.4
+    },
+    "uk": {
+      "vacancies": 763,
+      "medianSalaryMid": 65000,
+      "trend": {
+        "now": 2002,
+        "yearAgo": 2125,
+        "twoYearsAgo": 6881,
+        "ratio": 0.29
+      },
+      "source": "itjobswatch.co.uk (uk_backend_net.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "backend_php": {
+    "slug": "backend_php",
+    "displayTitle": "Backend Developer (PHP)",
+    "category": "backend",
+    "aliases": [
+      "Backend Developer (PHP)",
+      "Backend Developer",
+      "backend php",
+      "PHP разработчик",
+      "PHP программист",
+      "PHP developer",
+      "Backend PHP",
+      "Laravel разработчик",
+      "Symfony разработчик",
+      "Bitrix разработчик",
+      "PHP engineer"
+    ],
+    "ru": {
+      "vacancies": 519,
+      "medianSalaryMid": 277000,
+      "trend": null,
+      "source": "hh.ru (ru_backend_php.md)",
+      "competitionPer100Specialists": 1.3
+    },
+    "uk": {
+      "vacancies": 133,
+      "medianSalaryMid": 50000,
+      "trend": {
+        "now": 642,
+        "yearAgo": 649,
+        "twoYearsAgo": 1865,
+        "ratio": 0.34
+      },
+      "source": "itjobswatch.co.uk (uk_backend_php.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "backend_ruby": {
+    "slug": "backend_ruby",
+    "displayTitle": "Backend Developer (Ruby)",
+    "category": "backend",
+    "aliases": [
+      "Backend Developer (Ruby)",
+      "Backend Developer",
+      "backend ruby",
+      "Ruby разработчик",
+      "Ruby on Rails",
+      "Ruby программист",
+      "Rails разработчик",
+      "RoR разработчик",
+      "Backend Ruby",
+      "Ruby developer",
+      "RoR developer"
+    ],
+    "ru": {
+      "vacancies": 71,
+      "medianSalaryMid": 315000,
+      "trend": null,
+      "source": "hh.ru (ru_backend_ruby.md)"
+    },
+    "uk": {
+      "vacancies": 58,
+      "medianSalaryMid": 75000,
+      "trend": {
+        "now": 116,
+        "yearAgo": 164,
+        "twoYearsAgo": 431,
+        "ratio": 0.27
+      },
+      "source": "itjobswatch.co.uk (uk_backend_ruby.md)",
+      "competitionPer100Specialists": 5
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "backend_rust": {
+    "slug": "backend_rust",
+    "displayTitle": "Backend Developer (Rust)",
+    "category": "backend",
+    "aliases": [
+      "Backend Developer (Rust)",
+      "Backend Developer",
+      "backend rust",
+      "Rust разработчик",
+      "Rust developer",
+      "Rust программист",
+      "Backend Rust",
+      "Rust инженер",
+      "Rust engineer",
+      "Rust backend"
+    ],
+    "ru": {
+      "vacancies": 45,
+      "medianSalaryMid": 315000,
+      "trend": null,
+      "source": "hh.ru (ru_backend_rust.md)"
+    },
+    "uk": {
+      "vacancies": 121,
+      "medianSalaryMid": 95000,
+      "trend": {
+        "now": 206,
+        "yearAgo": 234,
+        "twoYearsAgo": 307,
+        "ratio": 0.67
+      },
+      "source": "itjobswatch.co.uk (uk_backend_rust.md)",
+      "competitionPer100Specialists": 8
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "backend_cplusplus": {
+    "slug": "backend_cplusplus",
+    "displayTitle": "Backend Developer (C / C++)",
+    "category": "backend",
+    "aliases": [
+      "Backend Developer (C / C++)",
+      "Backend Developer",
+      "backend cplusplus",
+      "C++ разработчик",
+      "C++ программист",
+      "C++ developer",
+      "C/C++ разработчик",
+      "C++ инженер",
+      "Embedded C++",
+      "C++ engineer",
+      "C developer",
+      "C engineer",
+      "Embedded C",
+      "Cplusplus"
+    ],
+    "ru": {
+      "vacancies": 423,
+      "medianSalaryMid": 365000,
+      "trend": null,
+      "source": "hh.ru (ru_backend_cplusplus.md)"
+    },
+    "uk": {
+      "vacancies": 46,
+      "medianSalaryMid": 80000,
+      "trend": {
+        "now": 153,
+        "yearAgo": 130,
+        "twoYearsAgo": 295,
+        "ratio": 0.52
+      },
+      "source": "itjobswatch.co.uk (uk_backend_cplusplus.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "frontend_react": {
+    "slug": "frontend_react",
+    "displayTitle": "Frontend Developer (React)",
+    "category": "frontend",
+    "aliases": [
+      "Frontend Developer (React)",
+      "Frontend Developer",
+      "frontend react",
+      "React разработчик",
+      "Frontend React",
+      "React developer",
+      "React программист",
+      "Фронтенд React",
+      "React инженер",
+      "React engineer",
+      "React.js разработчик",
+      "React frontend"
+    ],
+    "ru": {
+      "vacancies": 512,
+      "medianSalaryMid": 298000,
+      "trend": null,
+      "source": "hh.ru (ru_frontend_react.md)",
+      "competitionPer100Specialists": 1.4
+    },
+    "uk": {
+      "vacancies": 634,
+      "medianSalaryMid": 70000,
+      "trend": {
+        "now": 1597,
+        "yearAgo": 2006,
+        "twoYearsAgo": 4578,
+        "ratio": 0.35
+      },
+      "source": "itjobswatch.co.uk (uk_frontend_react.md)",
+      "competitionPer100Specialists": 2
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "high"
+  },
+  "frontend_vue": {
+    "slug": "frontend_vue",
+    "displayTitle": "Frontend Developer (Vue)",
+    "category": "frontend",
+    "aliases": [
+      "Frontend Developer (Vue)",
+      "Frontend Developer",
+      "frontend vue",
+      "Vue разработчик",
+      "Vue.js developer",
+      "Vue программист",
+      "Фронтенд Vue",
+      "Nuxt разработчик",
+      "Vue инженер",
+      "Vue developer",
+      "Vue frontend"
+    ],
+    "ru": {
+      "vacancies": 209,
+      "medianSalaryMid": 277000,
+      "trend": null,
+      "source": "hh.ru (ru_frontend_vue.md)",
+      "competitionPer100Specialists": 2
+    },
+    "uk": {
+      "vacancies": 170,
+      "medianSalaryMid": 62500,
+      "trend": {
+        "now": 325,
+        "yearAgo": 375,
+        "twoYearsAgo": 1601,
+        "ratio": 0.2
+      },
+      "source": "itjobswatch.co.uk (uk_frontend_vue.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "high"
+  },
+  "frontend_angular": {
+    "slug": "frontend_angular",
+    "displayTitle": "Frontend Developer (Angular)",
+    "category": "frontend",
+    "aliases": [
+      "Frontend Developer (Angular)",
+      "Frontend Developer",
+      "frontend angular",
+      "Angular разработчик",
+      "Angular developer",
+      "Angular программист",
+      "Фронтенд Angular",
+      "Angular инженер",
+      "Angular engineer",
+      "Angular frontend"
+    ],
+    "ru": {
+      "vacancies": 150,
+      "medianSalaryMid": 291000,
+      "trend": null,
+      "source": "hh.ru (ru_frontend_angular.md)",
+      "competitionPer100Specialists": 1.9
+    },
+    "uk": {
+      "vacancies": 223,
+      "medianSalaryMid": 65000,
+      "trend": {
+        "now": 463,
+        "yearAgo": 969,
+        "twoYearsAgo": 3280,
+        "ratio": 0.14
+      },
+      "source": "itjobswatch.co.uk (uk_frontend_angular.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "high"
+  },
+  "fullstack": {
+    "slug": "fullstack",
+    "displayTitle": "Full-stack Developer",
+    "category": "fullstack",
+    "aliases": [
+      "Full-stack Developer",
+      "fullstack",
+      "Fullstack разработчик",
+      "Full stack developer",
+      "Фулстек разработчик",
+      "Fullstack JS",
+      "Fullstack engineer",
+      "MERN разработчик",
+      "Full-stack",
+      "Full stack"
+    ],
+    "ru": {
+      "vacancies": 280,
+      "medianSalaryMid": 270000,
+      "trend": null,
+      "source": "hh.ru (ru_fullstack.md)"
+    },
+    "uk": {
+      "vacancies": 876,
+      "medianSalaryMid": 70000,
+      "trend": {
+        "now": 2227,
+        "yearAgo": 1357,
+        "twoYearsAgo": 4860,
+        "ratio": 0.46
+      },
+      "source": "itjobswatch.co.uk (uk_fullstack.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "mobileapp_swift": {
+    "slug": "mobileapp_swift",
+    "displayTitle": "iOS Developer (Swift)",
+    "category": "mobile",
+    "aliases": [
+      "iOS Developer (Swift)",
+      "iOS Developer",
+      "mobileapp swift",
+      "iOS разработчик",
+      "iOS developer",
+      "Swift разработчик",
+      "iOS программист",
+      "Swift developer",
+      "iOS инженер",
+      "iOS engineer"
+    ],
+    "ru": {
+      "vacancies": 551,
+      "medianSalaryMid": 359000,
+      "trend": null,
+      "source": "hh.ru (ru_mobileapp_swift.md)",
+      "competitionPer100Specialists": 3
+    },
+    "uk": {
+      "vacancies": 21,
+      "medianSalaryMid": 70000,
+      "trend": {
+        "now": 117,
+        "yearAgo": 99,
+        "twoYearsAgo": 153,
+        "ratio": 0.76
+      },
+      "source": "itjobswatch.co.uk (uk_mobileapp_swift.md)",
+      "competitionPer100Specialists": 3.5
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "mobileapp_kotlin": {
+    "slug": "mobileapp_kotlin",
+    "displayTitle": "Android Developer (Kotlin)",
+    "category": "mobile",
+    "aliases": [
+      "Android Developer (Kotlin)",
+      "Android Developer",
+      "mobileapp kotlin",
+      "Android разработчик",
+      "Android developer",
+      "Kotlin разработчик",
+      "Android программист",
+      "Kotlin developer",
+      "Android инженер",
+      "Android engineer"
+    ],
+    "ru": {
+      "vacancies": 601,
+      "medianSalaryMid": 347000,
+      "trend": null,
+      "source": "hh.ru (ru_mobileapp_kotlin.md)",
+      "competitionPer100Specialists": 3
+    },
+    "uk": {
+      "vacancies": 182,
+      "medianSalaryMid": 57062,
+      "trend": {
+        "now": 559,
+        "yearAgo": 786,
+        "twoYearsAgo": 1308,
+        "ratio": 0.43
+      },
+      "source": "itjobswatch.co.uk (uk_mobileapp_kotlin.md)",
+      "competitionPer100Specialists": 3.5
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "mobileapp_flutter": {
+    "slug": "mobileapp_flutter",
+    "displayTitle": "Flutter Developer",
+    "category": "mobile",
+    "aliases": [
+      "Flutter Developer",
+      "mobileapp flutter",
+      "Flutter разработчик",
+      "Flutter developer",
+      "Flutter программист",
+      "Flutter инженер",
+      "Dart разработчик",
+      "Dart developer",
+      "Cross-platform Flutter"
+    ],
+    "ru": {
+      "vacancies": 79,
+      "medianSalaryMid": 300000,
+      "trend": null,
+      "source": "hh.ru (ru_mobileapp_flutter.md)",
+      "competitionPer100Specialists": 2.7
+    },
+    "uk": {
+      "vacancies": 19,
+      "medianSalaryMid": 71500,
+      "trend": {
+        "now": 33,
+        "yearAgo": 52,
+        "twoYearsAgo": 88,
+        "ratio": 0.38
+      },
+      "source": "itjobswatch.co.uk (uk_mobileapp_flutter.md)",
+      "competitionPer100Specialists": 4
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "mobileapp_react_native": {
+    "slug": "mobileapp_react_native",
+    "displayTitle": "React Native Developer",
+    "category": "mobile",
+    "aliases": [
+      "React Native Developer",
+      "mobileapp react native",
+      "React Native разработчик",
+      "React Native developer",
+      "React Native программист",
+      "RN разработчик",
+      "React Native инженер",
+      "Cross-platform разработчик",
+      "RN developer",
+      "Cross-platform RN"
+    ],
+    "ru": {
+      "vacancies": 74,
+      "medianSalaryMid": 338000,
+      "trend": null,
+      "source": "hh.ru (ru_mobileapp_react_native.md)",
+      "competitionPer100Specialists": 2.7
+    },
+    "uk": {
+      "vacancies": 55,
+      "medianSalaryMid": 70000,
+      "trend": {
+        "now": 219,
+        "yearAgo": 178,
+        "twoYearsAgo": 269,
+        "ratio": 0.81
+      },
+      "source": "itjobswatch.co.uk (uk_mobileapp_react_native.md)",
+      "competitionPer100Specialists": 4
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "devops": {
+    "slug": "devops",
+    "displayTitle": "DevOps / SRE / Platform Engineer",
+    "category": "infra",
+    "aliases": [
+      "DevOps / SRE / Platform Engineer",
+      "devops",
+      "DevOps",
+      "DevOps инженер",
+      "DevOps engineer",
+      "инженер инфраструктуры",
+      "инженер сопровождения",
+      "CI/CD инженер",
+      "release engineer",
+      "SRE",
+      "SRE инженер",
+      "Site Reliability Engineer",
+      "инженер надёжности",
+      "MLOps инженер",
+      "MLOps Engineer",
+      "MLOps",
+      "ML platform engineer",
+      "Платформенный инженер",
+      "Platform Engineer",
+      "Инженер платформы",
+      "Internal Platform Engineer",
+      "DevSecOps инженер",
+      "DevSecOps",
+      "DevSecOps engineer",
+      "Security DevOps",
+      "AppSec DevOps",
+      "Безопасник DevOps",
+      "FinOps",
+      "FinOps Engineer",
+      "ML инфраструктура",
+      "Cloud Engineer",
+      "Infrastructure Engineer"
+    ],
+    "ru": {
+      "vacancies": 1132,
+      "medianSalaryMid": 330000,
+      "trend": null,
+      "source": "hh.ru (ru_devops.md)",
+      "competitionPer100Specialists": 5
+    },
+    "uk": {
+      "vacancies": 1519,
+      "medianSalaryMid": 70000,
+      "trend": {
+        "now": 3879,
+        "yearAgo": 3649,
+        "twoYearsAgo": 7237,
+        "ratio": 0.54
+      },
+      "source": "itjobswatch.co.uk (uk_devops.md)",
+      "competitionPer100Specialists": 8
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "low"
+  },
+  "data_engineer": {
+    "slug": "data_engineer",
+    "displayTitle": "Data Engineer",
+    "category": "data",
+    "aliases": [
+      "Data Engineer",
+      "data engineer",
+      "Инженер данных",
+      "Дата инженер",
+      "ETL разработчик",
+      "ETL инженер",
+      "Big Data инженер",
+      "DWH разработчик"
+    ],
+    "ru": {
+      "vacancies": 1491,
+      "medianSalaryMid": 327000,
+      "trend": null,
+      "source": "hh.ru (ru_data_engineer.md)",
+      "competitionPer100Specialists": 3.8
+    },
+    "uk": {
+      "vacancies": 468,
+      "medianSalaryMid": 75000,
+      "trend": {
+        "now": 1224,
+        "yearAgo": 843,
+        "twoYearsAgo": 1614,
+        "ratio": 0.76
+      },
+      "source": "itjobswatch.co.uk (uk_data_engineer.md)",
+      "competitionPer100Specialists": 6
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "low"
+  },
+  "ml_engineer": {
+    "slug": "ml_engineer",
+    "displayTitle": "ML Engineer / Data Scientist",
+    "category": "data",
+    "aliases": [
+      "ML Engineer / Data Scientist",
+      "ml engineer",
+      "ML инженер",
+      "ML Engineer",
+      "Machine Learning инженер",
+      "Инженер машинного обучения",
+      "ML разработчик",
+      "AI engineer",
+      "LLM инженер",
+      "Data Scientist",
+      "Специалист по данным",
+      "Дата сайентист",
+      "DS",
+      "ML researcher",
+      "NLP инженер",
+      "CV инженер"
+    ],
+    "ru": {
+      "vacancies": 590,
+      "medianSalaryMid": 365000,
+      "trend": null,
+      "source": "hh.ru (ru_ml_engineer.md)",
+      "competitionPer100Specialists": 1.3
+    },
+    "uk": {
+      "vacancies": 154,
+      "medianSalaryMid": 70000,
+      "trend": {
+        "now": 328,
+        "yearAgo": 232,
+        "twoYearsAgo": 493,
+        "ratio": 0.67
+      },
+      "source": "itjobswatch.co.uk (uk_ml_engineer.md)",
+      "competitionPer100Specialists": 5
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "low"
+  },
+  "data_analyst": {
+    "slug": "data_analyst",
+    "displayTitle": "Data Analyst",
+    "category": "analytics",
+    "aliases": [
+      "Data Analyst",
+      "data analyst",
+      "Аналитик данных",
+      "Дата аналитик"
+    ],
+    "ru": {
+      "vacancies": 3176,
+      "medianSalaryMid": 259000,
+      "trend": null,
+      "source": "hh.ru (ru_data_analyst.md)",
+      "competitionPer100Specialists": 1.5
+    },
+    "uk": {
+      "vacancies": 451,
+      "medianSalaryMid": 40000,
+      "trend": {
+        "now": 1911,
+        "yearAgo": 406,
+        "twoYearsAgo": 899,
+        "ratio": 2.13
+      },
+      "source": "itjobswatch.co.uk (uk_data_analyst.md)",
+      "competitionPer100Specialists": 3
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "product_analyst": {
+    "slug": "product_analyst",
+    "displayTitle": "Product Analyst",
+    "category": "analytics",
+    "aliases": [
+      "Product Analyst",
+      "product analyst",
+      "Продуктовый аналитик",
+      "Аналитик продукта",
+      "Продакт-аналитик",
+      "Growth аналитик",
+      "CJM аналитик"
+    ],
+    "ru": {
+      "vacancies": 1701,
+      "medianSalaryMid": 319000,
+      "trend": null,
+      "source": "hh.ru (ru_product_analyst.md)",
+      "competitionPer100Specialists": 1.9
+    },
+    "uk": {
+      "vacancies": 47,
+      "medianSalaryMid": 45000,
+      "trend": {
+        "now": 48,
+        "yearAgo": 99,
+        "twoYearsAgo": 92,
+        "ratio": 0.52
+      },
+      "source": "itjobswatch.co.uk (uk_product_analyst.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "qa_engineer": {
+    "slug": "qa_engineer",
+    "displayTitle": "QA Automation Engineer",
+    "category": "qa",
+    "aliases": [
+      "QA Automation Engineer",
+      "qa engineer",
+      "QA Automation",
+      "Автоматизатор тестирования",
+      "QA Engineer",
+      "Automation QA",
+      "Test Automation Engineer",
+      "SDET",
+      "Автотестировщик"
+    ],
+    "ru": {
+      "vacancies": 971,
+      "medianSalaryMid": 239000,
+      "trend": null,
+      "source": "hh.ru (ru_qa_engineer.md)",
+      "competitionPer100Specialists": 2.5
+    },
+    "uk": {
+      "vacancies": 75,
+      "medianSalaryMid": 50000,
+      "trend": {
+        "now": 200,
+        "yearAgo": 104,
+        "twoYearsAgo": 266,
+        "ratio": 0.75
+      },
+      "source": "itjobswatch.co.uk (uk_qa_engineer.md)",
+      "competitionPer100Specialists": 4
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "high"
+  },
+  "manual_testing": {
+    "slug": "manual_testing",
+    "displayTitle": "QA Manual Tester",
+    "category": "qa",
+    "aliases": [
+      "QA Manual Tester",
+      "manual testing",
+      "QA инженер",
+      "Тестировщик",
+      "Manual QA",
+      "Тестировщик ПО",
+      "Manual QA Engineer",
+      "QA tester",
+      "Инженер по тестированию"
+    ],
+    "ru": {
+      "vacancies": 891,
+      "medianSalaryMid": 200000,
+      "trend": null,
+      "source": "hh.ru (ru_manual_testing.md)",
+      "competitionPer100Specialists": 0.6
+    },
+    "uk": {
+      "vacancies": 22,
+      "medianSalaryMid": 33000,
+      "trend": {
+        "now": 38,
+        "yearAgo": 34,
+        "twoYearsAgo": 99,
+        "ratio": 0.38
+      },
+      "source": "itjobswatch.co.uk (uk_manual_testing.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "low"
+  },
+  "product_manager": {
+    "slug": "product_manager",
+    "displayTitle": "Product Manager",
+    "category": "management",
+    "aliases": [
+      "Product Manager",
+      "product manager",
+      "Продакт менеджер",
+      "Менеджер продукта",
+      "Owner продукта",
+      "Product owner",
+      "Продакт-менеджер",
+      "Product Owner"
+    ],
+    "ru": {
+      "vacancies": 3638,
+      "medianSalaryMid": 310000,
+      "trend": null,
+      "source": "hh.ru (ru_product_manager.md)",
+      "competitionPer100Specialists": 1.7
+    },
+    "uk": {
+      "vacancies": 288,
+      "medianSalaryMid": 70000,
+      "trend": {
+        "now": 477,
+        "yearAgo": 582,
+        "twoYearsAgo": 616,
+        "ratio": 0.77
+      },
+      "source": "itjobswatch.co.uk (uk_product_manager.md)",
+      "competitionPer100Specialists": 2.5
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "low"
+  },
+  "project_manager": {
+    "slug": "project_manager",
+    "displayTitle": "Project Manager",
+    "category": "management",
+    "aliases": [
+      "Project Manager",
+      "project manager",
+      "Проектный менеджер",
+      "Менеджер проектов",
+      "Руководитель проекта",
+      "Руководитель проектов",
+      "Delivery Manager"
+    ],
+    "ru": {
+      "vacancies": 2554,
+      "medianSalaryMid": 253000,
+      "trend": null,
+      "source": "hh.ru (ru_project_manager.md)"
+    },
+    "uk": {
+      "vacancies": 589,
+      "medianSalaryMid": 63076,
+      "trend": {
+        "now": 1078,
+        "yearAgo": 1687,
+        "twoYearsAgo": 3784,
+        "ratio": 0.28
+      },
+      "source": "itjobswatch.co.uk (uk_project_manager.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "low"
+  },
+  "tech_lead": {
+    "slug": "tech_lead",
+    "displayTitle": "Tech Lead / Engineering Manager",
+    "category": "management",
+    "aliases": [
+      "Tech Lead / Engineering Manager",
+      "tech lead",
+      "Тимлид",
+      "Tech Lead",
+      "Team Lead",
+      "Технический лид",
+      "Lead developer",
+      "Lead engineer",
+      "Руководитель разработки",
+      "Engineering Manager",
+      "Руководитель команды разработки",
+      "Head of Engineering",
+      "Руководитель IT-отдела",
+      "Руководитель направления разработки"
+    ],
+    "ru": {
+      "vacancies": 1052,
+      "medianSalaryMid": 315000,
+      "trend": null,
+      "source": "hh.ru (ru_tech_lead.md)",
+      "competitionPer100Specialists": 3
+    },
+    "uk": {
+      "vacancies": 669,
+      "medianSalaryMid": 80000,
+      "trend": {
+        "now": 1428,
+        "yearAgo": 897,
+        "twoYearsAgo": 1688,
+        "ratio": 0.85
+      },
+      "source": "itjobswatch.co.uk (uk_tech_lead.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "low"
+  },
+  "software_architect": {
+    "slug": "software_architect",
+    "displayTitle": "Solution Architect",
+    "category": "architecture",
+    "aliases": [
+      "Solution Architect",
+      "software architect",
+      "Архитектор решений",
+      "Системный архитектор",
+      "Архитектор ПО",
+      "Software Architect",
+      "Enterprise Architect",
+      "Технический архитектор"
+    ],
+    "ru": {
+      "vacancies": 408,
+      "medianSalaryMid": 478000,
+      "trend": null,
+      "source": "hh.ru (ru_software_architect.md)",
+      "competitionPer100Specialists": 1.3
+    },
+    "uk": {
+      "vacancies": 334,
+      "medianSalaryMid": 85000,
+      "trend": {
+        "now": 1241,
+        "yearAgo": 805,
+        "twoYearsAgo": 2085,
+        "ratio": 0.6
+      },
+      "source": "itjobswatch.co.uk (uk_software_architect.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "low"
+  },
+  "business_analyst": {
+    "slug": "business_analyst",
+    "displayTitle": "Business Analyst",
+    "category": "analytics",
+    "aliases": [
+      "Business Analyst",
+      "business analyst",
+      "Бизнес-аналитик",
+      "Бизнес аналитик",
+      "BA",
+      "Аналитик бизнес-процессов"
+    ],
+    "ru": {
+      "vacancies": 1768,
+      "medianSalaryMid": 242000,
+      "trend": null,
+      "source": "hh.ru (ru_business_analyst.md)",
+      "competitionPer100Specialists": 1.4
+    },
+    "uk": {
+      "vacancies": 437,
+      "medianSalaryMid": 55000,
+      "trend": {
+        "now": 1383,
+        "yearAgo": 678,
+        "twoYearsAgo": 1495,
+        "ratio": 0.93
+      },
+      "source": "itjobswatch.co.uk (uk_business_analyst.md)",
+      "competitionPer100Specialists": 3
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "systems_analyst": {
+    "slug": "systems_analyst",
+    "displayTitle": "Systems Analyst",
+    "category": "analytics",
+    "aliases": [
+      "Systems Analyst",
+      "systems analyst",
+      "Системный аналитик",
+      "System Analyst"
+    ],
+    "ru": {
+      "vacancies": 930,
+      "medianSalaryMid": 283000,
+      "trend": null,
+      "source": "hh.ru (ru_systems_analyst.md)",
+      "competitionPer100Specialists": 1.8
+    },
+    "uk": {
+      "vacancies": 115,
+      "medianSalaryMid": 45000,
+      "trend": {
+        "now": 328,
+        "yearAgo": 210,
+        "twoYearsAgo": 615,
+        "ratio": 0.53
+      },
+      "source": "itjobswatch.co.uk (uk_systems_analyst.md)",
+      "competitionPer100Specialists": 3
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "ui_ux_designer": {
+    "slug": "ui_ux_designer",
+    "displayTitle": "UX/UI Designer",
+    "category": "design",
+    "aliases": [
+      "UX/UI Designer",
+      "ui ux designer",
+      "UX/UI дизайнер",
+      "UX дизайнер",
+      "Продуктовый дизайнер",
+      "UI дизайнер",
+      "Web дизайнер",
+      "Product Designer",
+      "Дизайнер интерфейсов",
+      "UX/UI",
+      "UX/UI designer",
+      "UX designer",
+      "UI designer"
+    ],
+    "ru": {
+      "vacancies": 595,
+      "medianSalaryMid": 186000,
+      "trend": null,
+      "source": "hh.ru (ru_ui_ux_designer.md)"
+    },
+    "uk": {
+      "vacancies": 254,
+      "medianSalaryMid": 62500,
+      "trend": {
+        "now": 498,
+        "yearAgo": 459,
+        "twoYearsAgo": 1035,
+        "ratio": 0.48
+      },
+      "source": "itjobswatch.co.uk (uk_ui_ux_designer.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "high"
+  },
+  "marketing_manager": {
+    "slug": "marketing_manager",
+    "displayTitle": "Marketing Manager",
+    "category": "marketing",
+    "aliases": [
+      "Marketing Manager",
+      "marketing manager",
+      "Маркетолог",
+      "Digital маркетолог",
+      "Интернет маркетолог",
+      "Performance маркетолог",
+      "Product маркетолог",
+      "Бренд-менеджер",
+      "Head of Marketing"
+    ],
+    "ru": {
+      "vacancies": 1119,
+      "medianSalaryMid": 190000,
+      "trend": null,
+      "source": "hh.ru (ru_marketing_manager.md)"
+    },
+    "uk": {
+      "vacancies": 89,
+      "medianSalaryMid": 50000,
+      "trend": {
+        "now": 421,
+        "yearAgo": 68,
+        "twoYearsAgo": 69,
+        "ratio": 6.1
+      },
+      "source": "itjobswatch.co.uk (uk_marketing_manager.md)",
+      "competitionPer100Specialists": 5
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "recruiter": {
+    "slug": "recruiter",
+    "displayTitle": "IT Recruiter / HR",
+    "category": "hr",
+    "aliases": [
+      "IT Recruiter / HR",
+      "recruiter",
+      "IT рекрутер",
+      "HR менеджер",
+      "Рекрутер",
+      "Talent Acquisition",
+      "IT recruiter",
+      "Sourcer",
+      "HR BP",
+      "HR generalist"
+    ],
+    "ru": {
+      "vacancies": 984,
+      "medianSalaryMid": 140000,
+      "trend": null,
+      "source": "hh.ru (ru_recruiter.md)"
+    },
+    "uk": {
+      "vacancies": null,
+      "medianSalaryMid": null,
+      "trend": null,
+      "source": "itjobswatch.co.uk (uk_recruiter.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "high"
+  },
+  "technical_writer": {
+    "slug": "technical_writer",
+    "displayTitle": "Technical Writer",
+    "category": "docs",
+    "aliases": [
+      "Technical Writer",
+      "technical writer",
+      "Технический писатель",
+      "Техписатель",
+      "Документалист",
+      "Tech Writer",
+      "Documentation Engineer"
+    ],
+    "ru": {
+      "vacancies": 242,
+      "medianSalaryMid": 172000,
+      "trend": null,
+      "source": "hh.ru (ru_technical_writer.md)"
+    },
+    "uk": {
+      "vacancies": 9,
+      "medianSalaryMid": 40000,
+      "trend": {
+        "now": 24,
+        "yearAgo": 13,
+        "twoYearsAgo": 22,
+        "ratio": 1.09
+      },
+      "source": "itjobswatch.co.uk (uk_technical_writer.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "extreme"
+  },
+  "infosecspec": {
+    "slug": "infosecspec",
+    "displayTitle": "Cybersecurity / InfoSec Engineer",
+    "category": "security",
+    "aliases": [
+      "Cybersecurity / InfoSec Engineer",
+      "infosecspec",
+      "Специалист по информационной безопасности",
+      "Инженер по кибербезопасности",
+      "ИБ инженер",
+      "Cybersecurity",
+      "Специалист ИБ",
+      "Пентестер",
+      "Penetration Tester",
+      "SOC аналитик",
+      "Security Engineer",
+      "Information Security"
+    ],
+    "ru": {
+      "vacancies": 851,
+      "medianSalaryMid": 239000,
+      "trend": null,
+      "source": "hh.ru (ru_infosecspec.md)"
+    },
+    "uk": {
+      "vacancies": 2371,
+      "medianSalaryMid": 55000,
+      "trend": {
+        "now": 10090,
+        "yearAgo": 2542,
+        "twoYearsAgo": 5186,
+        "ratio": 1.95
+      },
+      "source": "itjobswatch.co.uk (uk_infosecspec.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "low"
+  },
+  "1c_developer": {
+    "slug": "1c_developer",
+    "displayTitle": "1C Developer",
+    "category": "other",
+    "aliases": [
+      "1C Developer",
+      "1c developer",
+      "1С разработчик",
+      "1С программист",
+      "Разработчик 1С",
+      "1C разработчик",
+      "Программист 1С",
+      "1С специалист",
+      "1С консультант"
+    ],
+    "ru": {
+      "vacancies": 2025,
+      "medianSalaryMid": 266000,
+      "trend": null,
+      "source": "hh.ru (ru_1c_developer.md)"
+    },
+    "uk": {
+      "vacancies": null,
+      "medianSalaryMid": null,
+      "trend": null,
+      "source": "itjobswatch.co.uk (uk_1c_developer.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "gamedev_unity": {
+    "slug": "gamedev_unity",
+    "displayTitle": "Unity GameDev Developer",
+    "category": "gamedev",
+    "aliases": [
+      "Unity GameDev Developer",
+      "gamedev unity",
+      "Unity разработчик",
+      "Game developer",
+      "Геймдев разработчик",
+      "Unity программист",
+      "Game-разработчик",
+      "Unity engineer",
+      "Game developer Unity"
+    ],
+    "ru": {
+      "vacancies": 633,
+      "medianSalaryMid": 238000,
+      "trend": null,
+      "source": "hh.ru (ru_gamedev_unity.md)"
+    },
+    "uk": {
+      "vacancies": 22,
+      "medianSalaryMid": 30000,
+      "trend": {
+        "now": 9,
+        "yearAgo": 28,
+        "twoYearsAgo": 49,
+        "ratio": 0.18
+      },
+      "source": "itjobswatch.co.uk (uk_gamedev_unity.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "web3_developer": {
+    "slug": "web3_developer",
+    "displayTitle": "Web3 / Blockchain Developer",
+    "category": "other",
+    "aliases": [
+      "Web3 / Blockchain Developer",
+      "web3 developer",
+      "Blockchain разработчик",
+      "Web3 developer",
+      "Solidity разработчик",
+      "Smart Contract Developer",
+      "Web3 разработчик",
+      "Crypto разработчик",
+      "EVM разработчик"
+    ],
+    "ru": {
+      "vacancies": 1576,
+      "medianSalaryMid": 315000,
+      "trend": null,
+      "source": "hh.ru (ru_web3_developer.md)"
+    },
+    "uk": {
+      "vacancies": 54,
+      "medianSalaryMid": 100000,
+      "trend": {
+        "now": 93,
+        "yearAgo": 192,
+        "twoYearsAgo": 498,
+        "ratio": 0.19
+      },
+      "source": "itjobswatch.co.uk (uk_web3_developer.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "system_admin": {
+    "slug": "system_admin",
+    "displayTitle": "System Administrator",
+    "category": "infra",
+    "aliases": [
+      "System Administrator",
+      "system admin",
+      "Системный администратор",
+      "Sysadmin",
+      "Сисадмин",
+      "Linux-администратор",
+      "Windows-администратор",
+      "Администратор серверов",
+      "IT-администратор",
+      "Системный администратор Linux"
+    ],
+    "ru": {
+      "vacancies": 244,
+      "medianSalaryMid": 203000,
+      "trend": null,
+      "source": "hh.ru (ru_system_admin.md)"
+    },
+    "uk": {
+      "vacancies": 65,
+      "medianSalaryMid": 45000,
+      "trend": {
+        "now": 298,
+        "yearAgo": 224,
+        "twoYearsAgo": 523,
+        "ratio": 0.57
+      },
+      "source": "itjobswatch.co.uk (uk_system_admin.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  },
+  "tech_support_manager": {
+    "slug": "tech_support_manager",
+    "displayTitle": "Technical Support",
+    "category": "support",
+    "aliases": [
+      "Technical Support",
+      "tech support manager",
+      "Техническая поддержка",
+      "Инженер техподдержки",
+      "Специалист техподдержки",
+      "IT support",
+      "Helpdesk",
+      "Technical Support Engineer",
+      "Инженер службы поддержки",
+      "Support Engineer",
+      "Helpdesk Engineer"
+    ],
+    "ru": {
+      "vacancies": 3045,
+      "medianSalaryMid": 210000,
+      "trend": null,
+      "source": "hh.ru (ru_tech_support_manager.md)"
+    },
+    "uk": {
+      "vacancies": 322,
+      "medianSalaryMid": 31000,
+      "trend": {
+        "now": 2718,
+        "yearAgo": 1509,
+        "twoYearsAgo": 3045,
+        "ratio": 0.89
+      },
+      "source": "itjobswatch.co.uk (uk_tech_support_manager.md)"
+    },
+    "eu": null,
+    "us": null,
+    "aiRisk": "medium"
+  }
+}
