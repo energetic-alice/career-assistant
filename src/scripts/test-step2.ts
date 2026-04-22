@@ -153,7 +153,7 @@ async function main() {
   console.log(`\n=== ${directions.directions.length} НАПРАВЛЕНИЙ ===`);
   for (const [i, d] of directions.directions.entries()) {
     console.log(`\n${i + 1}. ${d.title}`);
-    console.log(`   Тип: ${d.type} | Близость: ${d.adjacencyScorePercent}%`);
+    console.log(`   Score: ${d.score ?? "—"} | Близость: ${d.adjacencyScorePercent}%`);
     console.log(`   Почему: ${d.whyFits.slice(0, 150)}...`);
     console.log(`   Переносимые: ${d.transferableSkills.join(", ")}`);
     console.log(`   Доучить: ${d.skillsToLearn.join(", ")}`);

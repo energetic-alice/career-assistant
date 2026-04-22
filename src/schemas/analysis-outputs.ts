@@ -203,28 +203,6 @@ export const directionSchema = z.object({
       return "abroad";
     }, z.enum(["ru", "abroad", "usa"]))
     .describe("Рынок Phase 1: ru | abroad | usa."),
-  /**
-   * На Phase 1 (shortlist) тип направления НЕ выбирается — это задача Phase 2
-   * после глубокого анализа. Оставлено optional для обратной совместимости со
-   * старыми состояниями и для Phase 2/3 промптов. Phase 1 промпт (02) не
-   * должен проставлять это поле.
-   */
-  type: z
-    .enum(["основной трек", "запасной вариант", "краткосрочный мост", "долгосрочная ставка"])
-    .optional()
-    .describe(
-      "DEPRECATED на Phase 1: тип направления выбирается на Phase 2 после глубокого анализа. Не проставляй.",
-    ),
-  /**
-   * Также optional — имеет смысл только в связке с type='краткосрочный мост',
-   * которого на Phase 1 не существует. Оставлено для Phase 2+.
-   */
-  bridgeTo: z
-    .string()
-    .optional()
-    .describe(
-      "DEPRECATED на Phase 1: мосты проставляются на Phase 2. Не указывай на Phase 1.",
-    ),
   whyFits: z.string().describe("Почему подходит кандидату"),
   transferableSkills: z.array(z.string()).describe("Какие навыки переносятся напрямую"),
   skillsToLearn: z.array(z.string()).describe("Что нужно доучить"),

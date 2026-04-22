@@ -15,24 +15,14 @@ import { normalizeNick } from "../services/intake-mapper.js";
 type InlineKeyboardMarkup = ReturnType<typeof Markup.inlineKeyboard>["reply_markup"];
 
 /**
- * Стадии, на которых имеет смысл предлагать кнопку "Предварительный анализ".
- * Исключаем: legacy (анализ был ранее), уже завершённые, и стадии, когда
- * какой-то этап прямо сейчас исполняется или уже готов (чтобы случайно не
- * перегенерить shortlist).
+ * Кнопка «Предварительный анализ» всегда доступна на карточке, независимо от
+ * стадии: админу полезно уметь перегенерить shortlist с нуля на любом этапе
+ * (в том числе после того, как анализ уже готов или завершён).
  */
-const ANALYZE_BUTTON_STAGES = new Set([
-  "intake_received",
-  "resume_parsed",
-  "awaiting_analysis",
-  "shortlist_failed",
-  "deep_failed",
-]);
-
 function buildAnalyzeKeyboard(
   participantId: string,
-  stage: string,
+  _stage: string,
 ): InlineKeyboardMarkup | undefined {
-  if (!ANALYZE_BUTTON_STAGES.has(stage)) return undefined;
   return Markup.inlineKeyboard([
     [Markup.button.callback("🔍 Предварительный анализ", `analyze:${participantId}`)],
   ]).reply_markup;

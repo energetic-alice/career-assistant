@@ -200,9 +200,9 @@ async function probeOne(state: PipeState): Promise<void> {
   for (const [i, d] of directions.entries()) {
     const tag = d.offIndex ? `⚠OFF` : `✓`;
     const bucket = d.bucket ? `[${d.bucket}]` : "[?]";
-    const bridge = d.bridgeTo ? ` → ${d.bridgeTo}` : "";
+    const score = d.score != null ? `score=${d.score}` : "";
     console.log(`  ${i + 1}. ${bucket} [${tag}] ${d.roleSlug || "(no slug)"} — ${d.title}`);
-    console.log(`     type=${d.type}${bridge}  adj=${d.adjacencyScorePercent}%`);
+    console.log(`     ${score}  adj=${d.adjacencyScorePercent}%`);
     console.log(`     whyFits: ${d.whyFits.replace(/\s+/g, " ").slice(0, 220)}${d.whyFits.length > 220 ? "…" : ""}`);
     if (d.offIndex) {
       console.log(`     marketEvidence: ${(d.marketEvidence || "—").slice(0, 220)}`);

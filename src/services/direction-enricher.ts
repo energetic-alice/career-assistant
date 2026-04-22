@@ -37,8 +37,6 @@ const MAX_DUPES_IN_FAMILY = 3;
  *    до MAX_DUPES_IN_FAMILY направлений с одним slug (разные ниши одного семейства)
  *  - normalises offIndex flag based on KNOWN_ROLES membership
  *  - junior level → warning (клиент мог явно попросить)
- *  - Phase 1: type/bridgeTo не проставляются (решение — на Phase 2). Если всё
- *    же пришло `type="краткосрочный мост"` без bridgeTo — чистим оба поля.
  *
  * Returns a NEW array (does not mutate input).
  */
@@ -94,24 +92,6 @@ export async function postValidateDirections(
     }
 
     firstPass.push(d);
-  }
-
-  // Phase 1: type/bridgeTo deprecated. Если клод случайно их проставил —
-  // чистим, чтобы не уводить Phase 2/3 промпты в сторону преждевременным
-  // решением.
-  for (const d of firstPass) {
-    if (d.type !== undefined) {
-      console.warn(
-        `[postValidate] "${d.title}": type="${d.type}" (Phase 1 deprecated) — чистим`,
-      );
-      d.type = undefined;
-    }
-    if (d.bridgeTo !== undefined) {
-      console.warn(
-        `[postValidate] "${d.title}": bridgeTo="${d.bridgeTo}" (Phase 1 deprecated) — чистим`,
-      );
-      d.bridgeTo = undefined;
-    }
   }
 
   return firstPass;
