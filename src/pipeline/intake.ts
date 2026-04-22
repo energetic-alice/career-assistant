@@ -225,6 +225,61 @@ export function registerIntakeRoutes(app: FastifyInstance) {
       }
     },
   );
+
+  /**
+   * Upsert-partial: обновляет / добавляет только указанные participantId,
+   * не трогая остальные state'ы на проде. Безопаснее import-seed для
+   * точечных заливок свежих clientSummary из локального JSON.
+   *
+   * Body: { states: { [participantId]: PipelineState } }
+   * Header: x-webhook-secret.
+   */
+  app.post(
+    "/api/admin/upsert-states",
+    { bodyLimit: 32 * 1024 * 1024 },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const secret = request.headers["x-webhook-secret"];
+      if (secret !== process.env.WEBHOOK_SECRET) {
+        return reply.status(401).send({ error: "Invalid webhook secret" });
+      }
+
+      try {
+        const body = request.body as { states?: Record<string, PipelineState> };
+        const states = body?.states;
+        if (!states || typeof states !== "object") {
+          return reply.status(400).send({ error: "body.states must be object" });
+        }
+
+        const updated: string[] = [];
+        const added: string[] = [];
+        for (const [id, state] of Object.entries(states)) {
+          if (!state || typeof state !== "object" || !state.participantId) continue;
+          const exists = pipelineStates.has(id);
+          pipelineStates.set(id, state);
+          (exists ? updated : added).push(id);
+        }
+        persistPipelineStates();
+
+        request.log.info(
+          { added: added.length, updated: updated.length, total: pipelineStates.size },
+          "Upsert applied",
+        );
+
+        return reply.status(200).send({
+          success: true,
+          added: added.length,
+          updated: updated.length,
+          total: pipelineStates.size,
+        });
+      } catch (err) {
+        request.log.error(err, "Upsert error");
+        return reply.status(500).send({
+          error: "Upsert failed",
+          details: err instanceof Error ? err.message : String(err),
+        });
+      }
+    },
+  );
 }
 
 function buildPipelineInput(analysisInput: AnalysisInput, resumeFileUrl?: string): AnalysisPipelineInput {
