@@ -66,3 +66,42 @@
 - English 0 + цель EU: нереалистично без 6-12 мес подготовки
 - 3-5 ч/нед на обучение: удвоить оценку сроков
 - Gap 3+ года: нужна отдельная стратегия возврата
+
+## Slug-разметка кейсов
+
+Машиночитаемое отображение кейсов из матрицы на канонические `slug` из `market-index.json`.
+Используется скриптом `pnpm tsx app/src/scripts/mine-transitions.ts` для построения эмпирической матрицы `CATEGORY_BRIDGE`.
+
+Правила:
+- `null` — non-IT current (репетитор, нотариус, sales, PLC/automation и т.п.) или цель вне нашего набора slug-ов
+- `pct` — процент близости из матрицы выше; `-` если не указан → строка пропускается парсером
+- Если исходная роль совпадает по категории с целью (например, `backend_java → backend_java`), строка всё равно фиксируется в transitions.json для диагностики, но не влияет на cross-category bridge
+
+| # | current_slug | t1_slug | t1_pct | t2_slug | t2_pct | t3_slug | t3_pct |
+|---|--------------|---------|--------|---------|--------|---------|--------|
+| 1 | business_analyst | business_analyst | 92 | data_analyst | 85 | product_analyst | 60 |
+| 2 | null | data_analyst | 70 | systems_analyst | 55 | ml_engineer | 75 |
+| 3 | backend_net | tech_lead | 85 | backend_java | 65 | backend_go | 50 |
+| 4 | data_engineer | data_engineer | 95 | product_analyst | 78 | tech_lead | 72 |
+| 5 | business_analyst | business_analyst | 75 | data_analyst | 70 | data_engineer | 25 |
+| 6 | data_engineer | tech_lead | 85 | data_engineer | 65 | data_engineer | 55 |
+| 7 | frontend_react | frontend_vue | 98 | fullstack | 70 | systems_analyst | 55 |
+| 8 | backend_java | backend_java | 95 | backend_java | 80 | devops | 55 |
+| 9 | null | systems_analyst | 55 | data_analyst | 50 | devops | 30 |
+| 10 | project_manager | product_manager | 85 | project_manager | 70 | product_manager | 65 |
+| 11 | data_engineer | data_engineer | 90 | data_engineer | 75 | data_engineer | 95 |
+| 12 | backend_java | backend_java | 97 | devops | 70 | backend_go | 70 |
+| 13 | null | systems_analyst | 70 | data_analyst | 55 | business_analyst | 75 |
+| 14 | mobileapp_react_native | devops | 50 | data_engineer | 40 | ml_engineer | 25 |
+| 15 | marketing_manager | marketing_manager | 90 | marketing_manager | 70 | marketing_manager | 80 |
+| 16 | backend_ruby | backend_ruby | 98 | backend_go | 70 | devops | 65 |
+| 17 | frontend_angular | frontend_angular | 90 | fullstack | 70 | devops | 45 |
+| 18 | product_manager | product_manager | 90 | marketing_manager | 75 | project_manager | 80 |
+| 19 | ui_ux_designer | ui_ux_designer | 95 | ui_ux_designer | 70 | ui_ux_designer | 75 |
+| 20 | null | devops | 60 | null | - | null | - |
+| 21 | frontend_react | frontend_react | 95 | fullstack | 70 | mobileapp_react_native | 80 |
+| 22 | backend_php | backend_php | 90 | backend_php | 85 | backend_python | 65 |
+| 23 | fullstack | backend_nodejs | 85 | fullstack | 100 | devops | 55 |
+| 24 | systems_analyst | systems_analyst | 95 | business_analyst | 60 | backend_java | 75 |
+| 25 | null | business_analyst | 70 | data_analyst | 65 | product_analyst | 60 |
+| 26 | null | devops | 75 | ml_engineer | 60 | null | - |

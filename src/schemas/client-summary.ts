@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { regionEnum } from "./analysis-outputs.js";
 
 /**
  * Claude периодически возвращает number как строку ("0.9", "100000") и boolean
@@ -7,27 +8,56 @@ import { z } from "zod";
  * скоэрсить, при провале оставляем исходное значение (пусть zod покажет
  * нормальную ошибку).
  */
-const coerceNumber = (v: unknown): unknown => {
-  if (typeof v === "string") {
-    const trimmed = v.trim();
-    if (trimmed === "") return v;
-    const n = Number(trimmed);
-    return Number.isFinite(n) ? n : v;
-  }
-  return v;
-};
-const coerceBool = (v: unknown): unknown => {
-  if (typeof v === "string") {
-    const lower = v.trim().toLowerCase();
-    if (lower === "true") return true;
-    if (lower === "false") return false;
-  }
-  return v;
-};
-const tolerantNumber = () => z.preprocess(coerceNumber, z.number());
+/**
+ * Union+transform вместо `z.preprocess` — сохраняет правильный output type
+ * для TypeScript (`z.preprocess((v: unknown) => unknown, ...)` выводит
+ * output как unknown, ломая типизацию потребителей).
+ */
+const tolerantNumber = () =>
+  z
+    .union([
+      z.number(),
+      z.string().transform((s, ctx) => {
+        const n = Number(s.trim());
+        if (!Number.isFinite(n)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `not a number: ${s}` });
+          return z.NEVER;
+        }
+        return n;
+      }),
+    ])
+    .pipe(z.number());
+
 const tolerantNullableNumber = () =>
-  z.preprocess(coerceNumber, z.number().nullable());
-const tolerantBool = () => z.preprocess(coerceBool, z.boolean());
+  z
+    .union([
+      z.number(),
+      z.null(),
+      z.literal("").transform(() => null),
+      z.string().transform((s, ctx) => {
+        const n = Number(s.trim());
+        if (!Number.isFinite(n)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: `not a number: ${s}` });
+          return z.NEVER;
+        }
+        return n;
+      }),
+    ])
+    .pipe(z.number().nullable());
+
+const tolerantBool = () =>
+  z
+    .union([
+      z.boolean(),
+      z.string().transform((s, ctx) => {
+        const lower = s.trim().toLowerCase();
+        if (lower === "true") return true;
+        if (lower === "false") return false;
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `not a boolean: ${s}` });
+        return z.NEVER;
+      }),
+    ])
+    .pipe(z.boolean());
 
 /**
  * Compact one-shot summary built right after intake (Claude call).
@@ -46,21 +76,68 @@ export const clientSummarySchema = z.object({
   /** Telegram-ник КАК В АНКЕТЕ (с @ или без — нормализуется на стороне UI) */
   telegramNick: z.string(),
 
-  /** Гражданство одной фразой */
-  citizenship: z.string(),
-  /** Локация в формате "Город, Страна" */
+  /**
+   * Страны, где у клиента есть легальное право на работу: паспорт,
+   * постоянный ВНЖ / permanent residence, либо долгосрочная рабочая
+   * виза (national visa D, skilled worker visa и т.п.). Туристические
+   * шенгенские / B1-B2 визы сюда НЕ включаются.
+   *
+   * Названия на английском в нормализованных формах (как в таблицах
+   * `EU_COUNTRIES`/`CIS_COUNTRIES`/... в market-access.ts).
+   * Пример: ["Belarus", "Poland"] — BY паспорт + PL ВНЖ.
+   *
+   * Используется `computeAccessibleMarkets` для вычисления bucket'ов
+   * и UI для рендера флагов.
+   */
+  citizenships: z.array(z.string()).default([]),
+  /** Локация в формате "Город, Страна" (для UI). */
   location: z.string(),
+  /**
+   * Страна физического нахождения на английском (как в `EU_COUNTRIES`
+   * и т.п.). Например "Georgia", "Russia", "United States".
+   * Используется кодом для вычисления `accessibleMarkets`.
+   */
+  physicalCountry: z.string().default(""),
   /** Английский в шкале CEFR (0/A1/A2/B1/B2/C1/C2) или текстом из анкеты */
   englishLevel: z.string(),
   /** LinkedIn SSI как число-строка ("24") или "—" если нет */
   linkedinSSI: z.string(),
-  /** Целевой рынок, например "EU remote" / "RU" / "Finland local + EU remote" */
-  targetMarket: z.string(),
+  /**
+   * Целевые рынки как нормализованный массив кодов регионов.
+   * Заменяет прежнее свободно-текстовое поле `targetMarket`.
+   * Значения из `regionEnum`: "ru" | "eu" | "uk" | "us" | "cis" | "latam" |
+   * "asia-pacific" | "middle-east" | "global". Клод заполняет по анкете.
+   * Пустой массив = клиент не указал таргет (обычно в паре с location-fallback).
+   */
+  targetMarketRegions: z.array(regionEnum).default([]),
+
+  /**
+   * Доступные клиенту рынки — вычисляется КОДОМ после Phase 0 (не заполнять Клодом).
+   * Учитывает `citizenships` (EU/RU/CIS work permit), `physicalCountry` и
+   * `targetMarketRegions` (remote B2B доступен куда клиент сам нацелен).
+   * Может отличаться от `targetMarketRegions`: например KZ-клиент ищет EU,
+   * но RU-рынок ему тоже accessible по паспорту — показываем оба bucket'а.
+   */
+  accessibleMarkets: z.array(regionEnum).default([]),
 
   /** Кто по профессии сейчас, например "Doctoral researcher in neuroscience" */
   currentProfession: z.string(),
   /** Лет опыта в текущей профессии, например "5+ лет" */
   yearsExperience: z.string(),
+  /**
+   * Текущий грейд клиента в его профессии.
+   *   - "junior" — явно junior/стажёр/после курсов, < 2 лет коммерческого опыта
+   *   - "middle" — fallback для ≤3 лет опыта или non-IT (заходит в IT с middle)
+   *   - "senior" — fallback для >3 лет, а также явно Senior/Ведущий в резюме
+   *   - "lead"   — явно Tech Lead / Engineering Manager / Head of
+   *   - null     — клиент без релевантного опыта/совсем не в IT без IT-карьеры в прошлом
+   * Используется role-scorer'ом для сравнения зп на правильной точке seniorityCurve
+   * (чтобы senior-клиента не фильтровать по middle-медиане).
+   */
+  currentGrade: z
+    .enum(["junior", "middle", "senior", "lead"])
+    .nullable()
+    .optional(),
   /** Текущая зарплата "как в анкете" (для UI), например "2000 EUR" */
   currentSalary: z.string(),
   /**

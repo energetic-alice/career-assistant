@@ -132,3 +132,100 @@ npm start          # Запуск production-билда
 npm run typecheck  # Проверка типов без сборки
 npm run test:e2e   # Запуск E2E теста на тестовых данных
 ```
+
+## Рыночные данные (обновлять регулярно!)
+
+Фаза 1A (role-scorer) опирается на `app/data/market-index.json`, который
+собирается из двух источников:
+
+- **UK** → `app/src/prompts/market-data/uk_<slug>.md` — itjobswatch.co.uk
+  (HTML-парсинг: live jobs, median salary, 2-year trend).
+- **RU** → `app/src/prompts/market-data/ru_<slug>.md` — hh.ru search HTML
+  (число вакансий на remote) + career.habr.com JSON API (медианы по грейдам
+  Middle/Senior/Lead по Москве).
+
+> ⚠️ **`api.hh.ru` без OAuth закрыт** (возвращает 403 / bad_user_agent).
+> Поэтому RU-данные снимаются парсингом обычной search-страницы hh.ru
+> с браузерным User-Agent. Не пытайся звать api.hh.ru напрямую.
+
+Данные **устаревают** (вакансии и медианы ЗП меняются ежеквартально).
+**Обновлять ~раз в квартал** (или при сомнениях в выдаче scorer'а —
+если какая-то роль выпала или вылезла неожиданно высоко).
+
+### Как обновить
+
+#### UK (itjobswatch.co.uk)
+
+```bash
+# все роли (~3-5 мин):
+npx tsx src/scripts/probe-uk-market.ts all
+
+# одна роль:
+npx tsx src/scripts/probe-uk-market.ts backend_python
+```
+
+Сохраняется в `uk_<slug>.md`. Настройки поиска — в
+`ITJW_SEARCH_MAP` внутри `probe-uk-market.ts`: для каждого slug'а `query`
+(что искать на itjobswatch) + `filter` (regex, которым отбираем только
+релевантные тайтлы из выдачи).
+
+> **ВАЖНО про filter:** он должен быть достаточно узким. Исторический кейс
+> `manual_testing`: `\bqa\b` тянул "QA Automation" + "Senior QA Engineer"
+> с £55-63k, хотя реальный manual-tester — £30-35k.
+
+#### RU (hh.ru HTML + career.habr.com)
+
+Каждая роль запрашивается отдельно, потому что нужны конкретные
+`--spec` (spec_alias Хабра) и опционально `--skill`. Между запросами
+к hh пауза 15±5 сек — иначе словим ban.
+
+```bash
+# роль с точным habr-алиасом, без skill-фильтра:
+npx tsx src/scripts/probe-ru-market.ts --spec=devops --out=devops \
+  "DevOps инженер" "DevOps engineer" "DevOps" "SRE" "Platform Engineer" "MLOps"
+
+# роль через spec+skill (бэкенд + python):
+npx tsx src/scripts/probe-ru-market.ts --spec=backend --skill=python \
+  --out=backend_python "Python разработчик" "Python developer" "Python инженер"
+
+# "размытая" роль с фильтром IT-отрасли (чтобы не цеплять заводы/школы):
+npx tsx src/scripts/probe-ru-market.ts --spec=system_admin --it \
+  --out=system_admin "Системный администратор" "Sysadmin" "Linux-администратор"
+
+# роль без habr-алиаса (только число вакансий с hh, без зарплат):
+npx tsx src/scripts/probe-ru-market.ts --no-habr --out=<slug> "<вариант1>" ...
+```
+
+Где взять `--spec`:
+
+- основной список — поле `habrSpec` у каждой роли в
+  `src/scripts/build-market-index.ts` (REGISTRY).
+- `--skill` — поле `habrSkill` там же.
+- Признак "роль размытая, нужен `--it`" — роль из `GENERIC_ROLES` в REGISTRY
+  (product_manager, project_manager, manual_testing, marketing_manager,
+  system_admin, tech_support_manager и т.п.).
+
+Если Хабр вернул title `"По всем IT-специалистам ..."` — это silent-fallback
+(spec_alias не распознан). Скрипт это ловит и помечает зарплату как "—",
+чтобы не подмешивать общую IT-статистику в конкретную роль.
+
+#### После скрейпа
+
+```bash
+# 1. Пересобрать market-index.json
+npx tsx src/scripts/build-market-index.ts
+
+# 2. Sanity-check scorer на продовых юзерах
+npx tsx src/scripts/scorer-on-prod.ts
+```
+
+### Troubleshooting
+
+- Роль показывает явно завышенную/заниженную UK-ЗП → проверь выдачу
+  `uk_<slug>.md`: топ-1 по `Live Now` может оказаться generic-тайтлом, не
+  вашей ролью. Чинить через `filter` в `ITJW_SEARCH_MAP`.
+- Роль совсем не попадает в scorer-топы в abroad → проверь `vacancies`
+  в `market-index.json` для неё. Если очень мало — отсекается hard-filter'ом.
+- `probe-ru-market.ts` спамит `403 / 502` → hh включил анти-бот. Подожди
+  1-2 минуты, запусти снова. Параллельно запускать скрипт **нельзя** —
+  забанят ещё агрессивнее.

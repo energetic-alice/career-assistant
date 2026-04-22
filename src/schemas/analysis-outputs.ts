@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { KNOWN_ROLES } from "../services/known-roles.js";
 
 /**
  * Уровень конкуренции на рынке.
@@ -148,10 +149,71 @@ export type CandidateProfile = z.infer<typeof candidateProfileSchema>;
 // ─── Step 2: Direction Generation Output ───
 
 export const directionSchema = z.object({
+  /**
+   * Роль + стек. БЕЗ домена/ниши (fintech, SaaS, EdTech, biotech и т.п.) —
+   * нишу определяем на следующем шаге глубокого анализа. Например:
+   *   ✓ "Backend Developer, Go (middle+/senior)"
+   *   ✗ "Backend Developer for fintech, Go" — fintech не нужен на 1A
+   */
   title: z
     .string()
-    .describe("Роль + задачи + домен + стек, например: 'Backend engineer for distributed systems in fintech, Ruby → Go'"),
+    .describe(
+      "Роль + стек БЕЗ домена/ниши. Уровень обязательно middle+ или выше. Пример: 'Backend Developer, Go (senior)'",
+    ),
+  /**
+   * Канонический slug роли. Должен быть из `KNOWN_ROLES` (40 snake_case
+   * слагов), либо off-index slug если `offIndex=true` и есть `marketEvidence`.
+   * Один и тот же slug в массиве directions встречается **ровно один раз**.
+   */
+  roleSlug: z
+    .string()
+    .describe(
+      `snake_case из KNOWN_ROLES. Если роль не в списке — offIndex=true + marketEvidence. УНИКАЛЬНЫЙ в массиве. Список: ${KNOWN_ROLES.join(", ")}`,
+    ),
+  /** true — slug НЕ из KNOWN_ROLES. Требуется marketEvidence. */
+  offIndex: z.boolean().optional(),
+  /** 1-2 предложения: чем подтверждается существующий рынок для off-index роли. */
+  marketEvidence: z.string().optional(),
+  /**
+   * Узкий рыночный словарь **Phase 1**, покрывающий реальные данные scorer'а:
+   *   - "ru"     — РФ-рынок (RUB)
+   *   - "abroad" — UK-данные как proxy для всей заграницы кроме USA (EUR)
+   *   - "usa"    — UK-данные × 1.5 (EUR, для клиентов с US в target/физ.локации)
+   *
+   * Конкретные регионы (eu/latam/asia-pacific/…) хранятся отдельно в профиле
+   * клиента (`careerGoals.targetMarketRegions`, `accessibleMarkets`) — они
+   * нужны для Phase 2+ (Perplexity по Финляндии, Германии и т.п.) и UI
+   * (флаги). На Phase 1 у нас нет таких данных, поэтому в bucket'е их нет.
+   *
+   * «Направление и в РФ, и за границей» = **два direction'а** с разными bucket
+   * (это разрешено для widened-семейств в postValidate), а не один с "both".
+   *
+   * Preprocess нормализует типичные ошибки Claude:
+   *   - все конкретные заграничные регионы (eu/uk/europe/latam/apac/me/global/
+   *     international) и "abroad"/"both"  → "abroad"
+   *   - us/usa/united states                                    → "usa"
+   *   - ru/russia/cis                                           → "ru"
+   */
+  bucket: z
+    .preprocess((v) => {
+      if (typeof v !== "string") return v;
+      const s = v.trim().toLowerCase();
+      if (s === "ru" || s === "russia" || s === "cis") return "ru";
+      if (s === "us" || s === "usa" || s === "united states") return "usa";
+      return "abroad";
+    }, z.enum(["ru", "abroad", "usa"]))
+    .describe("Рынок Phase 1: ru | abroad | usa."),
   type: z.enum(["основной трек", "запасной вариант", "краткосрочный мост", "долгосрочная ставка"]),
+  /**
+   * ОБЯЗАТЕЛЬНО для type="краткосрочный мост" — snake_case slug той "долгосрочной ставки"
+   * из этого же списка directions, к которой ведёт этот мост. Post-validator проверяет
+   * что bridgeTo указывает на существующий slug с type="долгосрочная ставка" в том же массиве.
+   * Для остальных типов — undefined.
+   */
+  bridgeTo: z
+    .string()
+    .optional()
+    .describe("Для type='краткосрочный мост' — slug долгосрочной ставки из этого же списка directions к которой ведёт мост"),
   whyFits: z.string().describe("Почему подходит кандидату"),
   transferableSkills: z.array(z.string()).describe("Какие навыки переносятся напрямую"),
   skillsToLearn: z.array(z.string()).describe("Что нужно доучить"),

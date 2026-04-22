@@ -4,6 +4,7 @@ import { registerAdminReview } from "./admin-review.js";
 import { STAGE_LABELS } from "../services/review-summary.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
 import { normalizeNick } from "../services/intake-mapper.js";
+import { formatRegions } from "../services/market-access.js";
 
 function escapeHtml(s: string): string {
   return s
@@ -80,14 +81,22 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
       // Все значения прогоняем через escapeHtml, чтобы "&" / "<" / ">" в полях
       // (например "R&D", "C++ & Python") не ломали parse_mode=HTML.
       const contextParts: string[] = [];
-      if (cs?.currentProfession && cs.currentProfession !== "—") {
-        contextParts.push(escapeHtml(cs.currentProfession));
+      // Если Клод классифицировал текущую профессию в canonical slug — показываем
+      // его (стабильнее, короче, читаемее чем raw). Иначе fallback на raw текст.
+      const professionLabel = cs?.currentProfessionSlug
+        ? cs.currentProfessionSlug
+        : cs?.currentProfession && cs.currentProfession !== "—"
+          ? cs.currentProfession
+          : "";
+      if (professionLabel) {
+        contextParts.push(escapeHtml(professionLabel));
       }
       const loc = cs?.location && cs.location !== "—" ? cs.location : "";
-      const market = cs?.targetMarket && cs.targetMarket !== "—" ? cs.targetMarket : "";
-      if (loc && market) contextParts.push(`${escapeHtml(loc)} → ${escapeHtml(market)}`);
+      const regions = cs?.targetMarketRegions ?? [];
+      const market = regions.length > 0 ? formatRegions(regions) : "";
+      if (loc && market) contextParts.push(`${escapeHtml(loc)} → ${market}`);
       else if (loc) contextParts.push(escapeHtml(loc));
-      else if (market) contextParts.push(`→ ${escapeHtml(market)}`);
+      else if (market) contextParts.push(`→ ${market}`);
       if (cs?.englishLevel && cs.englishLevel !== "—") {
         contextParts.push(`англ ${escapeHtml(cs.englishLevel)}`);
       }

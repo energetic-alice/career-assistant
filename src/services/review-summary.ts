@@ -8,6 +8,7 @@ import type {
 import type { RawQuestionnaire } from "../schemas/participant.js";
 import type { PipelineStage } from "../schemas/pipeline-state.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
+import { formatRegions } from "./market-access.js";
 
 export function buildReviewSummary(
   profile: CandidateProfile,
@@ -258,6 +259,12 @@ export const STAGE_LABELS: Record<PipelineStage, string> = {
   final_compiled: "🟢 Документ собран",
   completed: "🟢 Завершён",
   completed_legacy: "✅ Анализ готов (legacy)",
+  shortlist_generating: "⚙️ Предварительный анализ…",
+  shortlist_ready: "🔵 Shortlist готов — ждёт ревью",
+  shortlist_failed: "❌ Предварительный анализ упал",
+  shortlist_approved: "🔵 Shortlist одобрен",
+  deep_generating: "⚙️ Глубокий анализ…",
+  deep_failed: "❌ Глубокий анализ упал",
 };
 
 function pickResumeUrl(rnv: Record<string, string> | undefined): string | undefined {
@@ -340,6 +347,38 @@ export function formatClientCardForTelegram(src: ClientCardSource): string {
   return body;
 }
 
+/**
+ * Для «Сейчас» в карточке. Если Клод классифицировал профессию в canonical slug
+ * — показываем slug как основной идентификатор (`backend_python`) + raw-текст
+ * в скобках, если raw существенно отличается. Non-IT профессии отдаются как есть.
+ */
+function formatProfessionLabel(slug: string | null | undefined, raw: string): string {
+  if (!slug) return raw;
+  const rawNorm = (raw || "").trim();
+  // `other` — IT-маркер без нишевого slug'а. В карточке показываем только raw.
+  if (slug === "other") return rawNorm || "other (IT)";
+  if (!rawNorm || rawNorm === "—") return slug;
+  // Если raw — короткая вариация slug'а (например "Python разработчик" для backend_python),
+  // не дублируем. Показываем просто slug.
+  const slugTokens = new Set(slug.toLowerCase().split(/[_-]/));
+  const rawLower = rawNorm.toLowerCase();
+  const overlap = [...slugTokens].filter((t) => t.length >= 3 && rawLower.includes(t)).length;
+  if (overlap >= 2) return slug;
+  return `${slug} (${rawNorm})`;
+}
+
+function formatDesiredLabel(
+  slugs: ClientSummary["desiredDirectionSlugs"],
+  raw: string,
+): string {
+  const list = (slugs ?? []).map((d) => (d.slug === "other" ? "other(IT)" : d.slug));
+  if (list.length === 0) return raw || "—";
+  const joined = list.join(", ");
+  const rawNorm = (raw || "").trim();
+  if (!rawNorm || rawNorm === "—") return joined;
+  return `${joined} (${rawNorm})`;
+}
+
 function renderFromClientSummary(
   s: ClientSummary,
   rawNick: string,
@@ -365,11 +404,13 @@ function renderFromClientSummary(
   }
   headParts.push(`SSI ${escapeHtml(s.linkedinSSI)}`);
 
-  // ── 2-я строка: гражданство · 📍 локация · 🌐 рынок (Англ: уровень) ──
+  // ── 2-я строка: гражданства · 📍 локация · 🌐 таргет (Англ: уровень) ──
+  const citizenshipsStr = (s.citizenships ?? []).join(", ") || "—";
+  const targetStr = formatRegions(s.targetMarketRegions ?? []);
   const baseLine = [
-    escapeHtml(s.citizenship),
+    escapeHtml(citizenshipsStr),
     `📍 ${escapeHtml(s.location)}`,
-    `🌐 ${escapeHtml(s.targetMarket)} (Англ: ${escapeHtml(s.englishLevel)})`,
+    `🌐 ${targetStr} (Англ: ${escapeHtml(s.englishLevel)})`,
   ].join(" · ");
 
   // ── Хайлайты буллет-листом ────────────────────────────────────────────
@@ -397,10 +438,12 @@ function renderFromClientSummary(
     headParts.join(" · "),
     baseLine,
     "",
-    `<b>Сейчас:</b> ${escapeHtml(s.currentProfession)} · ${escapeHtml(s.yearsExperience)} · ${escapeHtml(s.currentSalary)}`,
+    // Текущая профессия: canonical slug от Клода + raw-текст в скобках (если slug есть и отличается).
+    // Если slug null (non-IT) — показываем raw как есть.
+    `<b>Сейчас:</b> ${escapeHtml(formatProfessionLabel(s.currentProfessionSlug, s.currentProfession))} · ${escapeHtml(s.yearsExperience)} · ${escapeHtml(s.currentSalary)}`,
     "",
     `<b>Цель:</b> ${escapeHtml(s.goal)} · ${escapeHtml(targetExp)}`,
-    `<b>Направления:</b> ${escapeHtml(s.desiredDirections)}`,
+    `<b>Направления:</b> ${escapeHtml(formatDesiredLabel(s.desiredDirectionSlugs, s.desiredDirections))}`,
     `<b>Зарплата:</b> ${escapeHtml(s.desiredSalary)}, через 3-5 л ${escapeHtml(s.desiredSalary3to5y)}`,
     `<b>Переобуч.:</b> ${escapeHtml(s.retrainingReadiness)}`,
     `<b>Часов/нед:</b> ${escapeHtml(s.weeklyHours)}`,

@@ -12,33 +12,37 @@
 
 ## Матрица конкуренции по направлениям (EU, remote included)
 
-| Направление | Примерн. вакансий (EU) | Оценка ratio | Динамика YoY | Конкуренция |
-|---|---|---|---|---|
-| Backend Java | ~45000 | ~2.5 | -5% | Высокая |
-| Backend Go | ~12000 | ~6.0 | +25% | Низкая |
-| Backend Python | ~35000 | ~3.0 | +10% | Средняя |
-| Backend Node.js | ~18000 | ~3.5 | +5% | Средняя |
-| Backend Rust | ~3000 | ~8.0 | +40% | Низкая |
-| Backend Ruby/Rails | ~5000 | ~5.0 | -10% | Средняя (legacy niche) |
-| Frontend React | ~30000 | ~2.0 | -10% | Высокая |
-| DevOps / SRE | ~25000 | ~8.0 | +15% | Низкая |
-| DevSecOps | ~6000 | ~10.0 | +30% | Низкая |
-| Platform Engineering | ~8000 | ~12.0 | +40% | Низкая |
-| MLOps | ~4000 | ~10.0 | +50% | Низкая |
-| Data Analyst | ~61000 | ~3.0 | +5% | Средняя |
-| Data Engineer | ~22000 | ~6.0 | +20% | Низкая |
-| Analytics Engineer | ~5000 | ~8.0 | +35% | Низкая |
-| Data Scientist / ML | ~15000 | ~3.0 | +5% | Средняя |
-| ML Engineer | ~8000 | ~5.0 | +25% | Средняя |
-| Системный аналитик / BA | ~20000 | ~3.0 | +5% | Средняя |
-| Product Manager | ~18000 | ~2.5 | -5% | Высокая |
-| Growth Manager / PMM | ~6000 | ~5.0 | +15% | Средняя |
-| QA Automation | ~12000 | ~4.0 | +5% | Средняя |
-| Mobile (iOS + Android) | ~10000 | ~3.5 | -5% | Средняя |
-| React Native / Flutter | ~5000 | ~4.0 | +10% | Средняя |
-| Engineering Manager | ~8000 | ~5.0 | +10% | Средняя |
-| Cloud Architect | ~6000 | ~8.0 | +15% | Низкая |
-| Industrial IoT / MLOps | ~2000 | ~15.0 | +30% | Очень низкая |
+Колонка `Slug(s)` — canonical slugs из `app/data/market-index.json`. Эти ratio применяются build-скриптом ко всем abroad-buckets (UK, EU, US) одинаково — per-country отклонения описаны текстом ниже. Строки без slug (`—`) игнорируются.
+
+| Направление | Slug(s) | Примерн. вакансий (EU) | Оценка ratio | Динамика YoY | Конкуренция |
+|---|---|---|---|---|---|
+| Backend Java | `backend_java` | ~45000 | ~2.5 | -5% | Высокая |
+| Backend Go | `backend_go` | ~12000 | ~6.0 | +25% | Низкая |
+| Backend Python | `backend_python` | ~35000 | ~3.0 | +10% | Средняя |
+| Backend Node.js | `backend_nodejs` | ~18000 | ~3.5 | +5% | Средняя |
+| Backend Rust | `backend_rust` | ~3000 | ~8.0 | +40% | Низкая |
+| Backend Ruby/Rails | `backend_ruby` | ~5000 | ~5.0 | -10% | Средняя (legacy niche) |
+| Frontend React | `frontend_react` | ~30000 | ~2.0 | -10% | Высокая |
+| DevOps / SRE | `devops, sre` | ~25000 | ~8.0 | +15% | Низкая |
+| DevSecOps | — | ~6000 | ~10.0 | +30% | Низкая |
+| Platform Engineering | `platform_engineer` | ~8000 | ~12.0 | +40% | Низкая |
+| MLOps | `mlops` | ~4000 | ~10.0 | +50% | Низкая |
+| Data Analyst | `data_analyst` | ~61000 | ~3.0 | +5% | Средняя |
+| Data Engineer | `data_engineer` | ~22000 | ~6.0 | +20% | Низкая |
+| Analytics Engineer | — | ~5000 | ~8.0 | +35% | Низкая |
+| Data Scientist / ML | `data_scientist` | ~15000 | ~3.0 | +5% | Средняя |
+| ML Engineer | `ml_engineer` | ~8000 | ~5.0 | +25% | Средняя |
+| Системный аналитик / BA | `systems_analyst, business_analyst` | ~20000 | ~3.0 | +5% | Средняя |
+| Product Manager | `product_manager` | ~18000 | ~2.5 | -5% | Высокая |
+| Growth Manager / PMM | `marketing_manager` | ~6000 | ~5.0 | +15% | Средняя |
+| QA Automation | `qa_engineer` | ~12000 | ~4.0 | +5% | Средняя |
+| Mobile (iOS + Android) | `mobileapp_swift, mobileapp_kotlin` | ~10000 | ~3.5 | -5% | Средняя |
+| React Native / Flutter | `mobileapp_react_native, mobileapp_flutter` | ~5000 | ~4.0 | +10% | Средняя |
+| Engineering Manager | `engineering_manager` | ~8000 | ~5.0 | +10% | Средняя |
+| Cloud Architect | — | ~6000 | ~8.0 | +15% | Низкая |
+| Industrial IoT / MLOps | — | ~2000 | ~15.0 | +30% | Очень низкая |
+
+Slug-и из каталога, которых нет в справочнике: `backend_net`, `backend_php`, `backend_cplusplus`, `frontend_vue`, `frontend_angular`, `fullstack`, `appsec`, `manual_testing`, `project_manager`, `tech_lead`, `software_architect`, `product_analyst`, `ui_ux_designer`, `recruiter`, `technical_writer`, `infosecspec`, `1c_developer`, `gamedev_unity`, `web3_developer`, `system_admin`, `tech_support_manager`.
 
 ## По регионам (отклонения от EU-среднего)
 

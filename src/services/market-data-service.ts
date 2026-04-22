@@ -11,30 +11,8 @@ const SONAR_URL = "https://api.perplexity.ai/v1/sonar";
 const SONAR_MODEL = "sonar-pro";
 const REPORT_TTL_MS = 6 * 30 * 24 * 60 * 60 * 1000;
 
-/**
- * All known roles with scraped market data (itjw + hh).
- * Slug form (used as filenames): slugify(role).
- */
-export const KNOWN_ROLES = [
-  "backend developer java", "backend developer python", "backend developer go",
-  "backend developer node.js", "backend developer c# .net",
-  "backend developer php", "backend developer ruby", "backend developer rust",
-  "backend developer c++", "frontend developer react", "frontend developer vue",
-  "frontend developer angular", "fullstack developer",
-  "mobile developer ios swift", "mobile developer android kotlin",
-  "react native developer", "flutter developer",
-  "devops engineer", "sre site reliability engineer", "platform engineer",
-  "cloud architect", "devsecops engineer", "mlops engineer",
-  "data analyst", "product analyst", "data engineer",
-  "data scientist", "ml engineer",
-  "qa automation engineer", "qa manual tester",
-  "product manager", "project manager", "engineering manager", "tech lead",
-  "systems analyst", "business analyst", "solution architect",
-  "ux ui designer", "1c developer", "web3 blockchain developer",
-  "gamedev unity developer", "marketing manager", "hr recruiter",
-  "finops engineer", "technical writer",
-  "cybersecurity engineer",
-] as const;
+export { KNOWN_ROLES, type KnownRoleSlug } from "./known-roles.js";
+import { KNOWN_ROLES } from "./known-roles.js";
 
 // ---------------------------------------------------------------------------
 // Region config
@@ -107,183 +85,206 @@ const EM_TECHLEAD_VARIANTS = [
   "Руководитель IT-отдела", "Руководитель направления разработки",
 ];
 
+/**
+ * Russian / multilingual query variants per canonical slug. Используются в
+ * probe-ru-market.ts (CLI-аргументы) и в build-market-index.ts → collectAliases
+ * (для подмешивания в matcher-алиасы). Keys MUST match snake_case slugs из
+ * KNOWN_ROLES / REGISTRY.
+ */
 export const RU_TITLE_VARIANTS: Record<string, string[]> = {
-  "backend developer java": [
+  // Backend
+  backend_java: [
     "Java разработчик", "Java программист", "Java developer", "Java инженер",
     "Backend Java", "Java Spring разработчик",
   ],
-  "backend developer python": [
+  backend_python: [
     "Python разработчик", "Python программист", "Python developer", "Python инженер",
-    "Backend Python", "Django разработчик", "FastAPI разработчик",
+    "Backend Python", "Django", "FastAPI", "Flask",
   ],
-  "backend developer go": [
+  backend_go: [
     "Go разработчик", "Golang разработчик", "Golang developer", "Go программист",
     "Backend Go", "Go инженер",
   ],
-  "backend developer node.js": [
+  backend_nodejs: [
     "Node.js разработчик", "Node.js developer", "Node.js программист",
     "Node разработчик", "Backend Node.js", "NestJS разработчик",
   ],
-  "backend developer c# .net": [
+  backend_net: [
     "C# разработчик", ".NET разработчик", "C# программист", "C# developer",
     "Backend C#", "ASP.NET разработчик", ".NET инженер",
   ],
-  "backend developer php": [
+  backend_php: [
     "PHP разработчик", "PHP программист", "PHP developer",
     "Backend PHP", "Laravel разработчик", "Symfony разработчик", "Bitrix разработчик",
   ],
-  "backend developer ruby": [
+  backend_ruby: [
     "Ruby разработчик", "Ruby on Rails", "Ruby программист",
     "Rails разработчик", "RoR разработчик", "Backend Ruby",
   ],
-  "backend developer rust": [
+  backend_rust: [
     "Rust разработчик", "Rust developer", "Rust программист",
     "Backend Rust", "Rust инженер",
   ],
-  "backend developer c++": [
+  // C и C++ на hh.ru тоже лежат в одном пуле (embedded / systems).
+  // ВАЖНО: "C разработчик" / "Embedded C" без плюсов НЕ включать — hh.ru fuzzy-матч
+  // цепляет C# / Objective-C / упоминания буквы "C" в описании. Реального embedded C
+  // очень мало, язык C отдельной популяцией на hh практически не представлен.
+  backend_cplusplus: [
     "C++ разработчик", "C++ программист", "C++ developer", "C/C++ разработчик",
     "C++ инженер", "Embedded C++",
   ],
-  "frontend developer react": [
+
+  // Frontend + Fullstack
+  frontend_react: [
     "React разработчик", "Frontend React", "React developer", "React программист",
     "Фронтенд React", "React инженер",
   ],
-  "frontend developer vue": [
+  frontend_vue: [
     "Vue разработчик", "Vue.js developer", "Vue программист",
     "Фронтенд Vue", "Nuxt разработчик", "Vue инженер",
   ],
-  "frontend developer angular": [
+  frontend_angular: [
     "Angular разработчик", "Angular developer", "Angular программист",
     "Фронтенд Angular", "Angular инженер",
   ],
-  "fullstack developer": [
+  fullstack: [
     "Fullstack разработчик", "Full stack developer", "Фулстек разработчик",
     "Fullstack JS", "Fullstack engineer", "MERN разработчик", "Full-stack",
   ],
-  "mobile developer ios swift": [
+
+  // Mobile
+  mobileapp_swift: [
     "iOS разработчик", "iOS developer", "Swift разработчик", "iOS программист",
     "Swift developer", "iOS инженер", "iOS engineer",
   ],
-  "mobile developer android kotlin": [
+  mobileapp_kotlin: [
     "Android разработчик", "Android developer", "Kotlin разработчик", "Android программист",
     "Kotlin developer", "Android инженер", "Android engineer",
   ],
-  "react native developer": [
+  mobileapp_react_native: [
     "React Native разработчик", "React Native developer", "React Native программист",
     "RN разработчик", "React Native инженер", "Cross-platform разработчик",
   ],
-  "flutter developer": [
+  mobileapp_flutter: [
     "Flutter разработчик", "Flutter developer", "Flutter программист",
     "Flutter инженер", "Dart разработчик",
   ],
-  "devops engineer": [
+
+  // DevOps cluster — SRE / MLOps / Platform Engineer / DevSecOps / FinOps слиты
+  // в `devops`, берём их русские тайтлы сюда, чтобы hh.ru-скрейпер видел весь пул.
+  devops: [
     "DevOps", "DevOps инженер", "DevOps engineer",
     "инженер инфраструктуры", "инженер сопровождения",
     "CI/CD инженер", "release engineer",
-  ],
-  "sre site reliability engineer": [
-    "SRE", "SRE инженер", "Site Reliability Engineer", "SRE engineer",
-    "инженер по надёжности", "инженер надёжности",
-  ],
-  "platform engineer": [
+    "SRE", "SRE инженер", "Site Reliability Engineer", "инженер надёжности",
+    "MLOps инженер", "MLOps Engineer", "MLOps", "ML platform engineer",
     "Платформенный инженер", "Platform Engineer", "Инженер платформы",
-    "Platform разработчик", "Internal Platform Engineer", "IDP инженер",
-  ],
-  "cloud architect": [
-    "Облачный архитектор", "Cloud Architect", "Cloud инженер",
-    "Архитектор облака", "AWS архитектор", "Yandex Cloud архитектор", "K8s архитектор",
-  ],
-  "devsecops engineer": [
+    "Internal Platform Engineer",
     "DevSecOps инженер", "DevSecOps", "DevSecOps engineer",
     "Security DevOps", "AppSec DevOps", "Безопасник DevOps",
+    "FinOps", "FinOps Engineer",
   ],
-  "mlops engineer": [
-    "MLOps инженер", "MLOps Engineer", "MLOps",
-    "ML инфраструктура", "ML platform engineer", "MLOps разработчик",
-  ],
-  "data analyst": ["Аналитик данных", "Data Analyst", "Дата аналитик"],
-  "product analyst": [
+  // Data / ML
+  data_analyst: ["Аналитик данных", "Data Analyst", "Дата аналитик"],
+  product_analyst: [
     "Продуктовый аналитик", "Product Analyst", "Аналитик продукта",
     "Продакт-аналитик", "Growth аналитик", "CJM аналитик",
   ],
-  "data engineer": [
+  data_engineer: [
     "Инженер данных", "Data Engineer", "Дата инженер",
     "ETL разработчик", "ETL инженер", "Big Data инженер", "DWH разработчик",
   ],
-  "data scientist": [
+  // ml_engineer + data_scientist слиты в один слаг (на рынке они пересекаются
+  // настолько, что job description часто неотличимы).
+  ml_engineer: [
+    "ML инженер", "ML Engineer", "Machine Learning инженер",
+    "Инженер машинного обучения", "ML разработчик", "AI engineer", "LLM инженер",
     "Data Scientist", "Специалист по данным", "Дата сайентист",
     "DS", "ML researcher", "NLP инженер", "CV инженер",
   ],
-  "ml engineer": [
-    "ML инженер", "ML Engineer", "Machine Learning инженер",
-    "Инженер машинного обучения", "ML разработчик", "AI engineer", "LLM инженер",
-  ],
-  "qa automation engineer": [
+
+  // QA
+  qa_engineer: [
     "QA Automation", "Автоматизатор тестирования", "QA Engineer",
     "Automation QA", "Test Automation Engineer", "SDET", "Автотестировщик",
   ],
-  "qa manual tester": [
+  manual_testing: [
     "QA инженер", "Тестировщик", "Manual QA",
     "Тестировщик ПО", "Manual QA Engineer", "QA tester", "Инженер по тестированию",
   ],
-  "product manager": [
+
+  // Management / Architecture
+  product_manager: [
     "Продакт менеджер", "Product Manager", "Менеджер продукта",
     "Owner продукта", "Product owner",
   ],
-  "project manager": [
+  project_manager: [
     "Проектный менеджер", "Project Manager", "Менеджер проектов",
     "Руководитель проекта", "Руководитель проектов", "Delivery Manager",
   ],
-  "engineering manager": EM_TECHLEAD_VARIANTS,
-  "tech lead": EM_TECHLEAD_VARIANTS,
-  "systems analyst": [
-    "Системный аналитик", "System Analyst",
-  ],
-  "business analyst": [
-    "Бизнес-аналитик", "Business Analyst", "Бизнес аналитик",
-    "BA", "Аналитик бизнес-процессов",
-  ],
-  "solution architect": [
+  tech_lead: EM_TECHLEAD_VARIANTS,
+  software_architect: [
     "Архитектор решений", "Solution Architect", "Системный архитектор",
     "Архитектор ПО", "Software Architect", "Enterprise Architect", "Технический архитектор",
   ],
-  "ux ui designer": [
+
+  // Analysis (non-data)
+  systems_analyst: ["Системный аналитик", "System Analyst"],
+  business_analyst: [
+    "Бизнес-аналитик", "Business Analyst", "Бизнес аналитик",
+    "BA", "Аналитик бизнес-процессов",
+  ],
+
+  // Design / Marketing / HR / Docs
+  ui_ux_designer: [
     "UX/UI дизайнер", "UX дизайнер", "Продуктовый дизайнер", "UI дизайнер",
     "Web дизайнер", "Product Designer", "Дизайнер интерфейсов", "UX/UI",
   ],
-  "1c developer": [
-    "1С разработчик", "1С программист", "Разработчик 1С",
-    "1C разработчик", "Программист 1С", "1С специалист", "1С консультант",
-  ],
-  "web3 blockchain developer": [
-    "Blockchain разработчик", "Web3 developer", "Solidity разработчик",
-    "Smart Contract Developer", "Web3 разработчик", "Crypto разработчик", "EVM разработчик",
-  ],
-  "gamedev unity developer": [
-    "Unity разработчик", "Game developer", "Геймдев разработчик", "Unity программист",
-    "Game-разработчик", "Unity engineer", "Game developer Unity",
-  ],
-  "marketing manager": [
+  marketing_manager: [
     "Маркетолог", "Digital маркетолог", "Интернет маркетолог", "Marketing Manager",
     "Performance маркетолог", "Product маркетолог", "Бренд-менеджер", "Head of Marketing",
   ],
-  "hr recruiter": [
+  recruiter: [
     "IT рекрутер", "HR менеджер", "Рекрутер", "Talent Acquisition",
     "IT recruiter", "Sourcer", "HR BP", "HR generalist",
   ],
-  "finops engineer": [
-    "FinOps инженер", "FinOps", "Cloud FinOps",
-    "Cloud cost engineer", "FinOps аналитик", "Cloud Economist",
-  ],
-  "technical writer": [
+  technical_writer: [
     "Технический писатель", "Technical Writer", "Техписатель",
     "Документалист", "Tech Writer", "Documentation Engineer",
   ],
-  "cybersecurity engineer": [
+
+  // Security — чистый InfoSec / Cybersecurity (без DevSecOps: он в devops).
+  infosecspec: [
     "Специалист по информационной безопасности", "Инженер по кибербезопасности",
     "ИБ инженер", "Cybersecurity", "Специалист ИБ",
     "Пентестер", "Penetration Tester", "SOC аналитик",
-    "AppSec инженер", "Application Security",
+    "Security Engineer", "Information Security",
+  ],
+
+  // Infra / Support
+  system_admin: [
+    "Системный администратор", "Sysadmin", "Сисадмин",
+    "System Administrator", "Linux-администратор", "Windows-администратор",
+    "Администратор серверов", "IT-администратор",
+  ],
+  tech_support_manager: [
+    "Техническая поддержка", "Инженер техподдержки", "Специалист техподдержки",
+    "IT support", "Helpdesk", "Technical Support Engineer",
+    "Инженер службы поддержки", "Support Engineer",
+  ],
+
+  // Other
+  "1c_developer": [
+    "1С разработчик", "1С программист", "Разработчик 1С",
+    "1C разработчик", "Программист 1С", "1С специалист", "1С консультант",
+  ],
+  web3_developer: [
+    "Blockchain разработчик", "Web3 developer", "Solidity разработчик",
+    "Smart Contract Developer", "Web3 разработчик", "Crypto разработчик", "EVM разработчик",
+  ],
+  gamedev_unity: [
+    "Unity разработчик", "Game developer", "Геймдев разработчик", "Unity программист",
+    "Game-разработчик", "Unity engineer", "Game developer Unity",
   ],
 };
 
@@ -291,84 +292,31 @@ export const RU_TITLE_VARIANTS: Record<string, string[]> = {
 // computeMarketAccess — заполняет булевые флаги и accessibleMarkets после Step 1
 // ---------------------------------------------------------------------------
 
-const EU_COUNTRIES = new Set([
-  "Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic",
-  "Czechia", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece",
-  "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta",
-  "Netherlands", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia",
-  "Spain", "Sweden", "Norway", "Switzerland", "Iceland",
-  "United Kingdom", "UK",
-]);
-
-const RU_WORK_PERMIT_COUNTRIES = new Set(["Russia", "Belarus"]);
-
-const CIS_COUNTRIES = new Set([
-  "Kazakhstan", "Belarus", "Armenia", "Kyrgyzstan", "Uzbekistan",
-  "Tajikistan", "Moldova", "Azerbaijan", "Georgia", "Turkmenistan",
-]);
-
-const LATAM_COUNTRIES = new Set([
-  "Brazil", "Mexico", "Argentina", "Colombia", "Chile", "Peru",
-  "Ecuador", "Venezuela", "Uruguay", "Paraguay", "Bolivia",
-  "Costa Rica", "Panama", "Dominican Republic",
-]);
-
-const APAC_COUNTRIES = new Set([
-  "Singapore", "Australia", "Japan", "India", "South Korea",
-  "Malaysia", "Thailand", "Indonesia", "Vietnam", "Philippines",
-  "New Zealand", "Hong Kong", "Taiwan", "China",
-]);
-
-const ME_COUNTRIES = new Set([
-  "UAE", "United Arab Emirates", "Saudi Arabia", "Qatar",
-  "Bahrain", "Kuwait", "Oman", "Israel", "Turkey",
-]);
+import {
+  computeAccessibleMarkets,
+  hasEUWorkPermit as computeHasEUWorkPermit,
+  hasRuWorkPermit as computeHasRuWorkPermit,
+  isPhysicallyInEU as computeIsPhysicallyInEU,
+  isPhysicallyInRU as computeIsPhysicallyInRU,
+} from "./market-access.js";
 
 export function computeMarketAccess(profile: CandidateProfile): CandidateProfile {
   const country = profile.barriers.physicalCountry;
   const citizenships = profile.barriers.citizenships;
 
-  const isPhysicallyInRU = country === "Russia";
-  const isPhysicallyInEU = EU_COUNTRIES.has(country);
-
-  const hasRuWorkPermit = citizenships.some((c) => RU_WORK_PERMIT_COUNTRIES.has(c));
-  const hasEUWorkPermit =
-    isPhysicallyInEU ||
-    citizenships.some((c) => EU_COUNTRIES.has(c));
-
-  const accessible = new Set<Region>();
-
-  if (isPhysicallyInRU || hasRuWorkPermit) accessible.add("ru");
-  if (citizenships.some((c) => CIS_COUNTRIES.has(c)) || CIS_COUNTRIES.has(country)) {
-    accessible.add("cis");
-  }
-  if (isPhysicallyInEU || hasEUWorkPermit) {
-    accessible.add("eu");
-    accessible.add("uk");
-  }
-  if (LATAM_COUNTRIES.has(country) || citizenships.some((c) => LATAM_COUNTRIES.has(c))) {
-    accessible.add("latam");
-  }
-  if (APAC_COUNTRIES.has(country) || citizenships.some((c) => APAC_COUNTRIES.has(c))) {
-    accessible.add("asia-pacific");
-  }
-  if (ME_COUNTRIES.has(country) || citizenships.some((c) => ME_COUNTRIES.has(c))) {
-    accessible.add("middle-east");
-  }
-  // Remote B2B доступен везде при достаточном английском — добавляем из targetMarketRegions
-  for (const r of profile.careerGoals.targetMarketRegions) {
-    accessible.add(r);
-  }
-
   return {
     ...profile,
     barriers: {
       ...profile.barriers,
-      isPhysicallyInRU,
-      isPhysicallyInEU,
-      hasRuWorkPermit,
-      hasEUWorkPermit,
-      accessibleMarkets: [...accessible],
+      isPhysicallyInRU: computeIsPhysicallyInRU(country),
+      isPhysicallyInEU: computeIsPhysicallyInEU(country),
+      hasRuWorkPermit: computeHasRuWorkPermit(country, citizenships),
+      hasEUWorkPermit: computeHasEUWorkPermit(country, citizenships),
+      accessibleMarkets: computeAccessibleMarkets({
+        citizenships,
+        physicalCountry: country,
+        targetMarketRegions: profile.careerGoals.targetMarketRegions,
+      }),
     },
   };
 }
@@ -489,8 +437,13 @@ export function parseHhFile(content: string): ParsedHh | null {
 
     const salaryRange = cells[2]!;
     let medianSalary: number | null = null;
-    const medianMatch = salaryRange.match(/медиана\s+([\d]+)k/);
-    if (medianMatch) medianSalary = parseInt(medianMatch[1]!, 10) * 1000;
+    // Форматы ячейки:
+    //   (probe-ru-market.ts) "365k ₽"          — avg(Middle, Senior) median
+    //   (legacy api.hh.ru)    "200k–350k (медиана 270k) [n=42]"
+    const probeMatch = salaryRange.match(/(\d+)\s*k\s*₽/);
+    const legacyMatch = salaryRange.match(/медиана\s+([\d]+)k/);
+    if (legacyMatch) medianSalary = parseInt(legacyMatch[1]!, 10) * 1000;
+    else if (probeMatch) medianSalary = parseInt(probeMatch[1]!, 10) * 1000;
 
     rows.push({
       title: cells[0]!,
@@ -510,23 +463,36 @@ export function parseHhFile(content: string): ParsedHh | null {
 // Load & parse helpers for pipeline use
 // ---------------------------------------------------------------------------
 
-export async function loadParsedItjw(roleSlug: string): Promise<ParsedItjw | null> {
+/**
+ * Load UK market data from `uk_<slug>.md` (scraped from itjobswatch.co.uk).
+ * Previous filename scheme: `itjw-<kebab-role>.md`.
+ */
+export async function loadParsedUk(slug: string): Promise<ParsedItjw | null> {
   try {
-    const content = await readFile(join(MARKET_DATA_DIR, `itjw-${roleSlug}.md`), "utf-8");
+    const content = await readFile(join(MARKET_DATA_DIR, `uk_${slug}.md`), "utf-8");
     return parseItjwFile(content);
   } catch {
     return null;
   }
 }
 
-export async function loadParsedHh(roleSlug: string): Promise<ParsedHh | null> {
+/**
+ * Load RU market data from `ru_<slug>.md` (scraped from hh.ru API).
+ * Previous filename scheme: `hh-<kebab-role>.md`.
+ */
+export async function loadParsedRu(slug: string): Promise<ParsedHh | null> {
   try {
-    const content = await readFile(join(MARKET_DATA_DIR, `hh-${roleSlug}.md`), "utf-8");
+    const content = await readFile(join(MARKET_DATA_DIR, `ru_${slug}.md`), "utf-8");
     return parseHhFile(content);
   } catch {
     return null;
   }
 }
+
+// Legacy names kept so external callers don't break during refactor.
+// TODO: remove once all call sites migrated.
+export const loadParsedItjw = loadParsedUk;
+export const loadParsedHh = loadParsedRu;
 
 // ---------------------------------------------------------------------------
 // buildMarketSummary — compact market summary for prompts
@@ -737,8 +703,8 @@ export async function buildMarketSummary(
 export async function buildFullMarketSummary(
   profile: CandidateProfile,
 ): Promise<MarketSummary> {
-  const allSlugs = KNOWN_ROLES.map((r) => slugify(r));
-  return buildMarketSummary(profile, allSlugs);
+  // KNOWN_ROLES is already in canonical snake_case slug form.
+  return buildMarketSummary(profile, [...KNOWN_ROLES]);
 }
 
 

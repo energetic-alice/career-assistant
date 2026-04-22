@@ -35,7 +35,38 @@ export async function loadPrompt00(vars: {
   template = template.replace("{{resumeText}}", vars.resumeText || "(резюме недоступно)");
   template = template.replace("{{linkedinUrl}}", vars.linkedinUrl || "(нет)");
   template = template.replace("{{linkedinSSI}}", vars.linkedinSSI || "(не указан)");
+  template = template.replace("{{roleCatalog}}", await buildRoleCatalog());
   return template;
+}
+
+/**
+ * Short human-readable catalog of canonical role slugs (from market-index.json)
+ * for Claude to classify `currentProfessionSlug` and `desiredDirectionSlugs`.
+ */
+async function buildRoleCatalog(): Promise<string> {
+  const indexPath = join(__dirname, "..", "..", "data", "market-index.json");
+  const raw = JSON.parse(await loadFile(indexPath)) as Record<
+    string,
+    { slug: string; displayTitle: string; category: string; aliases: string[] }
+  >;
+  const byCategory: Record<string, Array<{ slug: string; title: string; aliases: string }>> = {};
+  for (const e of Object.values(raw)) {
+    const cat = e.category || "other";
+    (byCategory[cat] ??= []).push({
+      slug: e.slug,
+      title: e.displayTitle,
+      aliases: e.aliases.slice(0, 5).join(", "),
+    });
+  }
+  const lines: string[] = [];
+  for (const [cat, items] of Object.entries(byCategory).sort(([a], [b]) => a.localeCompare(b))) {
+    lines.push(`### ${cat}`);
+    for (const it of items) {
+      lines.push(`- \`${it.slug}\` — ${it.title} (${it.aliases})`);
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
 }
 
 export async function loadPrompt01(vars: {
@@ -57,6 +88,7 @@ export async function loadPrompt01(vars: {
 export async function loadPrompt02(vars: {
   candidateProfile: string;
   marketOverview?: string;
+  scorerTop20?: string;
 }): Promise<string> {
   let template = await loadFile(join(PROMPTS_DIR, "02-direction-generation.md"));
   const styleGuide = await getReference("style-guide");
@@ -70,6 +102,10 @@ export async function loadPrompt02(vars: {
   template = template.replace(
     "{{marketOverview}}",
     vars.marketOverview || "Рыночные данные не загружены. Используй свои знания о рынке IT 2026.",
+  );
+  template = template.replace(
+    "{{scorerTop20}}",
+    vars.scorerTop20 || "_(scorer не смог вернуть топ — используй marketOverview как базу)_",
   );
   template = template.replace(
     "{{knownRoles}}",

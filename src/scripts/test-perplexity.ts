@@ -20,6 +20,8 @@ const CASES: Record<string, TestCase> = {
     directions: [
       {
         title: "Backend Developer for distributed systems in fintech (Go)",
+        roleSlug: "backend_go",
+        bucket: "abroad",
         type: "основной трек",
         whyFits: "test",
         transferableSkills: ["Ruby", "SQL"],
@@ -29,6 +31,8 @@ const CASES: Record<string, TestCase> = {
       },
       {
         title: "Backend Developer with data focus (Python/Java)",
+        roleSlug: "backend_python",
+        bucket: "abroad",
         type: "запасной вариант",
         whyFits: "test",
         transferableSkills: ["SQL", "REST API"],
@@ -38,6 +42,8 @@ const CASES: Record<string, TestCase> = {
       },
       {
         title: "DevOps Engineer for cloud infrastructure (AWS/Kubernetes)",
+        roleSlug: "devops",
+        bucket: "abroad",
         type: "долгосрочная ставка",
         whyFits: "test",
         transferableSkills: ["Linux", "Docker"],
@@ -66,6 +72,8 @@ const CASES: Record<string, TestCase> = {
     directions: [
       {
         title: "Data Analyst in pharma/biotech companies (EU remote)",
+        roleSlug: "data_analyst",
+        bucket: "abroad",
         type: "основной трек",
         whyFits: "test",
         transferableSkills: ["SQL", "Power BI", "Statistics"],
@@ -75,6 +83,8 @@ const CASES: Record<string, TestCase> = {
       },
       {
         title: "Backend Developer with data focus (Python/SQL)",
+        roleSlug: "backend_python",
+        bucket: "abroad",
         type: "запасной вариант",
         whyFits: "test",
         transferableSkills: ["SQL", "Data modeling"],
@@ -84,6 +94,8 @@ const CASES: Record<string, TestCase> = {
       },
       {
         title: "Data Engineer for life sciences platforms (Python/SQL focus)",
+        roleSlug: "data_engineer",
+        bucket: "abroad",
         type: "долгосрочная ставка",
         whyFits: "test",
         transferableSkills: ["SQL", "ETL"],
@@ -112,6 +124,8 @@ const CASES: Record<string, TestCase> = {
     directions: [
       {
         title: "MLOps Engineer for production ML systems (Python/Kubernetes)",
+        roleSlug: "devops",
+        bucket: "abroad",
         type: "основной трек",
         whyFits: "test",
         transferableSkills: ["Docker", "Python", "AWS"],
@@ -121,6 +135,8 @@ const CASES: Record<string, TestCase> = {
       },
       {
         title: "DevOps Engineer for cloud-native platforms (AWS/GCP)",
+        roleSlug: "devops",
+        bucket: "abroad",
         type: "запасной вариант",
         whyFits: "test",
         transferableSkills: ["Linux", "Docker", "CI/CD"],
@@ -130,6 +146,10 @@ const CASES: Record<string, TestCase> = {
       },
       {
         title: "Elixir Developer for IoT platforms",
+        roleSlug: "elixir_developer",
+        offIndex: true,
+        marketEvidence: "Test mock: Elixir developer — нишевая off-index роль, только для testing",
+        bucket: "abroad",
         type: "долгосрочная ставка",
         whyFits: "test",
         transferableSkills: ["Real-time systems", "Sensors"],

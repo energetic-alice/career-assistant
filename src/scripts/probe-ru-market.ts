@@ -257,13 +257,40 @@ function buildTop3(rows: HhCount[]): string {
 }
 
 function buildGradeBreakdown(groups: HabrGroup[]): string {
-  const order = ["Middle", "Senior", "Lead"];
+  const order = ["Junior", "Middle", "Senior", "Lead"];
   const sorted = groups
-    .filter((g) => order.includes(g.name))
+    .filter((g) => order.includes(g.name) && g.total > 0)
     .sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
   return sorted
     .map((g) => `${g.name} ${fmtK(g.median)} (n=${fmtNum(g.total)})`)
     .join(" · ");
+}
+
+/**
+ * Выбор "репрезентативной" Mid+Sr медианы из habr-грейдов с фолбэками для
+ * мелких ниш (Ruby / Rust / React Native / Unity и пр.), где одного из грейдов
+ * может просто не быть. Возвращает значение + откуда оно взято.
+ *
+ * Приоритет:
+ *   1. avg(Middle, Senior)           — идеал
+ *   2. Middle only | Senior only     — если один грейд пустой
+ *   3. Lead × 0.8                    — Lead обычно выше Senior
+ *   4. Junior × 1.3                  — Junior обычно ниже Middle
+ *   5. All (proxy)                   — медиана по всем грейдам
+ */
+function pickHabrMedian(
+  groups: HabrGroup[],
+): { value: number; source: string; quality: "ideal" | "partial" | "proxy" } | null {
+  const by: Record<string, HabrGroup> = {};
+  for (const g of groups) if (g.total > 0) by[g.name] = g;
+  const { Middle: m, Senior: s, Lead: l, Junior: j, All: a } = by;
+  if (m && s) return { value: Math.round((m.median + s.median) / 2), source: "avg(Middle, Senior)", quality: "ideal" };
+  if (m) return { value: m.median, source: "Middle only", quality: "partial" };
+  if (s) return { value: s.median, source: "Senior only", quality: "partial" };
+  if (l) return { value: Math.round(l.median * 0.8), source: "Lead × 0.8", quality: "partial" };
+  if (j) return { value: Math.round(j.median * 1.3), source: "Junior × 1.3", quality: "partial" };
+  if (a) return { value: a.median, source: "All (proxy)", quality: "proxy" };
+  return null;
 }
 
 // ---------- main ----------
@@ -331,10 +358,12 @@ async function main() {
   let habrAvailable = false;
   let habrNote = "";
 
+  let habrSkillUsed: string | null = args.skill;
+
   if (!args.noHabr && args.spec) {
     console.log("\n=== habr (Москва) ===");
     try {
-      const habr = await fetchHabrMoscow(args.spec, args.skill ?? undefined);
+      let habr = await fetchHabrMoscow(args.spec, args.skill ?? undefined);
       console.log(`  url: ${habr.url}`);
       console.log(`  resolved title: ${habr.resolvedTitle}`);
       if (habr.isFallback) {
@@ -343,14 +372,36 @@ async function main() {
           `Зарплата по этой роли через Хабр недоступна.`;
         console.warn(`  ${habrNote}`);
       } else {
+        let pick = pickHabrMedian(habr.groups);
+        // Если с skill выборка слишком мала, чтобы дать хотя бы Middle или Senior —
+        // ретраим без skill. Получим прокси по общему spec, но это лучше, чем дырка.
+        if (args.skill && (!pick || pick.quality !== "ideal")) {
+          console.log(`  retry без skill=${args.skill} (выборка ${args.spec}+${args.skill} мала)`);
+          await sleep(3000);
+          const noSkill = await fetchHabrMoscow(args.spec);
+          const pickNoSkill = !noSkill.isFallback ? pickHabrMedian(noSkill.groups) : null;
+          // Берём "без skill" только если он даёт лучшее качество, чем первичный.
+          const rank = { ideal: 3, partial: 2, proxy: 1 } as const;
+          const primRank = pick ? rank[pick.quality] : 0;
+          const secRank = pickNoSkill ? rank[pickNoSkill.quality] : 0;
+          if (pickNoSkill && secRank > primRank) {
+            pick = pickNoSkill;
+            habr = noSkill;
+            habrSkillUsed = null;
+          }
+        }
         habrGroups = habr.groups;
-        const middle = habrGroups.find((g) => g.name === "Middle");
-        const senior = habrGroups.find((g) => g.name === "Senior");
-        if (middle && senior) {
-          medianMidSr = Math.round((middle.median + senior.median) / 2);
+        if (pick) {
+          medianMidSr = pick.value;
           habrAvailable = true;
+          if (pick.quality !== "ideal") {
+            const skillNote = habrSkillUsed === null && args.skill ? `, без skill=${args.skill}` : "";
+            habrNote = `⚠️ Зарплата — фолбэк по грейдам (${pick.source}${skillNote})`;
+            console.warn(`  ${habrNote}`);
+          }
         } else {
-          habrNote = "⚠️ В ответе Хабра нет грейдов Middle и/или Senior";
+          habrNote = "⚠️ В ответе Хабра нет данных по грейдам";
+          console.warn(`  ${habrNote}`);
         }
       }
     } catch (err) {
@@ -369,7 +420,7 @@ async function main() {
   if (args.spec) {
     sources.push(
       `career.habr.com API (locations[]=c_678 Москва, spec_aliases[]=${args.spec}` +
-        `${args.skill ? `, skills[]=${args.skill}` : ""})`,
+        `${habrSkillUsed ? `, skills[]=${habrSkillUsed}` : ""})`,
     );
   }
 
@@ -402,9 +453,27 @@ async function main() {
   const here = dirname(fileURLToPath(import.meta.url));
   const outDir = join(here, "..", "prompts", "market-data");
   await mkdir(outDir, { recursive: true });
-  const outPath = join(outDir, `hh-${args.outSlug}.md`);
+  const outPath = join(outDir, `ru_${args.outSlug}.md`);
   await writeFile(outPath, text + "\n", "utf-8");
   console.log(`\n[saved] ${outPath}`);
+
+  // Snapshot для динамики рынка: пишем по-датно в snapshots/, старые
+  // не перезаписываются. buildRu в market-index агрегирует trend из
+  // истории snapshot-ов. Первые реальные trend-ы появятся через ~год.
+  const snapDir = join(outDir, "snapshots");
+  await mkdir(snapDir, { recursive: true });
+  const isoDate = new Date().toISOString().slice(0, 10);
+  const snapPath = join(snapDir, `ru_${args.outSlug}_${isoDate}.json`);
+  const snapshot = {
+    date: isoDate,
+    slug: args.outSlug,
+    topMedianSalary: medianMidSr,
+    rows: hhRows
+      .filter((r) => r.scope === "broad" && r.count !== null)
+      .map((r) => ({ title: r.title, vacancies: r.count ?? 0 })),
+  };
+  await writeFile(snapPath, JSON.stringify(snapshot, null, 2) + "\n", "utf-8");
+  console.log(`[snapshot] ${snapPath}`);
 }
 
 main().catch((err) => {

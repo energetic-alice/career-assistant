@@ -14,6 +14,14 @@ export const pipelineStageEnum = z.enum([
   "final_compiled",
   "completed",
   "completed_legacy",
+  // ── Gate 1 — интерактивный shortlist ─────────────────────────────────
+  "shortlist_generating",
+  "shortlist_ready",
+  "shortlist_failed",
+  "shortlist_approved",
+  // ── Phase 2 — глубокий анализ (после Approve) ────────────────────────
+  "deep_generating",
+  "deep_failed",
 ]);
 
 export type PipelineStage = z.infer<typeof pipelineStageEnum>;

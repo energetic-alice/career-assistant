@@ -3,6 +3,7 @@ import { Markup } from "telegraf";
 import { Input } from "telegraf";
 import { getAdminChatId, getBot } from "./bot-instance.js";
 import { getPipelineState } from "../pipeline/intake.js";
+import { dispatchShortlistCallback, startShortlist } from "./shortlist-review.js";
 import {
   formatQuestionnaireForTelegram,
   formatClientCardForTelegram,
@@ -134,18 +135,16 @@ export async function sendIntakeNotification(participantId: string): Promise<voi
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TODO(phase1a): re-enable Phase 1 (directions + market) and Phase 4 (final doc)
-// after the interactive Phase 1A/1B flow is shipped. For now the "Предварительный
-// анализ" button answers with a stub, and the old approve/edit/redo review
-// sub-flow is disabled so we don't break on a changed schema.
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function handleAnalyze(_participantId: string, ctx: Context): Promise<void> {
-  await ctx.reply(
-    "🚧 Предварительный анализ временно отключён — собираем обновлённый flow. " +
-      "Клиент в списке, анкета сохранена.",
-  );
+/**
+ * Диспетчер callback_query для всего админ-бота.
+ *
+ * Поддерживаемые префиксы:
+ *   - `analyze:<pid>`                     → запуск Phase 1 shortlist
+ *   - `shortlist:<action>:<pid>[:<idx>]`  → управление shortlist'ом
+ *     (см. `shortlist-review.ts`)
+ */
+async function handleAnalyze(participantId: string, ctx: Context): Promise<void> {
+  await startShortlist(participantId, ctx);
 }
 
 export function registerAdminReview(bot: Telegraf): void {
@@ -155,6 +154,11 @@ export function registerAdminReview(bot: Telegraf): void {
 
     await ctx.answerCbQuery();
 
+    if (data.startsWith("shortlist:")) {
+      const handled = await dispatchShortlistCallback(data, ctx);
+      if (handled) return;
+    }
+
     const [action, participantId] = data.split(":");
     if (!participantId) return;
 
@@ -163,11 +167,7 @@ export function registerAdminReview(bot: Telegraf): void {
         await handleAnalyze(participantId, ctx);
         break;
       default:
-        // TODO(phase1a): wire up approve/edit/redo/phase1a_* callbacks
         break;
     }
   });
-
-  // TODO(phase1a): re-enable text feedback handler when the review flow is back.
-  // bot.on("text", async (ctx) => { ... });
 }
