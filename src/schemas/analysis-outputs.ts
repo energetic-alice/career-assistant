@@ -225,14 +225,34 @@ export const directionSchema = z.object({
   searchQueries: z
     .array(z.string())
     .describe("Поисковые запросы для проверки рынка (вакансии, зарплаты, тренды)"),
+  /**
+   * true (default) — рекомендуемое направление.
+   * false — включено потому что клиент сам его просит (desiredDirectionSlugs /
+   * directionInterest), но объективно не подходит (нет технического бэкграунда
+   * для DevOps/ML/tech_lead; очень низкая близость перехода; и т.п.). В UI
+   * shortlist'а такие пункты показываются как 🚫, в финальном документе попадут
+   * в `rejectedDirections` с причиной.
+   */
+  recommended: z
+    .boolean()
+    .optional()
+    .describe(
+      "true/undefined по умолчанию = рекомендуем. Поставь false если клиент сам просит это направление, но оно ему объективно не подходит (non-technical → DevOps/ML/tech_lead, слишком низкая близость, мёртвая роль). В этом случае заполни rejectionReason.",
+    ),
+  rejectionReason: z
+    .string()
+    .optional()
+    .describe(
+      "Обязательно для recommended=false. 1-2 предложения почему направление не подходит (нет технического бэкграунда, слишком низкая adjacency, высокий AI-риск при lead-грейде и т.п.).",
+    ),
 });
 
 export type Direction = z.infer<typeof directionSchema>;
 
 export const directionsOutputSchema = z.object({
-  directions: z.array(directionSchema).min(5).max(9)
+  directions: z.array(directionSchema).min(8).max(10)
     .describe(
-      "5-9 направлений. Обязательно включают текущую роль кандидата и все явно озвученные " +
+      "8-10 направлений. Обязательно включают текущую роль кандидата и все явно озвученные " +
       "directionInterest (даже если ты считаешь их неоптимальными — отсев будет на следующем шаге)."
     ),
 });

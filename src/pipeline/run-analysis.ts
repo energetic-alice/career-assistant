@@ -339,7 +339,7 @@ export async function sanitizeRoleSlugs(summary: ClientSummary): Promise<ClientS
 }
 
 /**
- * Phase 1 — Shortlist: лёгкая генерация 5–9 направлений без глубоких
+ * Phase 1 — Shortlist: лёгкая генерация 8–10 направлений без глубоких
  * внешних запросов (Perplexity, детальные role reports, prompt-03).
  *
  * Используется для Gate 1: админ смотрит сырой shortlist в Telegram,
@@ -472,7 +472,7 @@ export async function runShortlist(
  * Перегенерация одного направления в рамках Gate 1.
  *
  * Зовёт prompt-02 заново с теми же контекстом (profile/marketOverview/
- * scorerTop20) и ищет в новом 5–9 списке первое направление с парой
+ * scorerTop20) и ищет в новом 8–10 списке первое направление с парой
  * `(roleSlug, bucket)`, которой ещё нет в `existingDirections`. Если
  * ничего не нашлось — возвращает `null`.
  *
