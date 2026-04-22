@@ -15,9 +15,37 @@ import { normalizeNick } from "../services/intake-mapper.js";
 type InlineKeyboardMarkup = ReturnType<typeof Markup.inlineKeyboard>["reply_markup"];
 
 /**
+ * Стадии, на которых имеет смысл предлагать кнопку "Предварительный анализ".
+ * Исключаем: legacy (анализ был ранее), уже завершённые, и стадии, когда
+ * какой-то этап прямо сейчас исполняется или уже готов (чтобы случайно не
+ * перегенерить shortlist).
+ */
+const ANALYZE_BUTTON_STAGES = new Set([
+  "intake_received",
+  "resume_parsed",
+  "awaiting_analysis",
+  "shortlist_failed",
+  "deep_failed",
+]);
+
+function buildAnalyzeKeyboard(
+  participantId: string,
+  stage: string,
+): InlineKeyboardMarkup | undefined {
+  if (!ANALYZE_BUTTON_STAGES.has(stage)) return undefined;
+  return Markup.inlineKeyboard([
+    [Markup.button.callback("🔍 Предварительный анализ", `analyze:${participantId}`)],
+  ]).reply_markup;
+}
+
+/**
  * Reusable: send the client card together with the questionnaire as an .html
  * attachment (caption = the card itself in HTML).
  * Used both as intake notification and as response to /client <nick>.
+ *
+ * Если `options.replyMarkup` не передан, функция сама подставляет кнопку
+ * "🔍 Предварительный анализ" для подходящих стадий — чтобы карточка,
+ * открытая через /client, была интерактивной точно так же, как intake-карточка.
  */
 export async function sendClientCard(
   chatId: string | number,
@@ -53,6 +81,9 @@ export async function sendClientCard(
     legacyTariff,
   });
 
+  const replyMarkup =
+    options.replyMarkup ?? buildAnalyzeKeyboard(participantId, state.stage);
+
   const nick = normalizeNick(state.telegramNick) || "client";
   const safeNick = nick.replace(/[^a-zA-Z0-9_\-]/g, "_");
 
@@ -75,7 +106,7 @@ export async function sendClientCard(
       {
         caption: cardHtml,
         parse_mode: "HTML",
-        ...(options.replyMarkup ? { reply_markup: options.replyMarkup } : {}),
+        ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
       },
     );
     return;
@@ -91,7 +122,7 @@ export async function sendClientCard(
     {
       caption: `Анкета @${nick}`,
       parse_mode: "HTML",
-      ...(options.replyMarkup ? { reply_markup: options.replyMarkup } : {}),
+      ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
     },
   );
 }
@@ -118,21 +149,9 @@ export async function sendIntakeNotification(participantId: string): Promise<voi
     { parse_mode: "HTML", link_preview_options: { is_disabled: true } },
   );
 
-  const keyboard =
-    state.stage === "completed_legacy"
-      ? undefined
-      : Markup.inlineKeyboard([
-          [
-            Markup.button.callback(
-              "🔍 Предварительный анализ",
-              `analyze:${participantId}`,
-            ),
-          ],
-        ]);
-
-  await sendClientCard(chatId, participantId, {
-    replyMarkup: keyboard?.reply_markup,
-  });
+  // Кнопку "Предварительный анализ" подставит sendClientCard автоматически
+  // на основании state.stage (см. buildAnalyzeKeyboard).
+  await sendClientCard(chatId, participantId);
 }
 
 /**
