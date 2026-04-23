@@ -18,6 +18,7 @@ import {
   loadPrompt04,
   inferRelevantDomains,
   renderQuestionnaireForPrompt,
+  renderPhase0SlugsHint,
 } from "./prompt-loader.js";
 import { clientSummarySchema, type ClientSummary } from "../schemas/client-summary.js";
 import { buildReviewSummary, formatReviewForTelegram } from "../services/review-summary.js";
@@ -372,6 +373,25 @@ export async function sanitizeRoleSlugs(summary: ClientSummary): Promise<ClientS
     }
   }
 
+  // closestItSlugs не должен пересекаться с currentSlugs/desiredDirectionSlugs.
+  // Это другой кейс: closest = функциональный аналог без опыта, current = с опытом,
+  // desired = клиент сам просил. Если они совпали — приоритет current/desired
+  // (там есть либо опыт, либо явное желание), closest можно убрать.
+  if (out.closestItSlugs && out.closestItSlugs.length > 0) {
+    const overlap = new Set<string>([
+      ...(out.currentSlugs ?? []),
+      ...((out.desiredDirectionSlugs ?? []).map((d) => d.slug)),
+    ]);
+    const before = out.closestItSlugs.length;
+    out.closestItSlugs = out.closestItSlugs.filter((s) => !overlap.has(s));
+    const removed = before - out.closestItSlugs.length;
+    if (removed > 0) {
+      console.log(
+        `[Phase 0] dedup: убрал ${removed} closestItSlugs уже покрытых current/desired`,
+      );
+    }
+  }
+
   return out;
 }
 
@@ -462,12 +482,16 @@ export async function runShortlist(
   console.log("[Shortlist/Step 2] Generating directions (market + scorer top-20)...");
   t0 = Date.now();
   const questionnaireHuman = renderQuestionnaireForPrompt(input.rawNamedValues);
+  const phase0SlugsHint = input.clientSummary
+    ? renderPhase0SlugsHint(input.clientSummary)
+    : "";
   const prompt02 = await loadPrompt02({
     candidateProfile: JSON.stringify(profile, null, 2),
     marketOverview,
     scorerTop20,
     resumeText: input.resumeText,
     questionnaireHuman,
+    phase0SlugsHint,
   });
   const directions = await callClaudeStructured(
     prompt02,
@@ -545,6 +569,9 @@ export async function regenerateOneDirection(
     scorerTop20: shortlist.scorerTop20,
     resumeText: shortlist.resumeText,
     questionnaireHuman: shortlist.questionnaireHuman,
+    phase0SlugsHint: shortlist.clientSummary
+      ? renderPhase0SlugsHint(shortlist.clientSummary)
+      : "",
   });
   const fresh = await callClaudeStructured(
     prompt02,

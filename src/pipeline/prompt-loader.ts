@@ -107,6 +107,18 @@ export async function loadPrompt02(vars: {
    * (хочет/не хочет, мотивация, ограничения).
    */
   questionnaireHuman?: string;
+  /**
+   * Сводка по slug-ам, которые Phase 0 уже определил для клиента:
+   *   - currentProfessionSlug (текущая IT-роль если IT)
+   *   - currentSlugs (где есть коммерческий опыт)
+   *   - closestItSlugs (ближайший IT-аналог для non-IT)
+   *   - desiredDirectionSlugs (что клиент сам просит)
+   *
+   * Подставляется в Phase 1 промпт чтобы Claude НЕ переоткрывал то,
+   * что Phase 0 уже посчитала, и обязательно включал closestItSlugs
+   * в шортлист (для non-IT клиентов это критично).
+   */
+  phase0SlugsHint?: string;
 }): Promise<string> {
   let template = await loadFile(join(PROMPTS_DIR, "02-direction-generation.md"));
   const styleGuide = await getReference("style-guide");
@@ -141,8 +153,54 @@ export async function loadPrompt02(vars: {
       ? vars.questionnaireHuman.trim()
       : "_(анкета недоступна в сыром виде)_",
   );
+  template = template.replace(
+    "{{phase0SlugsHint}}",
+    vars.phase0SlugsHint && vars.phase0SlugsHint.trim()
+      ? vars.phase0SlugsHint.trim()
+      : "_(Phase 0 не предоставила slug-сводку — определи самостоятельно)_",
+  );
 
   return template;
+}
+
+/**
+ * Готовит компактный markdown-блок «Phase 0 уже определила такие slug-и»
+ * для подстановки в Phase 1 промпт через {{phase0SlugsHint}}.
+ *
+ * Цель — дать Claude явный ориентир по тому что:
+ *   - currentSlugs — где у клиента есть реальный коммерческий опыт (adj=100);
+ *   - closestItSlugs — ближайший IT-аналог для non-IT (HR → recruiter,
+ *     менеджер не-IT → project_manager); эти slug-и обязательно в шортлист;
+ *   - desiredDirectionSlugs — что клиент сам просит (adj=95).
+ */
+export function renderPhase0SlugsHint(summary: {
+  currentProfessionSlug?: string | null;
+  currentSlugs?: string[];
+  closestItSlugs?: string[];
+  desiredDirectionSlugs?: Array<{ slug: string }>;
+}): string {
+  const lines: string[] = [];
+  const cps = summary.currentProfessionSlug;
+  if (cps && cps !== "other" && cps !== "null") {
+    lines.push(`- **currentProfessionSlug:** \`${cps}\` — текущая роль (включить в шортлист с честным score, даже если рынок слабый)`);
+  } else {
+    lines.push(`- **currentProfessionSlug:** \`null\` — клиент не в IT (см. closestItSlugs ниже)`);
+  }
+  const cs = summary.currentSlugs ?? [];
+  if (cs.length > 0) {
+    lines.push(`- **currentSlugs:** ${cs.map((s) => `\`${s}\``).join(", ")} — есть коммерческий опыт, adj=100, бустить в скоринге`);
+  } else {
+    lines.push(`- **currentSlugs:** _(пусто)_ — нет ролей с готовым 100% match опыта`);
+  }
+  const closest = summary.closestItSlugs ?? [];
+  if (closest.length > 0) {
+    lines.push(`- **closestItSlugs:** ${closest.map((s) => `\`${s}\``).join(", ")} — ближайший IT-аналог текущей профессии non-IT клиента. **ОБЯЗАТЕЛЬНО включи в шортлист** (это самый прямой вход в IT — recommend=true даже если score средний; rejection только если объективно тупик).`);
+  }
+  const desired = (summary.desiredDirectionSlugs ?? []).map((d) => d.slug);
+  if (desired.length > 0) {
+    lines.push(`- **desiredDirectionSlugs:** ${desired.map((s) => `\`${s}\``).join(", ")} — клиент сам просит. Каждое в шортлисте; если не подходит → recommended=false + rejectionReason.`);
+  }
+  return lines.join("\n");
 }
 
 /**

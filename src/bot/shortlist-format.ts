@@ -71,10 +71,15 @@ export function formatMarketLine(d: Direction, enriched?: EnrichedDirection): st
       const label = c >= 10 ? "низк" : c >= 3 ? "средн" : "высок";
       parts.push(`конк ${c.toFixed(1)}/100 (${label})`);
     }
-    if (enriched.trendRatio != null && enriched.trendRatio !== 0) {
-      const pct = Math.round(enriched.trendRatio * 100);
-      const sign = pct > 0 ? "+" : "";
-      parts.push(`тренд ${sign}${pct}%`);
+    if (enriched.trendRatio != null && enriched.trendRatio > 0) {
+      // trendRatio = now / twoYearsAgo (например 1.75 = +75%, 0.75 = -25%).
+      // В UI показываем именно изменение, а не абсолютный коэффициент.
+      const pctChange = Math.round((enriched.trendRatio - 1) * 100);
+      if (Math.abs(pctChange) >= 5) {
+        const arrow = pctChange > 0 ? "↑" : "↓";
+        const sign = pctChange > 0 ? "+" : "";
+        parts.push(`тренд ${arrow} ${sign}${pctChange}%`);
+      }
     }
   } else {
     parts.push("рынок: нет данных");

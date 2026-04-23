@@ -271,6 +271,38 @@ export const clientSummarySchema = z.object({
    * читать как `summary.currentSlugs ?? []`.
    */
   currentSlugs: z.array(z.string()).optional(),
+
+  /**
+   * Ближайшие IT-эквиваленты к текущей профессии клиента — заполняется,
+   * когда `currentProfessionSlug = null` (non-IT, например HR Administrative,
+   * менеджер ресторанов, юрист, врач) ИЛИ когда формальный slug сильно
+   * сужает картину (рекрутер не-IT → recruiter, проджект не-IT → project_manager).
+   *
+   * Цель: гарантировать, что в Phase 1 шортлисте всегда будет «самый
+   * близкий IT-вход» к текущей профессии клиента, даже если он не входит
+   * в `currentSlugs` (нет коммерческого IT-опыта) и не в `desiredDirectionSlugs`
+   * (клиент не указал явно).
+   *
+   * Примеры:
+   *   - HR Administrative / любой HR не-IT → ["recruiter"]
+   *   - Менеджер ресторанов, retail-management → ["project_manager", "product_manager"]
+   *   - Юрист, бухгалтер, консультант — без IT опыта → [] (ничего близкого нет)
+   *   - Маркетолог не-IT → ["marketing_manager"]
+   *   - Графический дизайнер из рекламы → ["ui_ux_designer"]
+   *
+   * Правила:
+   *   - 0..2 элемента;
+   *   - только slug-и из каталога market-index;
+   *   - НЕ дублирует `currentSlugs` и `desiredDirectionSlugs`;
+   *   - заполняется когда currentProfessionSlug=null или когда есть очевидный
+   *     IT-аналог за пределами текущего slug.
+   *
+   * Используется в run-analysis: эти slug-и идут в guaranteed для Claude
+   * («обязательно покажи в шортлисте даже если score низкий»).
+   *
+   * Optional ради совместимости с старыми `clientSummary`.
+   */
+  closestItSlugs: z.array(z.string()).max(2).optional(),
 });
 
 export type ClientSummary = z.infer<typeof clientSummarySchema>;

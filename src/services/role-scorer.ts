@@ -271,6 +271,7 @@ export function adjacencyComponent(
   desiredSlugs: Set<string>,
   currentEntry: MarketIndexEntry | null,
   currentSlugs?: Set<string>,
+  closestItSlugs?: Set<string>,
 ): number {
   if (currentSlug && role.slug === currentSlug) return 100;
   // Любой slug, на который клиент может выйти СЕЙЧАС по опыту (резюме/анкета)
@@ -280,6 +281,10 @@ export function adjacencyComponent(
   // stackFamily-проверку ниже.
   if (currentSlugs && currentSlugs.has(role.slug)) return 100;
   if (desiredSlugs.has(role.slug)) return 95;
+  // Ближайший IT-аналог для non-IT клиента (HR не-IT → recruiter, менеджер
+  // не-IT → project_manager). Опыта нет, но функционально это самый прямой
+  // вход в IT — даём высокий adj, чтобы такая роль попала в верх шортлиста.
+  if (closestItSlugs && closestItSlugs.has(role.slug)) return 85;
   if (!currentEntry) return 40; // non-IT current — everything equally far
 
   const curFam = currentEntry.stackFamily;
@@ -478,6 +483,7 @@ function scoreOneRole(
   currentEntry: MarketIndexEntry | null,
   clientGrade: ClientGrade,
   currentSlugs: Set<string>,
+  closestItSlugs: Set<string>,
 ): { components: ScoredRoleComponents; reasons: string[] } {
   const stats = pickBucketStats(entry, bucket);
   const vacancies = totalVacancies(entry, bucket);
@@ -502,6 +508,7 @@ function scoreOneRole(
       desiredSlugs,
       currentEntry,
       currentSlugs,
+      closestItSlugs,
     ),
     trend: trendComponent(stats?.trend?.ratio),
   };
@@ -533,6 +540,8 @@ function scoreOneRole(
     reasons.push("текущая");
   } else if (currentSlugs.has(entry.slug)) {
     reasons.push("есть опыт");
+  } else if (closestItSlugs.has(entry.slug)) {
+    reasons.push("ближайший IT-аналог");
   } else if (desiredSlugs.has(entry.slug)) {
     reasons.push("desired");
   } else if (currentEntry && entry.category === currentEntry.category) {
@@ -558,14 +567,20 @@ async function rankBucket(
     (summary.desiredDirectionSlugs ?? []).map((d) => d.slug),
   );
   const currentSlugs = new Set<string>(summary.currentSlugs ?? []);
-  // guaranteed ≠ currentSlugs. Только текущая роль и желаемые клиентом
-  // направления гарантированно проходят мимо hard-filter'ов (число вакансий
-  // ≥100, AI≠extreme, salary floor). `currentSlugs` — это «где у клиента
-  // есть опыт»; они бустят adjacency до 100 в scoring, но НЕ должны
-  // пропускать роль с 55 вакансиями в шортлист только потому, что клиент
-  // когда-то это умел. Слабый рынок остаётся слабым рынком.
+  const closestItSlugs = new Set<string>(summary.closestItSlugs ?? []);
+  // guaranteed ≠ currentSlugs. В guaranteed попадают:
+  //   - currentProfessionSlug (если IT) — текущая роль клиента;
+  //   - desiredDirectionSlugs — что он хочет;
+  //   - closestItSlugs — ближайший IT-аналог для non-IT (чтобы HR увидел
+  //     recruiter, менеджер не-IT — project_manager и т.п.).
+  // Эти роли проходят мимо hard-filter'ов (вакансии ≥100, AI≠extreme,
+  // salary floor) и обязательно показываются в шортлисте.
+  // `currentSlugs` сюда НЕ идут — они бустят adjacency до 100, но не
+  // должны протаскивать роль с 55 вакансиями в шортлист только потому,
+  // что клиент когда-то это умел. Слабый рынок остаётся слабым рынком.
   const guaranteed = new Set<string>(desiredSlugs);
   if (currentSlug) guaranteed.add(currentSlug);
+  for (const s of closestItSlugs) guaranteed.add(s);
 
   const currentEntry: MarketIndexEntry | null =
     currentSlug && index[currentSlug] ? index[currentSlug] : null;
@@ -585,6 +600,7 @@ async function rankBucket(
       currentEntry,
       clientGrade,
       currentSlugs,
+      closestItSlugs,
     );
     const score = computeScore(components);
     if (isGuaranteed) reasons.unshift("гарантированно");

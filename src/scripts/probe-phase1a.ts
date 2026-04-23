@@ -7,6 +7,7 @@ import { rankRoles, formatScorerTop20ForPrompt } from "../services/role-scorer.j
 import {
   loadPrompt02,
   renderQuestionnaireForPrompt,
+  renderPhase0SlugsHint,
 } from "../pipeline/prompt-loader.js";
 import {
   loadMarketOverview,
@@ -114,6 +115,7 @@ async function generateDirections(
   dumpPromptAs?: string,
   resumeText?: string,
   questionnaireHuman?: string,
+  phase0SlugsHint?: string,
 ): Promise<Direction[]> {
   const prompt = await loadPrompt02({
     candidateProfile: JSON.stringify(profile, null, 2),
@@ -121,6 +123,7 @@ async function generateDirections(
     scorerTop20,
     resumeText,
     questionnaireHuman,
+    phase0SlugsHint,
   });
   if (dumpPromptAs) {
     await mkdir(PROMPT_DUMP_DIR, { recursive: true });
@@ -336,8 +339,9 @@ async function probeOne(state: PipeState): Promise<void> {
   const rawNamedValues =
     outputs.pipelineInput?.rawNamedValues ?? outputs.rawNamedValues;
   const questionnaireHuman = renderQuestionnaireForPrompt(rawNamedValues);
+  const phase0SlugsHint = renderPhase0SlugsHint(cs);
   console.log(
-    `  sources: resume=${resumeText ? `${resumeText.length} симв` : "—"}, q&a=${rawNamedValues ? `${Object.keys(rawNamedValues).length} пар` : "—"}`,
+    `  sources: resume=${resumeText ? `${resumeText.length} симв` : "—"}, q&a=${rawNamedValues ? `${Object.keys(rawNamedValues).length} пар` : "—"}, closestIt=${(cs.closestItSlugs ?? []).join(",") || "—"}`,
   );
 
   let directionsRaw: Direction[];
@@ -349,6 +353,7 @@ async function probeOne(state: PipeState): Promise<void> {
       nick,
       resumeText,
       questionnaireHuman,
+      phase0SlugsHint,
     );
   } catch (err) {
     console.error("  ❌ Claude failed:", err);

@@ -54,6 +54,7 @@ const NEEDS_GRADE = process.env.BACKFILL_NEEDS_GRADE === "1";
 // Новое поле currentSlugs (роли из каталога, на которые клиент может выйти
 // сейчас — для adjacencyComponent в scorer). Триггер: в summary нет ключа.
 const NEEDS_CURRENT_SLUGS = process.env.BACKFILL_NEEDS_CURRENT_SLUGS === "1";
+const NEEDS_CLOSEST_IT = process.env.BACKFILL_NEEDS_CLOSEST_IT === "1";
 // FORCE=1 — перегенерировать всех клиентов с rawNamedValues, не обращая
 // внимания на существующие поля в summary.
 const FORCE = process.env.BACKFILL_FORCE === "1";
@@ -199,6 +200,21 @@ async function main(): Promise<void> {
     }
   }
 
+  // Клиенты без поля closestItSlugs (новое поле для non-IT клиентов: HR не-IT
+  // → recruiter, менеджер не-IT → project_manager и т.п. — гарантированно
+  // в шортлисте Phase 1 как ближайший вход в IT).
+  const needsClosestIt: PipelineState[] = [];
+  if (NEEDS_CLOSEST_IT) {
+    for (const s of states) {
+      const outs = (s.stageOutputs ?? {}) as Record<string, unknown>;
+      const cs = outs.clientSummary as ClientSummary | undefined;
+      if (!cs || !outs.rawNamedValues) continue;
+      if (!("closestItSlugs" in cs)) {
+        needsClosestIt.push(s);
+      }
+    }
+  }
+
   // Клиенты для принудительной перегенерации: все, у кого есть rawNamedValues.
   const forced: PipelineState[] = [];
   if (FORCE) {
@@ -217,6 +233,7 @@ async function main(): Promise<void> {
     ...needsSalary,
     ...needsGrade,
     ...needsCurrentSlugs,
+    ...needsClosestIt,
     ...forced,
   ]) {
     targetMap.set(s.participantId, s);
@@ -257,6 +274,7 @@ async function main(): Promise<void> {
       (NEEDS_SALARY ? ` | Needs salary: ${needsSalary.length}` : "") +
       (NEEDS_GRADE ? ` | Needs grade: ${needsGrade.length}` : "") +
       (NEEDS_CURRENT_SLUGS ? ` | Needs currentSlugs: ${needsCurrentSlugs.length}` : "") +
+      (NEEDS_CLOSEST_IT ? ` | Needs closestItSlugs: ${needsClosestIt.length}` : "") +
       (FORCE ? ` | Force-all: ${forced.length}` : "") +
       (NEWEST_FIRST ? ` | newest-first` : "") +
       (ONLY_NICKS ? ` | only-nicks=${ONLY_NICKS.size} (dropped ${onlyNicksFiltered})` : "") +
