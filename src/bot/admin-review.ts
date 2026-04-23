@@ -19,14 +19,35 @@ type InlineKeyboardMarkup = ReturnType<typeof Markup.inlineKeyboard>["reply_mark
  * Кнопка «Предварительный анализ» всегда доступна на карточке, независимо от
  * стадии: админу полезно уметь перегенерить shortlist с нуля на любом этапе
  * (в том числе после того, как анализ уже готов или завершён).
+ *
+ * Кнопка «🔬 Глубокий анализ» показывается когда у клиента уже есть одобренный
+ * shortlist (`shortlist_approved` и далее). Удобно перезапустить Phase 2 если
+ * она упала или если бот рестартовал.
  */
+const STAGES_WITH_APPROVED: ReadonlySet<string> = new Set([
+  "shortlist_approved",
+  "deep_generating",
+  "deep_failed",
+  "deep_ready",
+  "deep_approved",
+]);
+
 function buildAnalyzeKeyboard(
   participantId: string,
-  _stage: string,
+  stage: string,
 ): InlineKeyboardMarkup | undefined {
-  return Markup.inlineKeyboard([
+  const rows = [
     [Markup.button.callback("🔍 Предварительный анализ", `analyze:${participantId}`)],
-  ]).reply_markup;
+  ];
+  if (STAGES_WITH_APPROVED.has(stage)) {
+    rows.push([
+      Markup.button.callback(
+        "🔬 Глубокий анализ (Phase 2)",
+        `analyze_deep:${participantId}`,
+      ),
+    ]);
+  }
+  return Markup.inlineKeyboard(rows).reply_markup;
 }
 
 /**
@@ -157,6 +178,86 @@ async function handleAnalyze(participantId: string, ctx: Context): Promise<void>
   await startShortlist(participantId, ctx);
 }
 
+/**
+ * Перезапуск Phase 2 поверх уже одобренного shortlist'а.
+ * Используется когда Phase 2 упал, бот рестартанулся, или просто
+ * понадобилось переобогатить (Perplexity TTL = 14 дней, дальше — свежий запрос).
+ */
+async function handleAnalyzeDeep(participantId: string, ctx: Context): Promise<void> {
+  const state = getPipelineState(participantId);
+  if (!state) {
+    await ctx.reply("Клиент не найден.");
+    return;
+  }
+  const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
+  const shortlist = outputs.shortlist as
+    | {
+        slots?: Array<{ direction: unknown; enriched?: unknown }>;
+        profile?: unknown;
+        clientSummary?: unknown;
+        marketOverview?: unknown;
+        regions?: unknown;
+        scorerTop20?: unknown;
+        resumeText?: string;
+        questionnaireHuman?: string;
+      }
+    | undefined;
+  const approved = outputs.approved as
+    | { directions?: unknown[]; rejectedDirections?: unknown[] }
+    | undefined;
+
+  if (!shortlist?.slots || shortlist.slots.length === 0) {
+    await ctx.reply("Нет shortlist'а — сначала запусти предварительный анализ.");
+    return;
+  }
+  if (!approved?.directions || approved.directions.length === 0) {
+    await ctx.reply(
+      "Shortlist ещё не одобрен. Открой Phase 1 и нажми «✓ Одобрить» там.",
+    );
+    return;
+  }
+
+  const chatId = ctx.chat?.id;
+  if (chatId == null) return;
+  await ctx.reply(`🔬 Перезапускаю глубокий анализ для @${normalizeNick(state.telegramNick)}…`);
+
+  void (async () => {
+    try {
+      const { startDeepReview } = await import("./deep-review.js");
+      const slots = shortlist.slots ?? [];
+      // Восстанавливаем ShortlistResult из state (зеркало toShortlistResult).
+      const shortlistResult = {
+        profile: shortlist.profile as never,
+        clientSummary: shortlist.clientSummary as never,
+        marketOverview: (shortlist.marketOverview ?? "") as string,
+        scorerTop20: shortlist.scorerTop20 as string | undefined,
+        regions: (shortlist.regions ?? []) as never,
+        directions: {
+          directions: slots.map((s) => s.direction as never),
+        },
+        enriched: slots
+          .map((s) => s.enriched as never)
+          .filter((x) => !!x),
+        timings: {},
+        resumeText: shortlist.resumeText,
+        questionnaireHuman: shortlist.questionnaireHuman,
+      };
+      // В Phase 2 идут все одобренные + отклонённые (как и в shortlist:approve).
+      const allDirections = [
+        ...(approved.directions as never[]),
+        ...((approved.rejectedDirections as never[]) ?? []),
+      ];
+      await startDeepReview(participantId, chatId, shortlistResult as never, allDirections);
+    } catch (err) {
+      console.error("[admin-review] handleAnalyzeDeep failed:", err);
+      await getBot().telegram.sendMessage(
+        chatId,
+        `❌ Глубокий анализ упал: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  })();
+}
+
 export function registerAdminReview(bot: Telegraf): void {
   bot.on("callback_query", async (ctx) => {
     const data = (ctx.callbackQuery as { data?: string })?.data;
@@ -179,6 +280,9 @@ export function registerAdminReview(bot: Telegraf): void {
     switch (action) {
       case "analyze":
         await handleAnalyze(participantId, ctx);
+        break;
+      case "analyze_deep":
+        await handleAnalyzeDeep(participantId, ctx);
         break;
       default:
         break;
