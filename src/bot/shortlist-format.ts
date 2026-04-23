@@ -178,6 +178,14 @@ export function formatDirection(
   ].join("\n");
 }
 
+export function isRecommended(d: Direction): boolean {
+  return d.recommended !== false;
+}
+
+export function countRecommended(slots: DirectionSlotLike[]): number {
+  return slots.filter((s) => isRecommended(s.direction)).length;
+}
+
 export function formatHeader(state: ShortlistStateLike, nick: string): string {
   const total = state.slots.length;
   let green = 0;
@@ -191,16 +199,22 @@ export function formatHeader(state: ShortlistStateLike, nick: string): string {
     else if (b === "🚫") rejected += 1;
     else red += 1;
   }
+  const recommended = countRecommended(state.slots);
   const counterParts = [`🟢 ${green}`, `🟡 ${yellow}`, `🔴 ${red}`];
   if (rejected > 0) counterParts.push(`🚫 ${rejected}`);
   const lines: string[] = [
     `<b>📋 Shortlist @${escapeHtml(nick)}</b>`,
     `Направлений: <b>${total}</b> · ${counterParts.join(" · ")} · в запасе ${state.reserve.length}`,
+    `Рекомендуем: <b>${recommended}</b>${rejected > 0 ? ` · отклонено: <b>${rejected}</b>` : ""}`,
   ];
-  if (total < 3) {
-    lines.push("<i>⚠ Меньше 3 направлений — Approve заблокирован.</i>");
+  if (recommended < 3) {
+    lines.push(
+      `<i>⚠ Рекомендуемых меньше 3 (нужно ≥ 3 не-🚫) — Approve заблокирован.</i>`,
+    );
   } else {
-    lines.push("<i>Проверь направления ниже и жми ✓ Одобрить, либо заменяй/удаляй отдельные.</i>");
+    lines.push(
+      "<i>Проверь направления ниже и жми ✓ Одобрить. 🚫 — попадут в финальный анализ как «обсудили и отклонили».</i>",
+    );
   }
   return lines.join("\n");
 }

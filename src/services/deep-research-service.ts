@@ -135,6 +135,9 @@ function detectGaps(
     const d = directions[i];
     const e = baseline[i];
     if (!d || !e) continue;
+    // Rejected directions не идут в финальные рекомендации — Perplexity не нужен.
+    // Они остаются с baseline-данными (или без), для UI/финала этого хватает.
+    if (d.recommended === false) continue;
     if (!hasCoreGap(e)) continue;
     if (ruOnly) continue; // для cis/ru прокси Perplexity не помощник
 

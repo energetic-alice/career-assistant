@@ -148,6 +148,45 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
   // сами (если не совпало — передаём дальше через next()).
   bot.on("text", async (ctx, next) => {
     const text = (ctx.message as { text?: string })?.text ?? "";
+
+    // 1) Reject-reason reply (ForceReply из shortlist/deep review).
+    const reply = (ctx.message as {
+      reply_to_message?: { message_id?: number };
+    } | undefined)?.reply_to_message;
+    if (reply?.message_id != null && ctx.chat?.id != null) {
+      const { takePendingReply } = await import("./pending-reply.js");
+      const pending = takePendingReply(ctx.chat.id, reply.message_id);
+      if (pending) {
+        try {
+          if (pending.kind === "shortlist:reject") {
+            const { applyShortlistRejectReason } = await import("./shortlist-review.js");
+            const ok = await applyShortlistRejectReason(
+              pending.participantId,
+              pending.slotId,
+              text,
+            );
+            if (ok) await ctx.reply("✓ Причина отклонения сохранена.");
+            else await ctx.reply("⚠ Не нашёл слот — возможно был удалён.");
+          } else if (pending.kind === "deep:reject") {
+            const { applyDeepRejectReason } = await import("./deep-review.js");
+            const ok = await applyDeepRejectReason(
+              pending.participantId,
+              pending.slotId,
+              text,
+            );
+            if (ok) await ctx.reply("✓ Причина отклонения сохранена.");
+            else await ctx.reply("⚠ Не нашёл слот — возможно был удалён.");
+          }
+        } catch (err) {
+          console.error("[Bot] reject reason apply failed:", err);
+          await ctx.reply(
+            `⚠ Ошибка сохранения причины: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+        return;
+      }
+    }
+
     const m = /^\/client_([\w\d]+)(@\w+)?\s*$/i.exec(text);
     if (!m) {
       return next();

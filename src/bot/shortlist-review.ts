@@ -25,11 +25,14 @@ import type {
 import type { ClientSummary } from "../schemas/client-summary.js";
 import { normalizeNick } from "../services/intake-mapper.js";
 import {
+  countRecommended,
   escapeHtml,
   formatDirection,
   formatHeader,
+  isRecommended,
   scoreBadge,
 } from "./shortlist-format.js";
+import { registerPendingReply } from "./pending-reply.js";
 
 /**
  * Gate 1 — интерактивный shortlist в Telegram.
@@ -227,11 +230,17 @@ void scoreBadge;
 
 function directionKeyboard(
   participantId: string,
-  slotId: string,
+  slot: DirectionSlot,
 ): InlineKeyboardMarkup {
+  const slotId = slot.slotId;
+  const recommended = isRecommended(slot.direction);
+  const rejectBtn = recommended
+    ? Markup.button.callback("🚫 Отклонить", `shortlist:reject:${participantId}:${slotId}`)
+    : Markup.button.callback("✅ Вернуть", `shortlist:unreject:${participantId}:${slotId}`);
   return Markup.inlineKeyboard([
     [
       Markup.button.callback("🗑 Удалить", `shortlist:del:${participantId}:${slotId}`),
+      rejectBtn,
       Markup.button.callback("↻ Заменить", `shortlist:regen:${participantId}:${slotId}`),
     ],
   ]).reply_markup;
@@ -241,13 +250,14 @@ function headerKeyboard(
   participantId: string,
   state: ShortlistState,
 ): InlineKeyboardMarkup {
-  const canApprove = state.slots.length >= 3;
+  const recommended = countRecommended(state.slots);
+  const canApprove = recommended >= 3;
   const rows: CallbackButton[][] = [];
   rows.push([
     Markup.button.callback(
       canApprove
-        ? `✓ Одобрить → глубокий анализ (${state.slots.length})`
-        : `✓ Одобрить (нужно ≥ 3, сейчас ${state.slots.length})`,
+        ? `✓ Одобрить → глубокий анализ (${recommended})`
+        : `✓ Одобрить (нужно ≥ 3 рекоменд., сейчас ${recommended})`,
       canApprove ? `shortlist:approve:${participantId}` : `shortlist:noop:${participantId}`,
     ),
   ]);
@@ -311,7 +321,7 @@ async function sendDirection(
     {
       parse_mode: "HTML",
       link_preview_options: { is_disabled: true },
-      reply_markup: directionKeyboard(participantId, slot.slotId),
+      reply_markup: directionKeyboard(participantId, slot),
     },
   );
   slot.messageChatId = chatId;
@@ -351,7 +361,7 @@ async function refreshDirectionNumbers(
         {
           parse_mode: "HTML",
           link_preview_options: { is_disabled: true },
-          reply_markup: directionKeyboard(participantId, slot.slotId),
+          reply_markup: directionKeyboard(participantId, slot),
         },
       );
     } catch (err) {
@@ -670,29 +680,40 @@ async function handleApprove(
     await ctx.reply("Shortlist не найден — запусти анализ заново.");
     return;
   }
-  if (shortlist.slots.length < 3) {
-    await ctx.answerCbQuery("Нужно ≥ 3 направлений.");
+  const recommendedSlots = shortlist.slots.filter((s) => isRecommended(s.direction));
+  const rejectedSlots = shortlist.slots.filter((s) => !isRecommended(s.direction));
+  if (recommendedSlots.length < 3) {
+    await ctx.answerCbQuery("Нужно ≥ 3 рекомендуемых (не 🚫).");
     return;
   }
 
-  const directions = shortlist.slots.map((s) => s.direction);
+  const recommendedDirections = recommendedSlots.map((s) => s.direction);
+  const rejectedDirections = rejectedSlots.map((s) => s.direction);
   updatePipelineStage(participantId, "shortlist_approved", {
     [APPROVED_KEY]: {
-      directions,
-      slugs: directions.map((d) => d.roleSlug),
+      directions: recommendedDirections,
+      slugs: recommendedDirections.map((d) => d.roleSlug),
+      rejectedDirections,
+      rejectedSlugs: rejectedDirections.map((d) => d.roleSlug),
       approvedAt: new Date().toISOString(),
     },
   });
 
-  const slugs = directions.map((d) => d.roleSlug).join(", ");
+  const slugs = recommendedDirections.map((d) => d.roleSlug).join(", ");
+  const rejSlugs = rejectedDirections.map((d) => d.roleSlug).join(", ");
   console.log(
-    `[Shortlist] ${participantId}: approved ${directions.length} directions (${slugs})`,
+    `[Shortlist] ${participantId}: approved ${recommendedDirections.length} (${slugs})` +
+      (rejectedDirections.length > 0 ? ` · rejected ${rejectedDirections.length} (${rejSlugs})` : ""),
   );
 
   await ctx.answerCbQuery("Запускаю глубокий анализ…");
   const ackMsg = await ctx.reply(
-    `✅ Shortlist одобрен (${directions.length}: <code>${escapeHtml(slugs)}</code>).\n\n` +
-      `🔬 Запускаю Phase 2 (дозаполнение данных по дырам)…`,
+    `✅ Shortlist одобрен.\n` +
+      `Рекомендованы (${recommendedDirections.length}): <code>${escapeHtml(slugs)}</code>` +
+      (rejectedDirections.length > 0
+        ? `\n🚫 Отклонено (${rejectedDirections.length}): <code>${escapeHtml(rejSlugs)}</code>`
+        : "") +
+      `\n\n🔬 Запускаю Phase 2 (дозаполнение данных по дырам)…`,
     { parse_mode: "HTML" },
   );
 
@@ -700,7 +721,10 @@ async function handleApprove(
     const { startDeepReview } = await import("./deep-review.js");
     const chatId = ctx.chat?.id;
     if (chatId == null) throw new Error("ctx.chat.id missing");
-    await startDeepReview(participantId, chatId, toShortlistResult(shortlist), directions);
+    // В Phase 2 передаём ВСЕ slots (включая rejected) — они нужны для UI и
+    // финального документа; сам enrichment пропустит rejected, не дёргая Perplexity.
+    const allDirections = shortlist.slots.map((s) => s.direction);
+    await startDeepReview(participantId, chatId, toShortlistResult(shortlist), allDirections);
     // Удаляем "запускаю..." после того как deep-review нарисовал свои сообщения
     try {
       await getBot().telegram.deleteMessage(chatId, ackMsg.message_id);
@@ -717,6 +741,108 @@ async function handleApprove(
       { parse_mode: "HTML" },
     );
   }
+}
+
+/**
+ * 🚫 Reject: помечаем direction как `recommended=false` и просим у админа
+ * причину через ForceReply. Сама причина приходит позже в `applyRejectReason`
+ * (см. text-handler в telegram-bot.ts → onShortlistRejectReply).
+ */
+async function handleReject(
+  participantId: string,
+  slotId: string,
+  ctx: Context,
+): Promise<void> {
+  if (!isAdminCtx(ctx)) return;
+  const shortlist = loadShortlist(participantId);
+  if (!shortlist) {
+    await ctx.answerCbQuery("Shortlist не найден.");
+    return;
+  }
+  const idx = findSlotIdx(shortlist, slotId);
+  if (idx < 0) {
+    await ctx.answerCbQuery("Слот пропал.");
+    return;
+  }
+  const slot = shortlist.slots[idx];
+  slot.direction.recommended = false;
+  if (!slot.direction.rejectionReason?.trim()) {
+    slot.direction.rejectionReason = "Отклонено куратором при ревью.";
+  }
+  saveShortlist(participantId, shortlist);
+
+  await refreshDirectionNumbers(participantId, shortlist);
+  await editHeader(participantId, shortlist);
+
+  const chatId = ctx.chat?.id;
+  if (chatId != null) {
+    const promptMsg = await getBot().telegram.sendMessage(
+      chatId,
+      `✏️ Причина отклонения «${escapeHtml(slot.direction.title)}»?\n` +
+        `Ответь на это сообщение коротким текстом (1–2 предложения). Если нужна дефолтная — напиши «-» или просто пропусти.`,
+      {
+        parse_mode: "HTML",
+        reply_markup: { force_reply: true, selective: true },
+      },
+    );
+    registerPendingReply(chatId, promptMsg.message_id, {
+      kind: "shortlist:reject",
+      participantId,
+      slotId,
+    });
+  }
+  await ctx.answerCbQuery("🚫 Отклонено. Введи причину в ответ.");
+}
+
+async function handleUnreject(
+  participantId: string,
+  slotId: string,
+  ctx: Context,
+): Promise<void> {
+  if (!isAdminCtx(ctx)) return;
+  const shortlist = loadShortlist(participantId);
+  if (!shortlist) {
+    await ctx.answerCbQuery("Shortlist не найден.");
+    return;
+  }
+  const idx = findSlotIdx(shortlist, slotId);
+  if (idx < 0) {
+    await ctx.answerCbQuery("Слот пропал.");
+    return;
+  }
+  const slot = shortlist.slots[idx];
+  slot.direction.recommended = true;
+  slot.direction.rejectionReason = undefined;
+  saveShortlist(participantId, shortlist);
+  await refreshDirectionNumbers(participantId, shortlist);
+  await editHeader(participantId, shortlist);
+  await ctx.answerCbQuery("✅ Возвращено в рекомендуемые.");
+}
+
+/**
+ * Применить введённую админом причину reject (из text-handler).
+ * Возвращает true если что-то изменилось.
+ */
+export async function applyShortlistRejectReason(
+  participantId: string,
+  slotId: string,
+  reason: string,
+): Promise<boolean> {
+  const shortlist = loadShortlist(participantId);
+  if (!shortlist) return false;
+  const idx = findSlotIdx(shortlist, slotId);
+  if (idx < 0) return false;
+  const slot = shortlist.slots[idx];
+  const cleaned = reason.trim();
+  // "-" или пустая строка → оставляем дефолтную причину.
+  if (cleaned && cleaned !== "-") {
+    slot.direction.rejectionReason = cleaned.slice(0, 400);
+  }
+  slot.direction.recommended = false;
+  saveShortlist(participantId, shortlist);
+  await refreshDirectionNumbers(participantId, shortlist);
+  await editHeader(participantId, shortlist);
+  return true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -747,6 +873,14 @@ export async function dispatchShortlistCallback(
     case "regen":
       if (!slotOrIdx) return false;
       await handleRegen(participantId, slotOrIdx, ctx);
+      return true;
+    case "reject":
+      if (!slotOrIdx) return false;
+      await handleReject(participantId, slotOrIdx, ctx);
+      return true;
+    case "unreject":
+      if (!slotOrIdx) return false;
+      await handleUnreject(participantId, slotOrIdx, ctx);
       return true;
     case "approve":
       await handleApprove(participantId, ctx);
