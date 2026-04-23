@@ -83,6 +83,15 @@ export function dataSourceBadge(enriched?: EnrichedDirection): string {
   }
 }
 
+export function hasCoreMarketData(enriched?: EnrichedDirection): boolean {
+  if (!enriched) return false;
+  return (
+    enriched.vacancies != null ||
+    enriched.medianSalaryMid != null ||
+    enriched.competitionPer100 != null
+  );
+}
+
 export function formatMarketLine(d: Direction, enriched?: EnrichedDirection): string {
   const parts: string[] = [];
   const badge = dataSourceBadge(enriched);
@@ -109,9 +118,10 @@ export function formatMarketLine(d: Direction, enriched?: EnrichedDirection): st
         parts.push(`тренд ${arrow} ${sign}${pctChange}%`);
       }
     }
-    // Если все 4 поля пустые — пишем явный fallback.
-    if (parts.length === (badge ? 1 : 0)) {
-      parts.push("данных нет");
+    // Если ни vacancies/salary/competition нет — это критичный пробел,
+    // финал без них бесполезен. Явно сигналим вместо неинформативного "[m] AI high".
+    if (!hasCoreMarketData(enriched)) {
+      parts.push("⚠ нет данных рынка — обсудить вручную");
     }
   } else {
     parts.push("рынок: нет данных");

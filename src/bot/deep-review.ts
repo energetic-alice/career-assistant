@@ -21,6 +21,7 @@ import {
   countRecommended,
   escapeHtml,
   formatDirection,
+  hasCoreMarketData,
   isRecommended,
   scoreBadge,
 } from "./shortlist-format.js";
@@ -102,11 +103,19 @@ function formatDeepHeader(state: DeepReviewState, nick: string): string {
     else counts.n += 1;
   }
   const sourceLine = `[m] ${counts.m} · [p] ${counts.p} · [~] ${counts.e} · [?] ${counts.n}`;
+  // Количество direction'ов без core-рыночных данных (vac/sal/comp все null) —
+  // это критичный пробел, в финал такие идти не должны.
+  const noData = state.slots.filter(
+    (s) => isRecommended(s.direction) && !hasCoreMarketData(s.enriched),
+  ).length;
   const lines = [
     `<b>🔬 Глубокий анализ @${escapeHtml(nick)}</b>`,
     `Направлений: <b>${total}</b> · источники: ${sourceLine}`,
     `Рекомендуем: <b>${recommended}</b>${rejected > 0 ? ` · отклонено: <b>${rejected}</b>` : ""}`,
   ];
+  if (noData > 0) {
+    lines.push(`⚠ <b>Без данных рынка: ${noData}</b> — финал по ним бесполезен, проверь вручную.`);
+  }
   if (recommended < 1) {
     lines.push(`<i>⚠ Нет рекомендуемых — Approve заблокирован.</i>`);
   } else {
@@ -279,6 +288,19 @@ export async function startDeepReview(
 ): Promise<DeepReviewState> {
   // Mark stage as generating, чтобы UI было видно что процесс идёт
   updatePipelineStage(participantId, "deep_generating", {});
+
+  if (!process.env.PERPLEXITY_API_KEY) {
+    try {
+      await getBot().telegram.sendMessage(
+        chatId,
+        `⚠ <b>PERPLEXITY_API_KEY не задан</b> — Phase 2 покажет только baseline из market-index.\n` +
+          `Roles без KB-данных останутся с пометкой «нет данных рынка».`,
+        { parse_mode: "HTML" },
+      );
+    } catch {
+      // ignore
+    }
+  }
 
   const t0 = Date.now();
   const result = await runDeepResearch(shortlist, approvedDirections);

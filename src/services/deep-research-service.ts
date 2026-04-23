@@ -357,9 +357,17 @@ interface ValidatedFill {
   droppedFields: string[];
 }
 
-function validateFill(fill: PerplexityFill): ValidatedFill {
+function validateFill(
+  fill: PerplexityFill,
+  rawCitations: string[] = [],
+): ValidatedFill {
   const dropped: string[] = [];
-  const hasCitations = (fill.citations ?? []).length > 0;
+  // Perplexity Sonar часто кладёт URL'ы НЕ внутрь structured JSON-fill,
+  // а в корневое поле `json.citations` ответа. Если внутри fill пусто,
+  // используем raw как fallback — иначе дропнем валидные числа.
+  const fillCites = fill.citations ?? [];
+  const effectiveCitations = fillCites.length > 0 ? fillCites : rawCitations;
+  const hasCitations = effectiveCitations.length > 0;
 
   // Если число дано без citations — drop в null. Анти-фантазия gate.
   let vacancies = fill.vacancies;
@@ -408,7 +416,7 @@ function validateFill(fill: PerplexityFill): ValidatedFill {
     aiRisk,
     trendRatio,
     source,
-    citations: fill.citations ?? [],
+    citations: effectiveCitations,
     reasoning: fill.reasoning,
     droppedFields: dropped,
   };
@@ -492,9 +500,15 @@ export async function enrichGapsForClient(
     return baseline.map((b) => ({ ...b }));
   }
 
-  // Промпт + cache key
+  // Промпт + cache key. CACHE_VERSION ломаем когда меняется логика
+  // парсинга ответа Perplexity (validateFill, и т.п.), чтобы старые
+  // (потенциально пустые) fills не цеплялись.
+  const CACHE_VERSION = "v2-rawcites";
   const prompt = buildBatchPrompt(gaps, baseline, summary);
-  const cacheKey = createHash("sha256").update(prompt).digest("hex").slice(0, 32);
+  const cacheKey = createHash("sha256")
+    .update(`${CACHE_VERSION}|${prompt}`)
+    .digest("hex")
+    .slice(0, 32);
 
   let fills: PerplexityFill[];
   let rawCitations: string[];
@@ -517,18 +531,25 @@ export async function enrichGapsForClient(
     }
   }
 
-  // Validate + merge
+  // Validate + merge. rawCitations передаём как fallback — Perplexity часто
+  // не копирует URL'ы внутрь structured JSON, а оставляет на корне ответа.
   const fillBySlug = new Map<string, ValidatedFill>();
   for (const raw of fills) {
-    const validated = validateFill(raw);
+    const validated = validateFill(raw, rawCitations);
     if (validated.droppedFields.length > 0) {
       console.warn(
-        `[DeepResearch] ${validated.slug}: dropped ${validated.droppedFields.join("/")} (no citations)`,
+        `[DeepResearch] ${validated.slug}: dropped ${validated.droppedFields.join("/")} (no citations even with raw)`,
       );
     }
     // Если для одного slug пришло несколько fills (странно, но возможно) — берём последний.
     fillBySlug.set(validated.slug, validated);
   }
+  console.log(
+    `[DeepResearch] Validated fills: ` +
+    Array.from(fillBySlug.entries())
+      .map(([slug, v]) => `${slug}={vac:${v.vacancies},sal:${v.medianSalaryMid},comp:${v.competitionPer100},cit:${v.citations.length}}`)
+      .join(", "),
+  );
 
   const result = baseline.map((b, i) => {
     const direction = directions[i];
