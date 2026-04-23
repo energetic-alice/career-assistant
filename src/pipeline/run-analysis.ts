@@ -40,6 +40,7 @@ import {
   postValidateDirections,
   type EnrichedDirection,
 } from "../services/direction-enricher.js";
+import { enrichGapsForClient } from "../services/deep-research-service.js";
 import type { Region } from "../schemas/analysis-outputs.js";
 
 const client = new Anthropic();
@@ -611,6 +612,105 @@ export async function regenerateOneDirection(
     `[Regen] Picked "${candidate.title}" (slug=${candidate.roleSlug}, bucket=${candidate.bucket})`,
   );
   return { direction: candidate, enriched: enrichedRow };
+}
+
+// ─── Phase 2 — Deep Research (Gate 2) ────────────────────────────────────────
+
+export interface DeepResearchResult {
+  /**
+   * Те же одобренные direction'ы что пришли на вход (порядок сохранён).
+   * Phase 2 НЕ перегенерирует и НЕ переранжирует — это работа Phase 3.
+   */
+  directions: Direction[];
+  /** EnrichedDirection с дозаполненными через Perplexity дырами. */
+  enriched: EnrichedDirection[];
+  timings: Record<string, number>;
+  /** Сколько направлений реально дёрнули через Perplexity. */
+  perplexityFills: number;
+  resumeText?: string;
+  questionnaireHuman?: string;
+}
+
+/**
+ * Phase 2 — Gate 2: точечное обогащение данных по одобренным после Gate 1 направлениям.
+ *
+ * Архитектура (anti-hallucination):
+ *   - Никакого Claude — только детерминированный merge KB + опциональный Perplexity.
+ *   - Perplexity дёргается ТОЛЬКО когда у direction'а есть дыры (vacancies/aiRisk/median = null)
+ *     И эти дыры объяснимы внешним фактором: off-index slug или экзотический регион
+ *     (latam/asia-pacific/middle-east/global).
+ *   - cis = ru-данные (RU как прокси), для них Perplexity не дёргаем.
+ *   - Один batch Perplexity-запрос на клиента, baseline = всё что уже есть из market-index.
+ *   - Validate-gate: число без citations → drop в null.
+ *
+ * Phase 3 (финальный анализ + позиционирование) — отдельная задача и здесь не делается.
+ */
+export async function runDeepResearch(
+  shortlist: ShortlistResult,
+  approvedDirections: Direction[],
+): Promise<DeepResearchResult> {
+  const timings: Record<string, number> = {};
+  const { clientSummary, resumeText, questionnaireHuman } = shortlist;
+
+  if (!clientSummary) {
+    throw new Error("[DeepResearch] clientSummary is required for Phase 2");
+  }
+  if (approvedDirections.length === 0) {
+    throw new Error("[DeepResearch] approvedDirections is empty");
+  }
+
+  console.log(
+    `[DeepResearch] Starting for ${approvedDirections.length} approved directions: ` +
+    approvedDirections.map((d) => d.roleSlug).join(", "),
+  );
+
+  // Step 1: получаем baseline EnrichedDirection (либо из shortlist.enriched,
+  // либо пересчитываем для approved).
+  let t0 = Date.now();
+  const enrichedMap = new Map<string, EnrichedDirection>();
+  for (const e of shortlist.enriched) {
+    enrichedMap.set(`${e.roleSlug}|${e.bucket ?? "abroad"}`, e);
+  }
+  const baseline: EnrichedDirection[] = [];
+  const missingFromShortlist: Direction[] = [];
+  for (const d of approvedDirections) {
+    const key = `${d.roleSlug}|${d.bucket === "ru" ? "ru" : "abroad"}`;
+    const found = enrichedMap.get(key);
+    if (found) {
+      baseline.push(found);
+    } else {
+      missingFromShortlist.push(d);
+    }
+  }
+  if (missingFromShortlist.length > 0) {
+    const fresh = await enrichDirections(missingFromShortlist, clientSummary);
+    baseline.push(...fresh);
+  }
+  timings["baseline"] = Date.now() - t0;
+
+  // Step 2: дозаполняем дыры через Perplexity (only где нужно)
+  t0 = Date.now();
+  const enriched = await enrichGapsForClient(approvedDirections, baseline, clientSummary);
+  timings["perplexity_enrich"] = Date.now() - t0;
+
+  const perplexityFills = enriched.filter(
+    (e) => e.dataSource === "perplexity" || e.dataSource === "perplexity-estimate",
+  ).length;
+
+  const totalTime = Object.values(timings).reduce((a, b) => a + b, 0);
+  console.log(
+    `[DeepResearch Total] ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s) · ` +
+    `perplexity fills: ${perplexityFills}/${enriched.length}`,
+  );
+
+  return {
+    directions: approvedDirections,
+    enriched,
+    timings,
+    perplexityFills,
+    resumeText,
+    questionnaireHuman,
+  };
 }
 
 /**

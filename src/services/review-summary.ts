@@ -265,7 +265,9 @@ export const STAGE_LABELS: Record<PipelineStage, string> = {
   shortlist_failed: "❌ Предварительный анализ упал",
   shortlist_approved: "🔵 Shortlist одобрен",
   deep_generating: "⚙️ Глубокий анализ…",
+  deep_ready: "🔵 Глубокий анализ готов — ждёт ревью",
   deep_failed: "❌ Глубокий анализ упал",
+  deep_approved: "🔵 Глубокий анализ одобрен",
 };
 
 function pickResumeUrl(rnv: Record<string, string> | undefined): string | undefined {

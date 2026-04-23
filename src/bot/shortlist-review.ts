@@ -689,11 +689,34 @@ async function handleApprove(
     `[Shortlist] ${participantId}: approved ${directions.length} directions (${slugs})`,
   );
 
-  await ctx.reply(
-    `✅ Shortlist одобрен (${directions.length} направлений: <code>${escapeHtml(slugs)}</code>).\n\n` +
-      `Глубокий анализ (Phase 2) будет запущен отдельно — этот шаг ещё в разработке.`,
+  await ctx.answerCbQuery("Запускаю глубокий анализ…");
+  const ackMsg = await ctx.reply(
+    `✅ Shortlist одобрен (${directions.length}: <code>${escapeHtml(slugs)}</code>).\n\n` +
+      `🔬 Запускаю Phase 2 (дозаполнение данных по дырам)…`,
     { parse_mode: "HTML" },
   );
+
+  try {
+    const { startDeepReview } = await import("./deep-review.js");
+    const chatId = ctx.chat?.id;
+    if (chatId == null) throw new Error("ctx.chat.id missing");
+    await startDeepReview(participantId, chatId, toShortlistResult(shortlist), directions);
+    // Удаляем "запускаю..." после того как deep-review нарисовал свои сообщения
+    try {
+      await getBot().telegram.deleteMessage(chatId, ackMsg.message_id);
+    } catch {
+      // ignore
+    }
+  } catch (err) {
+    console.error(`[Shortlist] handleApprove → deepReview failed:`, err);
+    updatePipelineStage(participantId, "deep_failed", {
+      deepError: err instanceof Error ? err.message : String(err),
+    });
+    await ctx.reply(
+      `❌ Глубокий анализ упал: <code>${escapeHtml(String(err))}</code>`,
+      { parse_mode: "HTML" },
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

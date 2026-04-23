@@ -4,6 +4,7 @@ import { Input } from "telegraf";
 import { getAdminChatId, getBot } from "./bot-instance.js";
 import { getPipelineState } from "../pipeline/intake.js";
 import { dispatchShortlistCallback, startShortlist } from "./shortlist-review.js";
+import { dispatchDeepCallback } from "./deep-review.js";
 import {
   formatQuestionnaireForTelegram,
   formatClientCardForTelegram,
@@ -165,6 +166,10 @@ export function registerAdminReview(bot: Telegraf): void {
 
     if (data.startsWith("shortlist:")) {
       const handled = await dispatchShortlistCallback(data, ctx);
+      if (handled) return;
+    }
+    if (data.startsWith("deep:")) {
+      const handled = await dispatchDeepCallback(data, ctx);
       if (handled) return;
     }
 

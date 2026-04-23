@@ -110,6 +110,22 @@ export async function postValidateDirections(
 export type EnrichSource = "market-index" | "off-index" | "missing";
 export type EnrichBucket = "ru" | "abroad";
 
+/**
+ * Источник данных в EnrichedDirection после Phase 2 enrichment.
+ *
+ * - `market-index` — данные из локальной KB (надёжно, наш датасет).
+ * - `perplexity` — заполнено через Perplexity с URL-citations (доверять с проверкой).
+ * - `perplexity-estimate` — Perplexity дал оценку по аналогии (низкая уверенность).
+ * - `none` — данных нет ни в KB, ни Perplexity не помог. Phase 3 разбирается вручную.
+ *
+ * Для Phase 1 enriched (до Phase 2) поле всегда либо `market-index`, либо `none`.
+ */
+export type EnrichDataSource =
+  | "market-index"
+  | "perplexity"
+  | "perplexity-estimate"
+  | "none";
+
 export interface EnrichedDirection {
   /** Index in original `directions` array. */
   index: number;
@@ -133,6 +149,16 @@ export interface EnrichedDirection {
 
   /** Raw market-index entry for downstream use (prompt-03, UI). */
   entry: MarketIndexEntry | null;
+
+  /**
+   * Phase 2: источник данных (market-index по умолчанию, perplexity после
+   * успешного дозаполнения, none если данных нет).
+   */
+  dataSource: EnrichDataSource;
+  /** URL-citations от Perplexity для проверяемости (только если dataSource=perplexity*). */
+  perplexityCitations?: string[];
+  /** Reasoning от Perplexity (только для оценок по аналогии). */
+  perplexityReasoning?: string;
 }
 
 /**
@@ -196,6 +222,14 @@ export async function enrichDirections(
     // ("usa" нормализуем в "abroad" — это он и есть по данным).
     const enrichBucket: EnrichBucket = d.bucket === "ru" ? "ru" : "abroad";
 
+    // dataSource: для baseline (Phase 1) — market-index если есть данные,
+    // иначе none. Phase 2 enrichGapsForClient может пометить perplexity*.
+    const hasAnyValue =
+      stats?.vacancies !== undefined ||
+      stats?.medianSalaryMid !== undefined ||
+      entry?.aiRisk !== undefined;
+    const dataSource: EnrichDataSource = hasAnyValue ? "market-index" : "none";
+
     return {
       index: i,
       title: d.title,
@@ -211,6 +245,7 @@ export async function enrichDirections(
       competitionPer100: stats?.competitionPer100Specialists ?? null,
       trendRatio: stats?.trend?.ratio ?? null,
       entry,
+      dataSource,
     };
   });
 }

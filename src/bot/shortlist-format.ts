@@ -60,11 +60,39 @@ function formatMoney(n: number | null, bucket: Direction["bucket"]): string {
   return `~€${k}k/мес`;
 }
 
+/**
+ * Префикс-бейдж источника данных (Phase 2 enrichment).
+ *   `[m]` — market-index (наша KB, надёжно)
+ *   `[p]` — perplexity (дозаполнено через ИИ-поиск, есть URL-citations)
+ *   `[~]` — perplexity-estimate (оценка по аналогии — низкая уверенность)
+ *   `[?]` — none (данных нет; Phase 3 разберётся)
+ *
+ * Возвращает пустую строку для baseline без явного `dataSource`
+ * (старые состояния до Phase 2) — чтобы не ломать обратную совместимость.
+ */
+export function dataSourceBadge(enriched?: EnrichedDirection): string {
+  if (!enriched) return "";
+  const src = enriched.dataSource;
+  if (!src) return "";
+  switch (src) {
+    case "market-index": return "[m]";
+    case "perplexity": return "[p]";
+    case "perplexity-estimate": return "[~]";
+    case "none": return "[?]";
+    default: return "";
+  }
+}
+
 export function formatMarketLine(d: Direction, enriched?: EnrichedDirection): string {
   const parts: string[] = [];
+  const badge = dataSourceBadge(enriched);
+  if (badge) parts.push(badge);
+
   if (enriched) {
     if (enriched.vacancies != null) parts.push(`${enriched.vacancies} вак`);
-    parts.push(formatMoney(enriched.medianSalaryMid, d.bucket));
+    if (enriched.medianSalaryMid != null) {
+      parts.push(formatMoney(enriched.medianSalaryMid, d.bucket));
+    }
     if (enriched.aiRisk) parts.push(`AI ${enriched.aiRisk}`);
     if (enriched.competitionPer100 != null) {
       const c = enriched.competitionPer100;
@@ -80,6 +108,10 @@ export function formatMarketLine(d: Direction, enriched?: EnrichedDirection): st
         const sign = pctChange > 0 ? "+" : "";
         parts.push(`тренд ${arrow} ${sign}${pctChange}%`);
       }
+    }
+    // Если все 4 поля пустые — пишем явный fallback.
+    if (parts.length === (badge ? 1 : 0)) {
+      parts.push("данных нет");
     }
   } else {
     parts.push("рынок: нет данных");
@@ -118,6 +150,21 @@ export function formatDirection(
   }
   if (d.offIndex) {
     footer.push(`⚠ off-index slug <code>${escapeHtml(d.roleSlug)}</code>`);
+  }
+  // Phase 2: если данные дозаполнены через Perplexity — даём проверяемые
+  // источники в подвале, чтобы можно было ткнуть и убедиться.
+  if (
+    enriched?.dataSource === "perplexity" ||
+    enriched?.dataSource === "perplexity-estimate"
+  ) {
+    if (enriched.perplexityReasoning) {
+      footer.push(`<i>~ ${escapeHtml(enriched.perplexityReasoning.slice(0, 200))}</i>`);
+    }
+    const cites = (enriched.perplexityCitations ?? []).slice(0, 3);
+    if (cites.length > 0) {
+      const lines = cites.map((c) => `  · ${escapeHtml(c)}`).join("\n");
+      footer.push(`<i>источники:</i>\n${lines}`);
+    }
   }
 
   return [
