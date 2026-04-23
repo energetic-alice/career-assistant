@@ -51,6 +51,9 @@ const NEEDS_SALARY = process.env.BACKFILL_NEEDS_SALARY === "1";
 // Новое поле currentGrade (Phase 0 определяет текущий грейд клиента).
 // Триггер: в summary нет ключа `currentGrade` вообще.
 const NEEDS_GRADE = process.env.BACKFILL_NEEDS_GRADE === "1";
+// Новое поле currentSlugs (роли из каталога, на которые клиент может выйти
+// сейчас — для adjacencyComponent в scorer). Триггер: в summary нет ключа.
+const NEEDS_CURRENT_SLUGS = process.env.BACKFILL_NEEDS_CURRENT_SLUGS === "1";
 // FORCE=1 — перегенерировать всех клиентов с rawNamedValues, не обращая
 // внимания на существующие поля в summary.
 const FORCE = process.env.BACKFILL_FORCE === "1";
@@ -181,6 +184,21 @@ async function main(): Promise<void> {
     }
   }
 
+  // Клиенты, у кого summary есть, но нет нового поля `currentSlugs`
+  // (используется scorer.adjacencyComponent для клиентов с многолетним
+  // разнообразным стеком — fullstack+C#+mobile и т.п.).
+  const needsCurrentSlugs: PipelineState[] = [];
+  if (NEEDS_CURRENT_SLUGS) {
+    for (const s of states) {
+      const outs = (s.stageOutputs ?? {}) as Record<string, unknown>;
+      const cs = outs.clientSummary as ClientSummary | undefined;
+      if (!cs || !outs.rawNamedValues) continue;
+      if (!("currentSlugs" in cs)) {
+        needsCurrentSlugs.push(s);
+      }
+    }
+  }
+
   // Клиенты для принудительной перегенерации: все, у кого есть rawNamedValues.
   const forced: PipelineState[] = [];
   if (FORCE) {
@@ -192,7 +210,15 @@ async function main(): Promise<void> {
 
   // Дедуп по participantId, чтобы один и тот же клиент не попал в targets дважды.
   const targetMap = new Map<string, PipelineState>();
-  for (const s of [...missing, ...oversized, ...needsSlugs, ...needsSalary, ...needsGrade, ...forced]) {
+  for (const s of [
+    ...missing,
+    ...oversized,
+    ...needsSlugs,
+    ...needsSalary,
+    ...needsGrade,
+    ...needsCurrentSlugs,
+    ...forced,
+  ]) {
     targetMap.set(s.participantId, s);
   }
   let targets = [...targetMap.values()];
@@ -230,6 +256,7 @@ async function main(): Promise<void> {
       (NEEDS_SLUGS ? ` | Needs slugs: ${needsSlugs.length}` : "") +
       (NEEDS_SALARY ? ` | Needs salary: ${needsSalary.length}` : "") +
       (NEEDS_GRADE ? ` | Needs grade: ${needsGrade.length}` : "") +
+      (NEEDS_CURRENT_SLUGS ? ` | Needs currentSlugs: ${needsCurrentSlugs.length}` : "") +
       (FORCE ? ` | Force-all: ${forced.length}` : "") +
       (NEWEST_FIRST ? ` | newest-first` : "") +
       (ONLY_NICKS ? ` | only-nicks=${ONLY_NICKS.size} (dropped ${onlyNicksFiltered})` : "") +
@@ -348,6 +375,7 @@ async function main(): Promise<void> {
             (summary.currentProfessionMarketEvidence
               ? `                          evidence: ${truncate(summary.currentProfessionMarketEvidence, 160)}\n`
               : "") +
+            `      summary · current-slugs (ready): ${(summary.currentSlugs ?? []).join(", ") || "∅"}\n` +
             `      summary · desired:  ${summary.desiredDirections}  →  slugs: ${desiredSlugs}` +
             (summary.desiredDirectionSlugs?.some((d) => d.offIndex)
               ? "\n" +

@@ -50,12 +50,13 @@ export const candidateProfileSchema = z.object({
   currentBase: z.object({
     currentRole: z.string().describe("Текущая должность"),
     yearsInCurrentRole: z.string().describe("Опыт в текущей профессии"),
-    previousExperience: z
-      .array(z.string())
-      .describe("Ключевой прошлый и смежный опыт"),
-    hardSkills: z.array(z.string()).describe("Технические навыки"),
+    // previousExperience / hardSkills / domainExpertise намеренно убраны:
+    // полный текст резюме и анкеты прокидываются в prompt-02 напрямую
+    // ({{resumeText}}, {{questionnaireHuman}}), нормализованный список
+    // реального опыта живёт в ClientSummary.currentSlugs. Эти три поля
+    // были перефразированной копией одного и того же из резюме и только
+    // раздували профиль Клоду.
     softSkills: z.array(z.string()).describe("Софт-скиллы из контекста"),
-    domainExpertise: z.array(z.string()).describe("Доменная экспертиза"),
     managementExperience: z.string().optional().describe("Управленческий опыт"),
     education: z.string(),
     englishLevel: cefrEnum.describe(
@@ -234,7 +235,10 @@ export const directionSchema = z.object({
     ),
   searchQueries: z
     .array(z.string())
-    .describe("Поисковые запросы для проверки рынка (вакансии, зарплаты, тренды)"),
+    .default([])
+    .describe(
+      "Поисковые запросы для проверки рынка (вакансии, зарплаты, тренды). Optional — если Claude не вернул, падаем на []. Используется в Phase 2 (Perplexity).",
+    ),
   /**
    * true (default) — рекомендуемое направление.
    * false — включено потому что клиент сам его просит (desiredDirectionSlugs /

@@ -42,7 +42,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "python"
   },
   "backend_java": {
     "slug": "backend_java",
@@ -83,7 +84,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "java"
   },
   "backend_go": {
     "slug": "backend_go",
@@ -125,7 +127,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "go"
   },
   "backend_nodejs": {
     "slug": "backend_nodejs",
@@ -165,7 +168,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "js"
   },
   "backend_net": {
     "slug": "backend_net",
@@ -205,7 +209,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "dotnet"
   },
   "backend_php": {
     "slug": "backend_php",
@@ -244,7 +249,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "php"
   },
   "backend_ruby": {
     "slug": "backend_ruby",
@@ -283,7 +289,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "ruby"
   },
   "backend_rust": {
     "slug": "backend_rust",
@@ -321,7 +328,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "rust"
   },
   "backend_cplusplus": {
     "slug": "backend_cplusplus",
@@ -362,7 +370,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "cpp"
   },
   "frontend_react": {
     "slug": "frontend_react",
@@ -403,7 +412,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "high"
+    "aiRisk": "high",
+    "stackFamily": "js"
   },
   "frontend_vue": {
     "slug": "frontend_vue",
@@ -442,7 +452,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "high"
+    "aiRisk": "high",
+    "stackFamily": "js"
   },
   "frontend_angular": {
     "slug": "frontend_angular",
@@ -480,7 +491,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "high"
+    "aiRisk": "high",
+    "stackFamily": "js"
   },
   "fullstack": {
     "slug": "fullstack",
@@ -517,7 +529,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "js"
   },
   "mobileapp_swift": {
     "slug": "mobileapp_swift",
@@ -556,7 +569,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "swift"
   },
   "mobileapp_kotlin": {
     "slug": "mobileapp_kotlin",
@@ -595,7 +609,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "kotlin"
   },
   "mobileapp_flutter": {
     "slug": "mobileapp_flutter",
@@ -633,7 +648,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "dart"
   },
   "mobileapp_react_native": {
     "slug": "mobileapp_react_native",
@@ -672,7 +688,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "js"
   },
   "devops": {
     "slug": "devops",
@@ -1388,7 +1405,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "1c"
   },
   "gamedev_unity": {
     "slug": "gamedev_unity",
@@ -1424,7 +1442,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "unity_csharp"
   },
   "web3_developer": {
     "slug": "web3_developer",
@@ -1460,7 +1479,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "stackFamily": "solidity"
   },
   "system_admin": {
     "slug": "system_admin",

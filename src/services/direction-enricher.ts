@@ -2,7 +2,6 @@ import { loadMarketIndex } from "./role-scorer.js";
 import type { Direction } from "../schemas/analysis-outputs.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
 import type { MarketIndexEntry, RegionStats } from "../schemas/market-index.js";
-import { computeMarketBuckets } from "./market-buckets.js";
 import { KNOWN_ROLES, type KnownRoleSlug } from "./known-roles.js";
 
 /**
@@ -136,23 +135,26 @@ export interface EnrichedDirection {
   entry: MarketIndexEntry | null;
 }
 
-function pickBucket(
-  summary: ClientSummary,
-): EnrichBucket | null {
-  const buckets = computeMarketBuckets(summary);
-  if (buckets.ru && buckets.abroad) {
-    // Prefer ru when both available (client usually skews to home market).
-    return "ru";
-  }
-  if (buckets.ru) return "ru";
-  if (buckets.abroad) return "abroad";
-  return null;
-}
-
-function bucketStats(entry: MarketIndexEntry, bucket: EnrichBucket): RegionStats | null {
+/**
+ * Маппинг bucket'а КОНКРЕТНОГО направления (из Direction.bucket, его
+ * поставил Claude в Phase 1) на bucket, которым мы тянем stats из
+ * market-index: "usa" → "abroad" (USA-коэффициент ×1.5 применяется
+ * отдельно в scorer-е). "ru" / "abroad" — 1-к-1.
+ *
+ * ВАЖНО: раньше был единый `pickBucket(summary)` для ВСЕГО клиента
+ * (prefer "ru"), из-за чего у Алисы (access=[ru,eu,uk], target=[eu,uk])
+ * все abroad-направления Claude'а обогащались RU-данными: Full-Stack
+ * показывал vacancies=280 (RU) и medianSalary=270000 (RUB/мес как "€270k"),
+ * вместо UK-цифр 876/£70k. Теперь enrichment идёт per-direction.
+ */
+function bucketStats(
+  entry: MarketIndexEntry,
+  bucket: Direction["bucket"],
+): RegionStats | null {
   if (bucket === "ru") return entry.ru ?? null;
-  // abroad и usa в enrichment идут через UK/EU-статистику; для USA
-  // зарплатный коэффициент ×1.5 применяется в scorer'е отдельно.
+  // abroad и usa — UK/EU/US-статистика как proxy. USA-адъюстмент ×1.5
+  // применяется в scorer-е (см. `roleSalaryForClient`), enricher здесь
+  // зовётся для UI-цифр и делает только прямой lookup.
   return entry.uk ?? entry.eu ?? entry.us ?? null;
 }
 
@@ -164,11 +166,10 @@ function bucketStats(entry: MarketIndexEntry, bucket: EnrichBucket): RegionStats
  */
 export async function enrichDirections(
   directions: Direction[],
-  summary: ClientSummary,
+  _summary: ClientSummary,
 ): Promise<EnrichedDirection[]> {
   const index = await loadMarketIndex();
   const knownSet: Set<string> = new Set(KNOWN_ROLES);
-  const bucket = pickBucket(summary);
 
   return directions.map((d, i) => {
     const slug = d.roleSlug?.trim() ?? "";
@@ -185,7 +186,15 @@ export async function enrichDirections(
       source = "missing";
     }
 
-    const stats = entry && bucket ? bucketStats(entry, bucket) : null;
+    // Per-direction bucket: Claude в Phase 1 сам расставляет "ru"|"abroad"|"usa"
+    // для каждой роли. Соответствие stats-источнику: ru→entry.ru; abroad/usa →
+    // entry.uk (fallback на eu/us). Нельзя выбрать единый bucket для клиента —
+    // у мульти-рынка клиента (Алиса: ru+eu+uk) направления должны показывать
+    // СВОЮ рыночную цифру, а не RU-подмену.
+    const stats = entry ? bucketStats(entry, d.bucket) : null;
+    // Для отчётности в EnrichedDirection.bucket сохраняем enrichment-bucket
+    // ("usa" нормализуем в "abroad" — это он и есть по данным).
+    const enrichBucket: EnrichBucket = d.bucket === "ru" ? "ru" : "abroad";
 
     return {
       index: i,
@@ -195,7 +204,7 @@ export async function enrichDirections(
       offIndex,
       marketEvidence: d.marketEvidence,
       source,
-      bucket,
+      bucket: enrichBucket,
       vacancies: stats?.vacancies ?? null,
       medianSalaryMid: stats?.medianSalaryMid ?? null,
       aiRisk: entry?.aiRisk ?? null,

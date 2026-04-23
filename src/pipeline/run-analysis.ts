@@ -17,6 +17,7 @@ import {
   loadPrompt03,
   loadPrompt04,
   inferRelevantDomains,
+  renderQuestionnaireForPrompt,
 } from "./prompt-loader.js";
 import { clientSummarySchema, type ClientSummary } from "../schemas/client-summary.js";
 import { buildReviewSummary, formatReviewForTelegram } from "../services/review-summary.js";
@@ -109,6 +110,14 @@ export interface AnalysisPipelineInput {
    * without scorer hints.
    */
   clientSummary?: ClientSummary;
+  /**
+   * Сырой snapshot анкеты из Google Form ({вопрос-заголовок → ответ}).
+   * Прокидывается в Phase 1 prompt-02 как человекочитаемый первоисточник
+   * (через `renderQuestionnaireForPrompt`). `questionnaire` выше —
+   * JSON-дамп, структурированный для Phase 1 profile extraction; а
+   * `rawNamedValues` сохраняет оригинальные формулировки клиента.
+   */
+  rawNamedValues?: Record<string, string>;
 }
 
 export interface Phase1Result {
@@ -138,6 +147,10 @@ export interface ShortlistResult {
   directions: DirectionsOutput;
   enriched: EnrichedDirection[];
   timings: Record<string, number>;
+  /** Полный текст резюме (первоисточник для Phase 1 промпта и regen). */
+  resumeText?: string;
+  /** Человекочитаемая анкета (Q→A), первоисточник для Phase 1 и regen. */
+  questionnaireHuman?: string;
 }
 
 export interface Phase4Result {
@@ -232,13 +245,11 @@ function normalizeCitizenships(summary: ClientSummary): void {
 let _knownSlugs: Set<string> | null = null;
 async function getKnownSlugs(): Promise<Set<string>> {
   if (_knownSlugs) return _knownSlugs;
-  const { readFile } = await import("node:fs/promises");
-  const { join, dirname } = await import("node:path");
-  const { fileURLToPath } = await import("node:url");
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-  const indexPath = join(__dirname, "..", "..", "data", "market-index.json");
-  const content = await readFile(indexPath, "utf-8");
-  const parsed = JSON.parse(content) as Record<string, unknown>;
+  // Используем общий multi-path loader, чтобы не плодить одну и ту же
+  // логику разрешения путей (на проде встречались ENOENT из-за разной
+  // структуры dist vs src при запуске).
+  const { loadMarketIndex } = await import("../services/role-scorer.js");
+  const parsed = await loadMarketIndex();
   _knownSlugs = new Set(Object.keys(parsed));
   return _knownSlugs;
 }
@@ -335,6 +346,32 @@ export async function sanitizeRoleSlugs(summary: ClientSummary): Promise<ClientS
     }
   }
 
+  // Дедуп: нет смысла дублировать в desiredDirectionSlugs то, что уже
+  // в currentSlugs — scorer в любом случае проскорит все currentSlugs
+  // и включит их в `guaranteed`. Если клиент явно написал «хочу остаться
+  // в X», то X должен быть в currentSlugs, и повторять его в desired
+  // не нужно (в промпте 00 это тоже явно указано, но подстраховка на
+  // случай, если Claude всё же продублирует).
+  if (
+    out.currentSlugs &&
+    out.currentSlugs.length > 0 &&
+    out.desiredDirectionSlugs &&
+    out.desiredDirectionSlugs.length > 0
+  ) {
+    const curSet = new Set(out.currentSlugs);
+    const before = out.desiredDirectionSlugs.length;
+    out.desiredDirectionSlugs = out.desiredDirectionSlugs.filter(
+      (d) => !curSet.has(d.slug),
+    );
+    const removed = before - out.desiredDirectionSlugs.length;
+    if (removed > 0) {
+      console.log(
+        `[Phase 0] dedup: убрал ${removed} desiredDirectionSlugs уже входящих в currentSlugs ` +
+          `(${out.currentSlugs.join(", ")})`,
+      );
+    }
+  }
+
   return out;
 }
 
@@ -382,32 +419,38 @@ export async function runShortlist(
     `[Shortlist/Step 1] PhysRU=${profile.barriers.isPhysicallyInRU} PhysEU=${profile.barriers.isPhysicallyInEU} RUwp=${profile.barriers.hasRuWorkPermit} EUwp=${profile.barriers.hasEUWorkPermit}`,
   );
 
+  // Для Phase 1 нам достаточно scorer top-20: в нём реальные цифры из
+  // market-index (vac / медиана / конкуренция / тренд) по топ-20 ролей под
+  // клиента. Матрица конкуренции из competition-eu.md и compact market
+  // summary (buildMarketSummary) — это те же числа, только для всех 40+ ролей
+  // и без учёта релевантности. Оставляем только competition-ru для RU-таргета
+  // как текстовый контекст по hh.ru-специфике.
   console.log("[Shortlist/Step 0] Pre-loading market overview...");
   t0 = Date.now();
   let marketOverview: string;
   try {
-    const [kbOverview, scrapedSummary] = await Promise.all([
-      loadMarketOverview(regions),
-      buildFullMarketSummary(profile),
-    ]);
-    marketOverview = kbOverview + "\n\n---\n\n" + scrapedSummary.markdown;
+    marketOverview = await loadMarketOverview(regions);
     timings["step0_preload"] = Date.now() - t0;
     console.log(
-      `[Shortlist/Step 0] Done in ${timings["step0_preload"]}ms (${marketOverview.length} chars, ${scrapedSummary.roles.length} roles in table)`,
+      `[Shortlist/Step 0] Done in ${timings["step0_preload"]}ms (${marketOverview.length} chars)`,
     );
   } catch (err) {
     timings["step0_preload"] = Date.now() - t0;
-    console.error("[Shortlist/Step 0] Pre-load failed, continuing without market data:", err);
-    marketOverview = "Рыночные данные не загружены. Используй свои знания о рынке IT 2026.";
+    console.error("[Shortlist/Step 0] Pre-load failed, continuing without market overview:", err);
+    marketOverview = "_(рыночный контекст не загружен — используй scorer top-20 ниже)_";
   }
 
+  const showRu = regions.some((r) => r === "ru" || r === "cis");
+  const showAbroad = regions.some(
+    (r) => r === "eu" || r === "uk" || r === "us" || r === "global",
+  );
   let scorerTop20: string | undefined;
   if (input.clientSummary) {
     try {
       const rank = await rankRoles(input.clientSummary, 20);
-      scorerTop20 = formatScorerTop20ForPrompt(rank, 20);
+      scorerTop20 = formatScorerTop20ForPrompt(rank, 20, { showRu, showAbroad });
       console.log(
-        `[Shortlist/Step 1c] Scorer top-20 ready (ru=${rank.ru.length}, abroad=${rank.abroad.length})`,
+        `[Shortlist/Step 1c] Scorer top-20 ready (ru=${rank.ru.length}, abroad=${rank.abroad.length}, showRu=${showRu}, showAbroad=${showAbroad})`,
       );
     } catch (err) {
       console.error("[Shortlist/Step 1c] rankRoles failed, continuing without scorerTop20:", err);
@@ -418,10 +461,13 @@ export async function runShortlist(
 
   console.log("[Shortlist/Step 2] Generating directions (market + scorer top-20)...");
   t0 = Date.now();
+  const questionnaireHuman = renderQuestionnaireForPrompt(input.rawNamedValues);
   const prompt02 = await loadPrompt02({
     candidateProfile: JSON.stringify(profile, null, 2),
     marketOverview,
     scorerTop20,
+    resumeText: input.resumeText,
+    questionnaireHuman,
   });
   const directions = await callClaudeStructured(
     prompt02,
@@ -468,6 +514,8 @@ export async function runShortlist(
     directions,
     enriched,
     timings,
+    resumeText: input.resumeText,
+    questionnaireHuman,
   };
 }
 
@@ -495,6 +543,8 @@ export async function regenerateOneDirection(
     candidateProfile: JSON.stringify(shortlist.profile, null, 2),
     marketOverview: shortlist.marketOverview,
     scorerTop20: shortlist.scorerTop20,
+    resumeText: shortlist.resumeText,
+    questionnaireHuman: shortlist.questionnaireHuman,
   });
   const fresh = await callClaudeStructured(
     prompt02,

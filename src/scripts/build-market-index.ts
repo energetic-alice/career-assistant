@@ -45,6 +45,13 @@ interface RoleDef {
   slug: string;
   displayTitle: string;
   category: string;
+  /**
+   * Технологический стек (см. комментарий в `market-index.ts`). Задавать
+   * только для ролей, где язык/стек критичен (backend_*, frontend_*,
+   * fullstack, mobile_*, web3/gamedev/1c). Для infra/data/ML/management
+   * оставлять undefined — там работает category-bridge.
+   */
+  stackFamily?: string;
   /** habr.com/career spec_aliases[] value (for future live fetches) */
   habrSpec: string | null;
   /** habr.com/career skills[] filter (optional) */
@@ -98,6 +105,7 @@ const REGISTRY: RoleDef[] = [
   // ── Backend ────────────────────────────────────────────────────────────
   {
     slug: "backend_python", displayTitle: "Backend Developer (Python)", category: "backend",
+    stackFamily: "python",
     habrSpec: "backend", habrSkill: "python",
     extraAliases: ["Python developer", "Python engineer", "Django разработчик", "FastAPI разработчик", "Flask разработчик", "Python backend"],
     // UK: sum Python Dev + Django + FastAPI + Flask + Senior/Lead/Full-Stack →
@@ -110,42 +118,49 @@ const REGISTRY: RoleDef[] = [
   },
   {
     slug: "backend_java", displayTitle: "Backend Developer (Java)", category: "backend",
+    stackFamily: "java",
     habrSpec: "backend", habrSkill: "java",
     extraAliases: ["Java developer", "Java engineer", "Spring разработчик", "Java backend"],
     aiRisk: "medium",
   },
   {
     slug: "backend_go", displayTitle: "Backend Developer (Go)", category: "backend",
+    stackFamily: "go",
     habrSpec: "backend", habrSkill: "golang",
     extraAliases: ["Go developer", "Go engineer", "Golang developer", "Golang engineer", "Go backend"],
     aiRisk: "medium",
   },
   {
     slug: "backend_nodejs", displayTitle: "Backend Developer (Node.js)", category: "backend",
+    stackFamily: "js",
     habrSpec: "backend", habrSkill: "node-js",
     extraAliases: ["Node developer", "Node.js developer", "NestJS разработчик", "Node backend"],
     aiRisk: "medium",
   },
   {
     slug: "backend_net", displayTitle: "Backend Developer (C# / .NET)", category: "backend",
+    stackFamily: "dotnet",
     habrSpec: "backend", habrSkill: "net",
     extraAliases: ["C# developer", ".NET developer", "C# engineer", "ASP.NET разработчик"],
     aiRisk: "medium",
   },
   {
     slug: "backend_php", displayTitle: "Backend Developer (PHP)", category: "backend",
+    stackFamily: "php",
     habrSpec: "backend", habrSkill: "php",
     extraAliases: ["PHP developer", "PHP engineer", "Laravel разработчик", "Symfony разработчик", "Bitrix разработчик"],
     aiRisk: "medium",
   },
   {
     slug: "backend_ruby", displayTitle: "Backend Developer (Ruby)", category: "backend",
+    stackFamily: "ruby",
     habrSpec: "backend", habrSkill: "ruby",
     extraAliases: ["Ruby developer", "Ruby on Rails", "Rails разработчик", "RoR developer"],
     aiRisk: "medium",
   },
   {
     slug: "backend_rust", displayTitle: "Backend Developer (Rust)", category: "backend",
+    stackFamily: "rust",
     habrSpec: "backend", habrSkill: "rust",
     extraAliases: ["Rust developer", "Rust engineer", "Rust backend"],
     aiRisk: "medium",
@@ -154,6 +169,7 @@ const REGISTRY: RoleDef[] = [
     // На itjobswatch C и C++ лежат в общем пуле embedded/systems-разработчиков,
     // поэтому для UK берём общий запрос и считаем их одной ролью.
     slug: "backend_cplusplus", displayTitle: "Backend Developer (C / C++)", category: "backend",
+    stackFamily: "cpp",
     habrSpec: "backend", habrSkill: "cplusplus",
     extraAliases: [
       "C++ developer", "C++ engineer", "C developer", "C engineer",
@@ -165,18 +181,21 @@ const REGISTRY: RoleDef[] = [
   // ── Frontend ───────────────────────────────────────────────────────────
   {
     slug: "frontend_react", displayTitle: "Frontend Developer (React)", category: "frontend",
+    stackFamily: "js",
     habrSpec: "frontend", habrSkill: "react-js",
     extraAliases: ["React developer", "React engineer", "Фронтенд React", "React.js разработчик", "React frontend"],
     aiRisk: "high",
   },
   {
     slug: "frontend_vue", displayTitle: "Frontend Developer (Vue)", category: "frontend",
+    stackFamily: "js",
     habrSpec: "frontend", habrSkill: "vue-js",
     extraAliases: ["Vue developer", "Vue.js developer", "Nuxt разработчик", "Vue frontend"],
     aiRisk: "high",
   },
   {
     slug: "frontend_angular", displayTitle: "Frontend Developer (Angular)", category: "frontend",
+    stackFamily: "js",
     habrSpec: "frontend", habrSkill: "angular",
     extraAliases: ["Angular developer", "Angular engineer", "Angular frontend"],
     aiRisk: "high",
@@ -185,6 +204,7 @@ const REGISTRY: RoleDef[] = [
   // ── Fullstack ──────────────────────────────────────────────────────────
   {
     slug: "fullstack", displayTitle: "Full-stack Developer", category: "fullstack",
+    stackFamily: "js",
     habrSpec: "fullstack",
     extraAliases: ["Full stack", "Full-stack", "Fullstack JS", "MERN разработчик"],
     aiRisk: "medium",
@@ -193,24 +213,28 @@ const REGISTRY: RoleDef[] = [
   // ── Mobile ─────────────────────────────────────────────────────────────
   {
     slug: "mobileapp_swift", displayTitle: "iOS Developer (Swift)", category: "mobile",
+    stackFamily: "swift",
     habrSpec: "mobileapp_developer", habrSkill: "swift",
     extraAliases: ["iOS developer", "Swift developer", "iOS engineer", "iOS разработчик"],
     aiRisk: "medium",
   },
   {
     slug: "mobileapp_kotlin", displayTitle: "Android Developer (Kotlin)", category: "mobile",
+    stackFamily: "kotlin",
     habrSpec: "mobileapp_developer", habrSkill: "kotlin",
     extraAliases: ["Android developer", "Kotlin developer", "Android engineer", "Android разработчик"],
     aiRisk: "medium",
   },
   {
     slug: "mobileapp_flutter", displayTitle: "Flutter Developer", category: "mobile",
+    stackFamily: "dart",
     habrSpec: "mobileapp_developer", habrSkill: "flutter",
     extraAliases: ["Flutter developer", "Dart developer", "Cross-platform Flutter"],
     aiRisk: "medium",
   },
   {
     slug: "mobileapp_react_native", displayTitle: "React Native Developer", category: "mobile",
+    stackFamily: "js",
     habrSpec: "mobileapp_developer", habrSkill: "react-native",
     extraAliases: ["React Native developer", "RN developer", "Cross-platform RN"],
     aiRisk: "medium",
@@ -366,12 +390,14 @@ const REGISTRY: RoleDef[] = [
   // ── Other ──────────────────────────────────────────────────────────────
   {
     slug: "1c_developer", displayTitle: "1C Developer", category: "other",
+    stackFamily: "1c",
     habrSpec: "1c_developer",
     extraAliases: ["1С разработчик", "1С программист", "Разработчик 1С", "1С консультант"],
     aiRisk: "medium",
   },
   {
     slug: "gamedev_unity", displayTitle: "Unity GameDev Developer", category: "gamedev",
+    stackFamily: "unity_csharp",
     habrSpec: "gamedev", habrSkill: "unity3d",
     extraAliases: ["Unity разработчик", "Game developer", "Геймдев разработчик", "Unity engineer"],
     aiRisk: "medium",
@@ -381,6 +407,7 @@ const REGISTRY: RoleDef[] = [
     // разработчики (Solidity / Rust / TypeScript) — берём "backend" как прокси,
     // probe-ru-market.ts сохранит запись с пометкой "proxy" в ru_web3_developer.md.
     slug: "web3_developer", displayTitle: "Web3 / Blockchain Developer", category: "other",
+    stackFamily: "solidity",
     habrSpec: "backend",
     extraAliases: ["Web3 developer", "Blockchain разработчик", "Solidity разработчик", "Smart Contract Developer"],
     aiRisk: "medium",
@@ -702,6 +729,7 @@ async function main(): Promise<void> {
       slug: def.slug,
       displayTitle: def.displayTitle,
       category: def.category,
+      ...(def.stackFamily ? { stackFamily: def.stackFamily } : {}),
       aliases: collectAliases(def),
       ru: withCompetition(await buildRu(def), ruRatio),
       uk: withCompetition(await buildUk(def), euRatio),

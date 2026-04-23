@@ -282,7 +282,11 @@ export function registerIntakeRoutes(app: FastifyInstance) {
   );
 }
 
-function buildPipelineInput(analysisInput: AnalysisInput, resumeFileUrl?: string): AnalysisPipelineInput {
+function buildPipelineInput(
+  analysisInput: AnalysisInput,
+  resumeFileUrl?: string,
+  rawNamedValues?: Record<string, string>,
+): AnalysisPipelineInput {
   const { resumeText, linkedinUrl, linkedinSSI, ...questionnaireFields } = analysisInput;
   return {
     questionnaire: JSON.stringify(questionnaireFields, null, 2),
@@ -290,6 +294,7 @@ function buildPipelineInput(analysisInput: AnalysisInput, resumeFileUrl?: string
     linkedinUrl: linkedinUrl || "",
     linkedinSSI: linkedinSSI || "",
     resumeUrl: resumeFileUrl,
+    ...(rawNamedValues ? { rawNamedValues } : {}),
   };
 }
 
@@ -374,7 +379,11 @@ async function processResumeAndRunAnalysis(
   }
 
   // Готовим (и сохраняем) input для последующего Phase 1, но НЕ запускаем.
-  const pipelineInput = buildPipelineInput(analysisInput, resumeFileUrl);
+  const pipelineInput = buildPipelineInput(
+    analysisInput,
+    resumeFileUrl,
+    rawNamedValues,
+  );
   outputs.pipelineInput = pipelineInput;
   state.stage = "awaiting_analysis";
   state.updatedAt = new Date().toISOString();

@@ -1051,25 +1051,42 @@ export async function ensureRoleReport(role: string, regionId: string): Promise<
 // Load market overview for regions (Step 0)
 // ---------------------------------------------------------------------------
 
+/**
+ * Рыночный контекст для Phase 1 (prompt-02). Раньше грузил 5 KB-файлов
+ * всегда (competition-eu + competition-ru + salaries-eu + salaries-ru +
+ * macro-trends), независимо от того, куда клиент целится → EU-кандидату
+ * прилетал сверху 200-строчный справочник российских зарплат в рублях, плюс
+ * макро-тренды и дублирующие зарплатные таблицы, которые всё равно есть в
+ * scorer top-20 с точными числами из market-index.
+ *
+ * Сейчас оставляем МИНИМУМ:
+ *   - для RU/CIS клиентов → `competition-ru.md`
+ *   - для EU/UK/US/Global → `competition-eu.md`
+ *   - если клиент целится и туда и туда — оба файла
+ * Зарплаты и макро-тренды — не подгружаем, они дублируют scorer top-20.
+ */
 export async function loadMarketOverview(regions: string[]): Promise<string> {
-  const parts: string[] = [];
+  const needRu = regions.some((r) => r === "ru" || r === "cis");
+  const needIntl = regions.some(
+    (r) => r === "eu" || r === "uk" || r === "us" || r === "global",
+  );
 
-  const kbFiles = [
-    "competition-eu", "competition-ru",
-    "salaries-eu", "salaries-ru",
-    "macro-trends",
-  ];
-  for (const name of kbFiles) {
+  const files: string[] = [];
+  if (needIntl) files.push("competition-eu");
+  if (needRu) files.push("competition-ru");
+
+  const parts: string[] = [];
+  for (const name of files) {
     try {
       const content = await readFile(join(KB_DIR, `${name}.md`), "utf-8");
       parts.push(content);
     } catch {
-      // file may not exist for all regions
+      // KB-файл опционален — если нет, идём дальше.
     }
   }
 
   if (parts.length === 0) {
-    return "Рыночные данные не загружены. Используй свои знания о рынке IT 2026.";
+    return "_(рыночный KB не загружен — используй scorer top-20 и compact market summary ниже)_";
   }
 
   return parts.join("\n\n---\n\n");

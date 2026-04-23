@@ -34,7 +34,25 @@ import {
  */
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DEFAULT_INDEX_PATH = join(__dirname, "..", "..", "data", "market-index.json");
+
+/**
+ * market-index.json — source-of-truth каталог ролей. Живёт в `app/data/`.
+ * В рантайме пытаемся найти его по нескольким путям, чтобы код работал
+ * и из `src/` (tsx/probe), и из скомпилированного `dist/` (prod).
+ *
+ * История: в проде мы уже ловили ENOENT, когда Render запускал `node dist/`
+ * и `__dirname=app/dist/services`. Тогда `../../data = app/data` попадает,
+ * но если структура проекта монтируется иначе (например только dist/
+ * попадает на рантайм без `data/` рядом), нужно вторым путём вытянуть
+ * файл из `dist/data/` (copy делается в `npm run build`).
+ */
+const INDEX_CANDIDATES = [
+  join(__dirname, "..", "..", "data", "market-index.json"),
+  join(__dirname, "..", "data", "market-index.json"),
+  join(process.cwd(), "data", "market-index.json"),
+  join(process.cwd(), "app", "data", "market-index.json"),
+  join(process.cwd(), "dist", "data", "market-index.json"),
+];
 
 // Fixed ad-hoc FX rate (doc-only; updated once per quarter with competition KB).
 export const GBP_TO_EUR = 1.17;
@@ -43,9 +61,19 @@ let cachedIndex: MarketIndex | null = null;
 
 export async function loadMarketIndex(): Promise<MarketIndex> {
   if (cachedIndex) return cachedIndex;
-  const content = await readFile(DEFAULT_INDEX_PATH, "utf-8");
-  cachedIndex = JSON.parse(content) as MarketIndex;
-  return cachedIndex;
+  const errors: string[] = [];
+  for (const path of INDEX_CANDIDATES) {
+    try {
+      const content = await readFile(path, "utf-8");
+      cachedIndex = JSON.parse(content) as MarketIndex;
+      return cachedIndex;
+    } catch (err) {
+      errors.push(`${path}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  throw new Error(
+    `market-index.json not found. Tried paths:\n  - ${errors.join("\n  - ")}`,
+  );
 }
 
 export function _resetScorerCache(): void {
@@ -120,9 +148,37 @@ const WEIGHTS = {
 // Component scorers (0..100)
 // ---------------------------------------------------------------------------
 
+/**
+ * Оценка объёма рынка по числу вакансий (0..100).
+ *
+ * Шкала step-функцией, а не гладким log10: с гладким `15·log10(v)` разница
+ * между 74 и 200 вакансиями была ≈+5 баллов, и роли с откровенно тонким
+ * рынком (RN=74 вак, swift=21 вак) проходили в top-10 из-за бустов по
+ * adjacency/salary. Штраф за <100 вакансий теперь жёсткий: такая роль
+ * ОБЯЗАНА проваливаться по market-компоненту, даже если по всем остальным
+ * метрикам она безупречна. Это нормально, потому что market×1.0 = большой
+ * вес в интегральной формуле.
+ *
+ * Точки:
+ *   - v<20  →  0  (рынка нет)
+ *   - v<50  → 10  (мёртвая ниша)
+ *   - v<100 → 25  (слабо, на грани отсечки)
+ *   - v<200 → 45  (узкий рынок)
+ *   - v<500 → 65  (нормально)
+ *   - v<1000→ 80  (хорошо)
+ *   - v<2000→ 90  (много)
+ *   - v≥2000→100  (массовый рынок)
+ */
 export function marketComponent(vacancies: number | null | undefined): number {
   if (!vacancies || vacancies <= 0) return 0;
-  return Math.round(Math.min(100, 15 * Math.log10(vacancies + 1)));
+  if (vacancies < 20) return 0;
+  if (vacancies < 50) return 10;
+  if (vacancies < 100) return 25;
+  if (vacancies < 200) return 45;
+  if (vacancies < 500) return 65;
+  if (vacancies < 1000) return 80;
+  if (vacancies < 2000) return 90;
+  return 100;
 }
 
 export function competitionComponent(ratio: number | null | undefined): number | null {
@@ -198,16 +254,61 @@ export function aiRiskComponent(risk: MarketIndexEntry["aiRisk"]): number {
 // script (PRIOR_BRIDGE). Re-run the script whenever the matrix or priors change.
 import { CATEGORY_BRIDGE } from "../data/category-bridge.generated.js";
 
+/**
+ * Категории, где fullstack ↔ frontend/backend с совпадающим stackFamily
+ * считаются «той же ролью» (adj=100). Напр. fullstack-JS → backend_nodejs
+ * или frontend_react — это сужение/расширение текущего стека, а не переход.
+ */
+const DEV_PAIR_CATEGORIES: ReadonlySet<string> = new Set([
+  "fullstack",
+  "frontend",
+  "backend",
+]);
+
 export function adjacencyComponent(
   role: MarketIndexEntry,
   currentSlug: string | null | undefined,
   desiredSlugs: Set<string>,
   currentEntry: MarketIndexEntry | null,
+  currentSlugs?: Set<string>,
 ): number {
   if (currentSlug && role.slug === currentSlug) return 100;
+  // Любой slug, на который клиент может выйти СЕЙЧАС по опыту (резюме/анкета)
+  // — это по сути «та же роль» с точки зрения близости. Например,
+  // fullstack-JS клиент с коммерческим C#/.NET в резюме должен получить
+  // adj=100 и на `backend_nodejs`, и на `backend_csharp`, а не 70 через
+  // stackFamily-проверку ниже.
+  if (currentSlugs && currentSlugs.has(role.slug)) return 100;
   if (desiredSlugs.has(role.slug)) return 95;
   if (!currentEntry) return 40; // non-IT current — everything equally far
-  if (currentEntry.category === role.category) return 75;
+
+  const curFam = currentEntry.stackFamily;
+  const roleFam = role.stackFamily;
+  const sameFamily = !!curFam && !!roleFam && curFam === roleFam;
+  const bothHaveFamily = !!curFam && !!roleFam;
+
+  // Кейс 1: fullstack ↔ frontend/backend при совпадении стека — это по сути
+  // та же роль, фокус сменился. frontend_react ↔ frontend_vue при разных
+  // family — тоже разный стек, даём 70.
+  if (
+    DEV_PAIR_CATEGORIES.has(currentEntry.category) &&
+    DEV_PAIR_CATEGORIES.has(role.category)
+  ) {
+    if (sameFamily) return 100;
+    if (bothHaveFamily) return 70;
+    // Одна из сторон без family (редкий кейс) — фолбек на bridge/same-cat.
+    if (currentEntry.category === role.category) return 75;
+    return CATEGORY_BRIDGE[currentEntry.category]?.[role.category] ?? 70;
+  }
+
+  // Кейс 2: та же категория вне dev-пары (mobile↔mobile, frontend-only etc).
+  if (currentEntry.category === role.category) {
+    if (sameFamily) return 100;
+    if (bothHaveFamily) return 70;
+    return 75;
+  }
+
+  // Кейс 3: разные категории — через CATEGORY_BRIDGE.
   const bridge = CATEGORY_BRIDGE[currentEntry.category]?.[role.category];
   if (bridge !== undefined) return bridge;
   return 25;
@@ -376,6 +477,7 @@ function scoreOneRole(
   desiredSlugs: Set<string>,
   currentEntry: MarketIndexEntry | null,
   clientGrade: ClientGrade,
+  currentSlugs: Set<string>,
 ): { components: ScoredRoleComponents; reasons: string[] } {
   const stats = pickBucketStats(entry, bucket);
   const vacancies = totalVacancies(entry, bucket);
@@ -394,7 +496,13 @@ function scoreOneRole(
     competition: competitionComponent(stats?.competitionPer100Specialists),
     salary: salaryComponent(roleSalary, desired),
     aiRisk: aiRiskComponent(entry.aiRisk),
-    adjacency: adjacencyComponent(entry, currentSlug, desiredSlugs, currentEntry),
+    adjacency: adjacencyComponent(
+      entry,
+      currentSlug,
+      desiredSlugs,
+      currentEntry,
+      currentSlugs,
+    ),
     trend: trendComponent(stats?.trend?.ratio),
   };
 
@@ -423,6 +531,8 @@ function scoreOneRole(
   }
   if (currentSlug && entry.slug === currentSlug) {
     reasons.push("текущая");
+  } else if (currentSlugs.has(entry.slug)) {
+    reasons.push("есть опыт");
   } else if (desiredSlugs.has(entry.slug)) {
     reasons.push("desired");
   } else if (currentEntry && entry.category === currentEntry.category) {
@@ -447,6 +557,13 @@ async function rankBucket(
   const desiredSlugs = new Set<string>(
     (summary.desiredDirectionSlugs ?? []).map((d) => d.slug),
   );
+  const currentSlugs = new Set<string>(summary.currentSlugs ?? []);
+  // guaranteed ≠ currentSlugs. Только текущая роль и желаемые клиентом
+  // направления гарантированно проходят мимо hard-filter'ов (число вакансий
+  // ≥100, AI≠extreme, salary floor). `currentSlugs` — это «где у клиента
+  // есть опыт»; они бустят adjacency до 100 в scoring, но НЕ должны
+  // пропускать роль с 55 вакансиями в шортлист только потому, что клиент
+  // когда-то это умел. Слабый рынок остаётся слабым рынком.
   const guaranteed = new Set<string>(desiredSlugs);
   if (currentSlug) guaranteed.add(currentSlug);
 
@@ -467,6 +584,7 @@ async function rankBucket(
       desiredSlugs,
       currentEntry,
       clientGrade,
+      currentSlugs,
     );
     const score = computeScore(components);
     if (isGuaranteed) reasons.unshift("гарантированно");
@@ -548,16 +666,19 @@ function renderBucketTable(rows: ScoredRole[], bucketLabel: string): string {
 export function formatScorerTop20ForPrompt(
   result: RankResult,
   topN: number = 20,
+  opts: { showRu?: boolean; showAbroad?: boolean } = {},
 ): string {
+  const showRu = opts.showRu ?? true;
+  const showAbroad = opts.showAbroad ?? true;
   const parts: string[] = [];
-  const ru = result.ru.slice(0, topN);
-  const abroad = result.abroad.slice(0, topN);
+  const ru = showRu ? result.ru.slice(0, topN) : [];
+  const abroad = showAbroad ? result.abroad.slice(0, topN) : [];
   parts.push(
     `_Зарплата роли в таблице — на грейде клиента (**${result.clientGrade}**). Источник: seniorityCurve[${result.clientGrade}] из market-index или fallback medianMid × множитель (junior ×0.75, middle ×1.0, senior ×1.3, lead ×1.6)._`,
   );
   if (ru.length > 0) parts.push(renderBucketTable(ru, "RU"));
   if (abroad.length > 0) parts.push(renderBucketTable(abroad, "Abroad (UK/EU/US)"));
-  if (parts.length === 1) return "_(scorer вернул пустой топ для обоих рынков)_";
+  if (parts.length === 1) return "_(scorer вернул пустой топ для релевантных рынков)_";
   parts.push(
     "_Компоненты: m=market · c=competition · s=salary · ai=ai-risk · adj=adjacency · t=trend. ★ — гарантированная (текущая/желаемая) роль клиента._",
   );

@@ -24,6 +24,12 @@ import type {
 } from "../schemas/analysis-outputs.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
 import { normalizeNick } from "../services/intake-mapper.js";
+import {
+  escapeHtml,
+  formatDirection,
+  formatHeader,
+  scoreBadge,
+} from "./shortlist-format.js";
 
 /**
  * Gate 1 — интерактивный shortlist в Telegram.
@@ -73,6 +79,11 @@ export interface ShortlistState {
   /** Координаты header-сообщения для edit. */
   headerChatId?: number | string;
   headerMessageId?: number;
+  /** Полный текст резюме — кешируется в state для regen, чтобы не
+   *  перечитывать Google Drive и промпт не терял первоисточник. */
+  resumeText?: string;
+  /** Человекочитаемая анкета (Q→A) — для тех же целей. */
+  questionnaireHuman?: string;
 }
 
 /**
@@ -169,6 +180,8 @@ function fromShortlistResult(result: ShortlistResult): ShortlistState {
     regions: result.regions,
     slots: allSlots.slice(0, ACTIVE_SLOTS),
     reserve: allSlots.slice(ACTIVE_SLOTS),
+    resumeText: result.resumeText,
+    questionnaireHuman: result.questionnaireHuman,
   };
 }
 
@@ -187,6 +200,8 @@ function toShortlistResult(state: ShortlistState): ShortlistResult {
     directions: output,
     enriched,
     timings: {},
+    resumeText: state.resumeText,
+    questionnaireHuman: state.questionnaireHuman,
   };
 }
 
@@ -199,139 +214,12 @@ function findSlotIdx(state: ShortlistState, slotId: string): number {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Formatting
+// Formatting — вынесено в `./shortlist-format` (можно импортить из скриптов).
 // ─────────────────────────────────────────────────────────────────────────────
 
-function escapeHtml(s: unknown): string {
-  if (s == null) return "";
-  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-const BUCKET_LABEL: Record<Direction["bucket"], string> = {
-  ru: "🇷🇺 RU",
-  abroad: "🌍 abroad",
-  usa: "🇺🇸 USA",
-};
-
-/**
- * Цветной бейдж по adjacencyScorePercent: наш proxy для "хорошо/средне/плохо
- * подходит" на уровне shortlist'а. На deep-анализе появится более серьёзный
- * scoring, а пока это самый понятный клиенту сигнал.
- */
-function scoreBadge(d: Direction): string {
-  // Клиент сам попросил, но мы не рекомендуем — особый бейдж.
-  if (d.recommended === false) return "🚫";
-  // Клод проставляет `score` (0-100) как интегральную оценку направления;
-  // для legacy данных без score — fallback на adjacencyScorePercent.
-  const raw = d.score ?? d.adjacencyScorePercent ?? 0;
-  if (raw >= 80) return "🟢";
-  if (raw >= 55) return "🟡";
-  return "🔴";
-}
-
-function formatMoney(n: number | null, bucket: Direction["bucket"]): string {
-  if (n == null) return "—";
-  // RU — RUB в месяц, abroad/usa — EUR в год (enriched возвращает UK/EU).
-  if (bucket === "ru") {
-    return `${Math.round(n / 1000)}k ₽/мес`;
-  }
-  return `€${Math.round(n / 1000)}k/год`;
-}
-
-function formatMarketLine(d: Direction, enriched?: EnrichedDirection): string {
-  const parts: string[] = [];
-  if (enriched) {
-    if (enriched.vacancies != null) parts.push(`${enriched.vacancies} вак`);
-    parts.push(formatMoney(enriched.medianSalaryMid, d.bucket));
-    if (enriched.aiRisk) parts.push(`AI ${enriched.aiRisk}`);
-    if (enriched.competitionPer100 != null) {
-      const c = enriched.competitionPer100;
-      const label = c >= 10 ? "низк" : c >= 3 ? "средн" : "высок";
-      parts.push(`конк ${c.toFixed(1)}/100 (${label})`);
-    }
-    if (enriched.trendRatio != null && enriched.trendRatio !== 0) {
-      const pct = Math.round(enriched.trendRatio * 100);
-      const sign = pct > 0 ? "+" : "";
-      parts.push(`тренд ${sign}${pct}%`);
-    }
-  } else {
-    parts.push("рынок: нет данных");
-  }
-  return parts.join(" · ");
-}
-
-function formatDirection(
-  slot: DirectionSlot,
-  idx: number,
-  total: number,
-): string {
-  const d = slot.direction;
-  const enriched = slot.enriched;
-  const badge = scoreBadge(d);
-  const bucket = BUCKET_LABEL[d.bucket] ?? d.bucket;
-
-  const header = `<b>${badge} ${idx + 1}/${total}. ${escapeHtml(d.title)}</b>`;
-  const scoreStr = d.score != null ? `score ${d.score}` : null;
-  const metaParts: string[] = [bucket];
-  if (scoreStr) metaParts.push(scoreStr);
-  metaParts.push(`adj ${d.adjacencyScorePercent}%`);
-  const metaLine = metaParts.map(escapeHtml).join(" · ");
-
-  // whyFits по-прежнему режем (~600 символов хватает, чтобы не упереться в
-  // лимит сообщения вместе с markup/хвостом).
-  const whyRaw = d.whyFits ?? "";
-  const why = whyRaw.length > 600 ? whyRaw.slice(0, 597) + "…" : whyRaw;
-
-  const marketLine = `💼 ${formatMarketLine(d, enriched)}`;
-
-  const footer: string[] = [];
-  if (d.recommended === false) {
-    const reason = d.rejectionReason?.trim()
-      ? d.rejectionReason
-      : "Клиент попросил, но объективно не подходит — обсудить на созвоне.";
-    footer.push(`🚫 <b>Не рекомендуем:</b> ${escapeHtml(reason)}`);
-  }
-  if (d.offIndex) {
-    footer.push(`⚠ off-index slug <code>${escapeHtml(d.roleSlug)}</code>`);
-  }
-
-  return [
-    header,
-    `<i>${metaLine}</i>`,
-    "",
-    escapeHtml(why),
-    "",
-    marketLine,
-    ...footer,
-  ].join("\n");
-}
-
-function formatHeader(state: ShortlistState, nick: string): string {
-  const total = state.slots.length;
-  let green = 0;
-  let yellow = 0;
-  let red = 0;
-  let rejected = 0;
-  for (const s of state.slots) {
-    const b = scoreBadge(s.direction);
-    if (b === "🟢") green += 1;
-    else if (b === "🟡") yellow += 1;
-    else if (b === "🚫") rejected += 1;
-    else red += 1;
-  }
-  const counterParts = [`🟢 ${green}`, `🟡 ${yellow}`, `🔴 ${red}`];
-  if (rejected > 0) counterParts.push(`🚫 ${rejected}`);
-  const lines: string[] = [
-    `<b>📋 Shortlist @${escapeHtml(nick)}</b>`,
-    `Направлений: <b>${total}</b> · ${counterParts.join(" · ")} · в запасе ${state.reserve.length}`,
-  ];
-  if (total < 3) {
-    lines.push("<i>⚠ Меньше 3 направлений — Approve заблокирован.</i>");
-  } else {
-    lines.push("<i>Проверь направления ниже и жми ✓ Одобрить, либо заменяй/удаляй отдельные.</i>");
-  }
-  return lines.join("\n");
-}
+// Переиспользуем общий set функций; лишь `scoreBadge` нужен ещё в бейджах
+// header'а, поэтому сразу импортирован выше.
+void scoreBadge;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Keyboards
@@ -525,10 +413,27 @@ export async function startShortlist(
 
   void (async () => {
     try {
+      // Если outputs.clientSummary нет — не затираем тот, что лежит в
+      // pipelineInput (иначе enrichDirections уйдёт без clientSummary и вернёт
+      // пусто → «рынок: нет данных» в UI).
+      const fallbackSummary = pipelineInput.clientSummary;
+      // rawNamedValues хранится на уровне outputs (не в pipelineInput),
+      // потому что он поступает в intake раньше чем мы собираем pipelineInput.
+      // Для старых клиентов в pipelineInput поля нет — забираем из outputs.
+      const fallbackRawNamedValues = outputs.rawNamedValues as
+        | Record<string, string>
+        | undefined;
       const inputForRun: AnalysisPipelineInput = {
         ...pipelineInput,
-        clientSummary: outputs.clientSummary as ClientSummary | undefined,
+        clientSummary:
+          (outputs.clientSummary as ClientSummary | undefined) ?? fallbackSummary,
+        rawNamedValues: pipelineInput.rawNamedValues ?? fallbackRawNamedValues,
       };
+      if (!inputForRun.clientSummary) {
+        console.warn(
+          `[Shortlist] ${participantId}: clientSummary отсутствует и в outputs, и в pipelineInput — enrichment будет пустым`,
+        );
+      }
       const result = await runShortlist(inputForRun);
       const shortlistState = fromShortlistResult(result);
       updatePipelineStage(participantId, "shortlist_ready", {

@@ -214,8 +214,11 @@ export const clientSummarySchema = z.object({
    * Галлюцинированные IT-slug'и без marketEvidence пост-процессом заменяются на null.
    */
   currentProfessionSlug: z.string().nullable().optional(),
-  /** confidence Клода 0..1, round(x, 2). Toleratum к строкам: "0.9" → 0.9. */
-  currentProfessionSlugConfidence: tolerantNumber().optional(),
+  /**
+   * confidence Клода 0..1, round(x, 2). Toleratum к строкам: "0.9" → 0.9.
+   * Nullable — Клод для non-IT иногда присылает `null` вместо пропуска поля.
+   */
+  currentProfessionSlugConfidence: tolerantNullableNumber().optional(),
   /** true — slug НЕ из каталога market-index, обязателен marketEvidence. */
   currentProfessionOffIndex: tolerantBool().optional(),
   /** 1-2 предложения: чем рынок подтверждается (для currentProfessionOffIndex=true). */
@@ -244,6 +247,30 @@ export const clientSummarySchema = z.object({
       }),
     )
     .optional(),
+
+  /**
+   * Список slug-ов из каталога `market-index.json`, на которые клиент может
+   * **прямо сейчас** выйти на работу без переобучения — по опыту из резюме и
+   * анкеты. Включает `currentProfessionSlug` и все близкие роли по стеку.
+   *
+   * Используется role-scorer.adjacencyComponent: если `role.slug ∈ currentSlugs`,
+   * adjacency = 100 (вместо bridge / family-based). Это даёт корректный буст
+   * всем ролям, где у клиента есть реальный коммерческий опыт, даже если
+   * `currentProfessionSlug` их не покрывает (например fullstack-JS клиент
+   * с коммерческим C#/.NET в резюме — сюда попадут и `backend_nodejs`,
+   * и `backend_csharp`).
+   *
+   * Правила заполнения (см. промпт 00-client-summary.md):
+   *   - только slug-и из каталога (not off-index);
+   *   - только с коммерческим опытом (не «видел на курсах»);
+   *   - включать `currentProfessionSlug` если он не null;
+   *   - обычно 2-6 элементов, максимум 8.
+   *
+   * Optional ради совместимости со старыми `clientSummary`, созданными до
+   * добавления поля — чтобы их парсинг не падал. Потребители должны
+   * читать как `summary.currentSlugs ?? []`.
+   */
+  currentSlugs: z.array(z.string()).optional(),
 });
 
 export type ClientSummary = z.infer<typeof clientSummarySchema>;

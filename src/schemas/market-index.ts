@@ -64,6 +64,21 @@ export const marketIndexEntrySchema = z.object({
   displayTitle: z.string(),
   /** Broad bucket used in UI grouping (backend / frontend / mobile / data / devops / management / design / analytics / qa / marketing / other). */
   category: z.string(),
+  /**
+   * Основной технологический стек/язык роли. Используется в adjacency:
+   * fullstack-JS → backend_nodejs считается «той же ролью» (adj=100),
+   * а fullstack-JS → backend_go — сменой стека (adj ниже).
+   * Задан только для ролей, где язык/стек критичен для перехода
+   * (backend_*, frontend_*, fullstack, mobile_*, web3_developer,
+   * gamedev_unity, 1c_developer). Для infra/data/ML/management
+   * оставлен undefined — там работает category-bridge.
+   *
+   * Возможные значения (open enum, расширяется по мере ролей):
+   *   "js" | "python" | "go" | "java" | "dotnet" | "rust" | "ruby" |
+   *   "php" | "cpp" | "swift" | "kotlin" | "dart" | "unity_csharp" |
+   *   "solidity" | "1c"
+   */
+  stackFamily: z.string().optional(),
   /** Free-text aliases (RU + EN) used by role-matcher. */
   aliases: z.array(z.string()),
 

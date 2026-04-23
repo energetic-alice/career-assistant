@@ -44,8 +44,11 @@ export async function loadPrompt00(vars: {
  * for Claude to classify `currentProfessionSlug` and `desiredDirectionSlugs`.
  */
 async function buildRoleCatalog(): Promise<string> {
-  const indexPath = join(__dirname, "..", "..", "data", "market-index.json");
-  const raw = JSON.parse(await loadFile(indexPath)) as Record<
+  // Reuse the hardened multi-path loader from role-scorer so prompt-loader
+  // doesn't duplicate path-resolution logic (and doesn't drift if we add
+  // more candidates in future).
+  const { loadMarketIndex } = await import("../services/role-scorer.js");
+  const raw = (await loadMarketIndex()) as unknown as Record<
     string,
     { slug: string; displayTitle: string; category: string; aliases: string[] }
   >;
@@ -89,6 +92,21 @@ export async function loadPrompt02(vars: {
   candidateProfile: string;
   marketOverview?: string;
   scorerTop20?: string;
+  /**
+   * Полный текст резюме клиента (уже распарсен из GDrive-файла
+   * в `processResumeAndRunAnalysis`, лежит в `pipelineInput.resumeText`).
+   * Передаётся Клоду как первоисточник для извлечения конкретного стека /
+   * проектов / доменной экспертизы при формулировании `whyFits`.
+   */
+  resumeText?: string;
+  /**
+   * Полная анкета клиента в человекочитаемом формате «вопрос → ответ».
+   * Собирается из `state.stageOutputs.rawNamedValues`. Передаётся как
+   * первоисточник: `candidateProfile` — это структурированная выжимка, а
+   * сырая анкета даёт Клоду доступ к оригинальным формулировкам клиента
+   * (хочет/не хочет, мотивация, ограничения).
+   */
+  questionnaireHuman?: string;
 }): Promise<string> {
   let template = await loadFile(join(PROMPTS_DIR, "02-direction-generation.md"));
   const styleGuide = await getReference("style-guide");
@@ -111,8 +129,41 @@ export async function loadPrompt02(vars: {
     "{{knownRoles}}",
     KNOWN_ROLES.map((r, i) => `${i + 1}. ${r}`).join("\n"),
   );
+  template = template.replace(
+    "{{resumeText}}",
+    vars.resumeText && vars.resumeText.trim()
+      ? vars.resumeText.trim()
+      : "_(резюме не приложено / не удалось распарсить)_",
+  );
+  template = template.replace(
+    "{{questionnaireHuman}}",
+    vars.questionnaireHuman && vars.questionnaireHuman.trim()
+      ? vars.questionnaireHuman.trim()
+      : "_(анкета недоступна в сыром виде)_",
+  );
 
   return template;
+}
+
+/**
+ * Рендер `rawNamedValues` (snapshot из Google Form — {вопрос → ответ}) в
+ * компактный markdown «## вопрос \n ответ» блок для Phase 1 промпта.
+ * Пустые ответы пропускаем, чтобы не раздувать контекст.
+ */
+export function renderQuestionnaireForPrompt(
+  rawNamedValues: Record<string, string> | undefined,
+): string {
+  if (!rawNamedValues) return "";
+  const lines: string[] = [];
+  for (const [question, answer] of Object.entries(rawNamedValues)) {
+    const q = question.trim();
+    const a = (answer ?? "").trim();
+    if (!q || !a) continue;
+    lines.push(`**${q}**`);
+    lines.push(a);
+    lines.push("");
+  }
+  return lines.join("\n");
 }
 
 export async function loadPrompt03(vars: {
@@ -125,7 +176,9 @@ export async function loadPrompt03(vars: {
 }): Promise<string> {
   let template = await loadFile(join(PROMPTS_DIR, "03-direction-analysis.md"));
   const styleGuide = await getReference("style-guide");
-  const decisionRules = await getReference("decision-rules");
+  const decisionRulesCore = await getReference("decision-rules");
+  const decisionRulesPhase3 = await getReference("decision-rules-phase3");
+  const decisionRules = `${decisionRulesCore}\n\n---\n\n${decisionRulesPhase3}`;
 
   const competitionRu = await getKB("competition-ru");
   const competitionEu = await getKB("competition-eu");
