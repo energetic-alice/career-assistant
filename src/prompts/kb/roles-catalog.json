@@ -1,0 +1,745 @@
+[
+  {
+    "slug": "backend_python",
+    "displayTitle": "Backend Developer (Python)",
+    "category": "backend",
+    "aiRisk": "medium",
+    "stackFamily": "python",
+    "habrSpec": "backend",
+    "habrSkill": "python",
+    "ukSumLive": true,
+    "ruSumTitles": "django|fastapi|flask",
+    "aliases": [
+      "Python developer",
+      "Python engineer",
+      "Django разработчик",
+      "FastAPI разработчик",
+      "Flask разработчик",
+      "Python backend",
+      "Python разработчик",
+      "Python программист",
+      "Python инженер",
+      "Backend Python",
+      "Django",
+      "FastAPI",
+      "Flask"
+    ],
+    "notes": "UK: суммируем Python Dev + Django + FastAPI + Flask + Senior/Lead/Full-Stack — ближе к реальному спросу (top-1 «Python Developer» слишком узкий). RU: «Python developer» на hh.ru тянет ML/Data (fuzzy-матч), поэтому считаем спрос только по backend-фреймворкам Django/FastAPI/Flask."
+  },
+  {
+    "slug": "backend_java",
+    "displayTitle": "Backend Developer (Java)",
+    "category": "backend",
+    "aiRisk": "medium",
+    "stackFamily": "java",
+    "habrSpec": "backend",
+    "habrSkill": "java",
+    "aliases": [
+      "Java developer",
+      "Java engineer",
+      "Spring разработчик",
+      "Java backend",
+      "Java разработчик",
+      "Java программист",
+      "Java инженер",
+      "Backend Java",
+      "Java Spring разработчик"
+    ]
+  },
+  {
+    "slug": "backend_go",
+    "displayTitle": "Backend Developer (Go)",
+    "category": "backend",
+    "aiRisk": "medium",
+    "stackFamily": "go",
+    "habrSpec": "backend",
+    "habrSkill": "golang",
+    "aliases": [
+      "Go developer",
+      "Go engineer",
+      "Golang developer",
+      "Golang engineer",
+      "Go backend",
+      "Go разработчик",
+      "Golang разработчик",
+      "Go программист",
+      "Backend Go",
+      "Go инженер"
+    ]
+  },
+  {
+    "slug": "backend_nodejs",
+    "displayTitle": "Backend Developer (Node.js)",
+    "category": "backend",
+    "aiRisk": "medium",
+    "stackFamily": "js",
+    "habrSpec": "backend",
+    "habrSkill": "node-js",
+    "aliases": [
+      "Node developer",
+      "Node.js developer",
+      "NestJS разработчик",
+      "Node backend",
+      "Node.js разработчик",
+      "Node.js программист",
+      "Node разработчик",
+      "Backend Node.js"
+    ]
+  },
+  {
+    "slug": "backend_net",
+    "displayTitle": "Backend Developer (C# / .NET)",
+    "category": "backend",
+    "aiRisk": "medium",
+    "stackFamily": "dotnet",
+    "habrSpec": "backend",
+    "habrSkill": "net",
+    "aliases": [
+      "C# developer",
+      ".NET developer",
+      "C# engineer",
+      "ASP.NET разработчик",
+      "C# разработчик",
+      ".NET разработчик",
+      "C# программист",
+      "Backend C#",
+      ".NET инженер"
+    ]
+  },
+  {
+    "slug": "backend_php",
+    "displayTitle": "Backend Developer (PHP)",
+    "category": "backend",
+    "aiRisk": "medium",
+    "stackFamily": "php",
+    "habrSpec": "backend",
+    "habrSkill": "php",
+    "aliases": [
+      "PHP developer",
+      "PHP engineer",
+      "Laravel разработчик",
+      "Symfony разработчик",
+      "Bitrix разработчик",
+      "PHP разработчик",
+      "PHP программист",
+      "Backend PHP"
+    ]
+  },
+  {
+    "slug": "backend_ruby",
+    "displayTitle": "Backend Developer (Ruby)",
+    "category": "backend",
+    "aiRisk": "medium",
+    "stackFamily": "ruby",
+    "habrSpec": "backend",
+    "habrSkill": "ruby",
+    "aliases": [
+      "Ruby developer",
+      "Ruby on Rails",
+      "Rails разработчик",
+      "RoR developer",
+      "Ruby разработчик",
+      "Ruby программист",
+      "RoR разработчик",
+      "Backend Ruby"
+    ]
+  },
+  {
+    "slug": "backend_rust",
+    "displayTitle": "Backend Developer (Rust)",
+    "category": "backend",
+    "aiRisk": "medium",
+    "stackFamily": "rust",
+    "habrSpec": "backend",
+    "habrSkill": "rust",
+    "aliases": [
+      "Rust developer",
+      "Rust engineer",
+      "Rust backend",
+      "Rust разработчик",
+      "Rust программист",
+      "Backend Rust",
+      "Rust инженер"
+    ]
+  },
+  {
+    "slug": "backend_cplusplus",
+    "displayTitle": "Backend Developer (C / C++)",
+    "category": "backend",
+    "aiRisk": "medium",
+    "stackFamily": "cpp",
+    "habrSpec": "backend",
+    "habrSkill": "cplusplus",
+    "aliases": [
+      "C++ developer",
+      "C++ engineer",
+      "C developer",
+      "C engineer",
+      "C/C++ разработчик",
+      "Embedded C++",
+      "Embedded C",
+      "Cplusplus",
+      "C++ разработчик",
+      "C++ программист",
+      "C++ инженер"
+    ],
+    "notes": "На itjobswatch C и C++ лежат в общем пуле embedded/systems-разработчиков, поэтому для UK берём общий запрос и считаем их одной ролью."
+  },
+  {
+    "slug": "frontend_react",
+    "displayTitle": "Frontend Developer (React)",
+    "category": "frontend",
+    "aiRisk": "high",
+    "stackFamily": "js",
+    "habrSpec": "frontend",
+    "habrSkill": "react-js",
+    "aliases": [
+      "React developer",
+      "React engineer",
+      "Фронтенд React",
+      "React.js разработчик",
+      "React frontend",
+      "React разработчик",
+      "Frontend React",
+      "React программист",
+      "React инженер"
+    ]
+  },
+  {
+    "slug": "frontend_vue",
+    "displayTitle": "Frontend Developer (Vue)",
+    "category": "frontend",
+    "aiRisk": "high",
+    "stackFamily": "js",
+    "habrSpec": "frontend",
+    "habrSkill": "vue-js",
+    "aliases": [
+      "Vue developer",
+      "Vue.js developer",
+      "Nuxt разработчик",
+      "Vue frontend",
+      "Vue разработчик",
+      "Vue программист",
+      "Фронтенд Vue",
+      "Vue инженер"
+    ]
+  },
+  {
+    "slug": "frontend_angular",
+    "displayTitle": "Frontend Developer (Angular)",
+    "category": "frontend",
+    "aiRisk": "high",
+    "stackFamily": "js",
+    "habrSpec": "frontend",
+    "habrSkill": "angular",
+    "aliases": [
+      "Angular developer",
+      "Angular engineer",
+      "Angular frontend",
+      "Angular разработчик",
+      "Angular программист",
+      "Фронтенд Angular",
+      "Angular инженер"
+    ]
+  },
+  {
+    "slug": "fullstack",
+    "displayTitle": "Full-stack Developer",
+    "category": "fullstack",
+    "aiRisk": "medium",
+    "stackFamily": "js",
+    "habrSpec": "fullstack",
+    "aliases": [
+      "Full stack",
+      "Full-stack",
+      "Fullstack JS",
+      "MERN разработчик",
+      "Fullstack разработчик",
+      "Full stack developer",
+      "Фулстек разработчик",
+      "Fullstack engineer"
+    ]
+  },
+  {
+    "slug": "mobileapp_swift",
+    "displayTitle": "iOS Developer (Swift)",
+    "category": "mobile",
+    "aiRisk": "medium",
+    "stackFamily": "swift",
+    "habrSpec": "mobileapp_developer",
+    "habrSkill": "swift",
+    "aliases": [
+      "iOS developer",
+      "Swift developer",
+      "iOS engineer",
+      "iOS разработчик",
+      "Swift разработчик",
+      "iOS программист",
+      "iOS инженер"
+    ]
+  },
+  {
+    "slug": "mobileapp_kotlin",
+    "displayTitle": "Android Developer (Kotlin)",
+    "category": "mobile",
+    "aiRisk": "medium",
+    "stackFamily": "kotlin",
+    "habrSpec": "mobileapp_developer",
+    "habrSkill": "kotlin",
+    "aliases": [
+      "Android developer",
+      "Kotlin developer",
+      "Android engineer",
+      "Android разработчик",
+      "Kotlin разработчик",
+      "Android программист",
+      "Android инженер"
+    ]
+  },
+  {
+    "slug": "mobileapp_flutter",
+    "displayTitle": "Flutter Developer",
+    "category": "mobile",
+    "aiRisk": "medium",
+    "stackFamily": "dart",
+    "habrSpec": "mobileapp_developer",
+    "habrSkill": "flutter",
+    "aliases": [
+      "Flutter developer",
+      "Dart developer",
+      "Cross-platform Flutter",
+      "Flutter разработчик",
+      "Flutter программист",
+      "Flutter инженер",
+      "Dart разработчик"
+    ]
+  },
+  {
+    "slug": "mobileapp_react_native",
+    "displayTitle": "React Native Developer",
+    "category": "mobile",
+    "aiRisk": "medium",
+    "stackFamily": "js",
+    "habrSpec": "mobileapp_developer",
+    "habrSkill": "react-native",
+    "aliases": [
+      "React Native developer",
+      "RN developer",
+      "Cross-platform RN",
+      "React Native разработчик",
+      "React Native программист",
+      "RN разработчик",
+      "React Native инженер",
+      "Cross-platform разработчик"
+    ]
+  },
+  {
+    "slug": "devops",
+    "displayTitle": "DevOps / SRE / Platform Engineer",
+    "category": "infra",
+    "aiRisk": "low",
+    "habrSpec": "devops",
+    "aliases": [
+      "DevOps",
+      "инженер инфраструктуры",
+      "SRE",
+      "Site Reliability Engineer",
+      "инженер надёжности",
+      "MLOps",
+      "MLOps Engineer",
+      "ML инфраструктура",
+      "ML platform engineer",
+      "Platform Engineer",
+      "Платформенный инженер",
+      "Internal Platform Engineer",
+      "Cloud Engineer",
+      "Infrastructure Engineer",
+      "DevSecOps",
+      "DevSecOps инженер",
+      "DevSecOps engineer",
+      "Security DevOps",
+      "FinOps",
+      "FinOps Engineer",
+      "DevOps инженер",
+      "DevOps engineer",
+      "инженер сопровождения",
+      "CI/CD инженер",
+      "release engineer",
+      "SRE инженер",
+      "MLOps инженер",
+      "Инженер платформы",
+      "AppSec DevOps",
+      "Безопасник DevOps"
+    ],
+    "notes": "Collapsed cluster: DevOps + SRE + MLOps + Platform Engineer живут как один canonical slug `devops`. Эти роли сильно пересекаются на рынке (одни и те же кандидаты, hiring processes), и шум — рекомендовать все четыре варианта независимо. Клиент с чётким запросом «хочу SRE» всё равно попадёт в devops по aliases. Рыночные цифры берём только из `ru_devops.md` / `uk_devops.md` — они репрезентативны для всего кластера."
+  },
+  {
+    "slug": "data_engineer",
+    "displayTitle": "Data Engineer",
+    "category": "data",
+    "aiRisk": "low",
+    "habrSpec": "data_engineer",
+    "aliases": [
+      "Data Engineer",
+      "ETL разработчик",
+      "Big Data инженер",
+      "DWH разработчик",
+      "Инженер данных",
+      "Дата инженер",
+      "ETL инженер"
+    ]
+  },
+  {
+    "slug": "ml_engineer",
+    "displayTitle": "ML Engineer / Data Scientist",
+    "category": "data",
+    "aiRisk": "low",
+    "habrSpec": "ml-engineer",
+    "aliases": [
+      "ML Engineer",
+      "Machine Learning инженер",
+      "AI engineer",
+      "LLM инженер",
+      "Data Scientist",
+      "DS",
+      "ML researcher",
+      "NLP инженер",
+      "CV инженер",
+      "ML инженер",
+      "Инженер машинного обучения",
+      "ML разработчик",
+      "Специалист по данным",
+      "Дата сайентист"
+    ]
+  },
+  {
+    "slug": "data_analyst",
+    "displayTitle": "Data Analyst",
+    "category": "analytics",
+    "aiRisk": "medium",
+    "habrSpec": "data_analyst",
+    "aliases": [
+      "Data Analyst",
+      "Аналитик данных",
+      "Дата аналитик"
+    ]
+  },
+  {
+    "slug": "product_analyst",
+    "displayTitle": "Product Analyst",
+    "category": "analytics",
+    "aiRisk": "medium",
+    "habrSpec": "product_analyst",
+    "aliases": [
+      "Product Analyst",
+      "Продакт-аналитик",
+      "Growth аналитик",
+      "CJM аналитик",
+      "Продуктовый аналитик",
+      "Аналитик продукта"
+    ]
+  },
+  {
+    "slug": "qa_engineer",
+    "displayTitle": "QA Automation Engineer",
+    "category": "qa",
+    "aiRisk": "high",
+    "habrSpec": "qa_engineer",
+    "aliases": [
+      "Automation QA",
+      "SDET",
+      "Test Automation Engineer",
+      "Автотестировщик",
+      "QA Automation",
+      "Автоматизатор тестирования",
+      "QA Engineer"
+    ]
+  },
+  {
+    "slug": "manual_testing",
+    "displayTitle": "QA Manual Tester",
+    "category": "qa",
+    "aiRisk": "low",
+    "habrSpec": "manual_testing",
+    "aliases": [
+      "Manual QA",
+      "Тестировщик ПО",
+      "QA инженер",
+      "Инженер по тестированию",
+      "Тестировщик",
+      "Manual QA Engineer",
+      "QA tester"
+    ]
+  },
+  {
+    "slug": "product_manager",
+    "displayTitle": "Product Manager",
+    "category": "management",
+    "aiRisk": "low",
+    "habrSpec": "product_manager",
+    "aliases": [
+      "Product Manager",
+      "Менеджер продукта",
+      "Продакт-менеджер",
+      "Product Owner",
+      "Продакт менеджер",
+      "Owner продукта"
+    ]
+  },
+  {
+    "slug": "project_manager",
+    "displayTitle": "Project Manager",
+    "category": "management",
+    "aiRisk": "low",
+    "habrSpec": "project_manager",
+    "aliases": [
+      "Project Manager",
+      "Менеджер проектов",
+      "Руководитель проекта",
+      "Delivery Manager",
+      "Проектный менеджер",
+      "Руководитель проектов"
+    ]
+  },
+  {
+    "slug": "tech_lead",
+    "displayTitle": "Tech Lead / Engineering Manager",
+    "category": "management",
+    "aiRisk": "low",
+    "habrSpec": null,
+    "aliases": [
+      "Тимлид",
+      "Tech Lead",
+      "Team Lead",
+      "Технический лид",
+      "Lead developer",
+      "Lead engineer",
+      "Engineering Manager",
+      "Head of Engineering",
+      "Руководитель разработки",
+      "Руководитель IT-отдела",
+      "Руководитель направления разработки",
+      "Руководитель команды разработки"
+    ]
+  },
+  {
+    "slug": "software_architect",
+    "displayTitle": "Solution Architect",
+    "category": "architecture",
+    "aiRisk": "low",
+    "habrSpec": "software_architect",
+    "aliases": [
+      "Solution Architect",
+      "Системный архитектор",
+      "Software Architect",
+      "Enterprise Architect",
+      "Архитектор решений",
+      "Архитектор ПО",
+      "Технический архитектор"
+    ]
+  },
+  {
+    "slug": "business_analyst",
+    "displayTitle": "Business Analyst",
+    "category": "analytics",
+    "aiRisk": "medium",
+    "habrSpec": "business_analyst",
+    "aliases": [
+      "Business Analyst",
+      "Бизнес-аналитик",
+      "BA",
+      "Аналитик бизнес-процессов",
+      "Бизнес аналитик"
+    ]
+  },
+  {
+    "slug": "systems_analyst",
+    "displayTitle": "Systems Analyst",
+    "category": "analytics",
+    "aiRisk": "high",
+    "habrSpec": "systems_analyst",
+    "aliases": [
+      "Systems Analyst",
+      "Системный аналитик",
+      "System Analyst"
+    ]
+  },
+  {
+    "slug": "ui_ux_designer",
+    "displayTitle": "UX/UI Designer",
+    "category": "design",
+    "aiRisk": "high",
+    "habrSpec": "ui_ux_designer",
+    "aliases": [
+      "UX/UI designer",
+      "UX designer",
+      "UI designer",
+      "Product Designer",
+      "Дизайнер интерфейсов",
+      "UX/UI дизайнер",
+      "UX дизайнер",
+      "Продуктовый дизайнер",
+      "UI дизайнер",
+      "Web дизайнер",
+      "UX/UI"
+    ]
+  },
+  {
+    "slug": "marketing_manager",
+    "displayTitle": "Marketing Manager",
+    "category": "marketing",
+    "aiRisk": "medium",
+    "habrSpec": "marketing_manager",
+    "aliases": [
+      "Marketing Manager",
+      "Маркетолог",
+      "Digital маркетолог",
+      "Интернет маркетолог",
+      "Бренд-менеджер",
+      "Performance маркетолог",
+      "Product маркетолог",
+      "Head of Marketing"
+    ]
+  },
+  {
+    "slug": "recruiter",
+    "displayTitle": "IT Recruiter / HR",
+    "category": "hr",
+    "aiRisk": "high",
+    "habrSpec": "recruiter",
+    "aliases": [
+      "IT рекрутер",
+      "HR менеджер",
+      "Рекрутер",
+      "Talent Acquisition",
+      "IT recruiter",
+      "Sourcer",
+      "HR BP",
+      "HR generalist"
+    ]
+  },
+  {
+    "slug": "technical_writer",
+    "displayTitle": "Technical Writer",
+    "category": "docs",
+    "aiRisk": "extreme",
+    "habrSpec": "technical_writer",
+    "aliases": [
+      "Technical Writer",
+      "Технический писатель",
+      "Документалист",
+      "Documentation Engineer",
+      "Техписатель",
+      "Tech Writer"
+    ]
+  },
+  {
+    "slug": "infosecspec",
+    "displayTitle": "Cybersecurity / InfoSec Engineer",
+    "category": "security",
+    "aiRisk": "low",
+    "habrSpec": "infosecspec",
+    "aliases": [
+      "Cybersecurity",
+      "Специалист ИБ",
+      "ИБ инженер",
+      "Пентестер",
+      "SOC аналитик",
+      "Security Engineer",
+      "Information Security",
+      "Специалист по информационной безопасности",
+      "Инженер по кибербезопасности",
+      "Penetration Tester"
+    ]
+  },
+  {
+    "slug": "1c_developer",
+    "displayTitle": "1C Developer",
+    "category": "other",
+    "aiRisk": "medium",
+    "stackFamily": "1c",
+    "habrSpec": "1c_developer",
+    "aliases": [
+      "1С разработчик",
+      "1С программист",
+      "Разработчик 1С",
+      "1С консультант",
+      "1C разработчик",
+      "Программист 1С",
+      "1С специалист"
+    ]
+  },
+  {
+    "slug": "gamedev_unity",
+    "displayTitle": "Unity GameDev Developer",
+    "category": "gamedev",
+    "aiRisk": "medium",
+    "stackFamily": "unity_csharp",
+    "habrSpec": "gamedev",
+    "habrSkill": "unity3d",
+    "aliases": [
+      "Unity разработчик",
+      "Game developer",
+      "Геймдев разработчик",
+      "Unity engineer",
+      "Unity программист",
+      "Game-разработчик",
+      "Game developer Unity"
+    ]
+  },
+  {
+    "slug": "web3_developer",
+    "displayTitle": "Web3 / Blockchain Developer",
+    "category": "other",
+    "aiRisk": "medium",
+    "stackFamily": "solidity",
+    "habrSpec": "backend",
+    "aliases": [
+      "Web3 developer",
+      "Blockchain разработчик",
+      "Solidity разработчик",
+      "Smart Contract Developer",
+      "Web3 разработчик",
+      "Crypto разработчик",
+      "EVM разработчик"
+    ],
+    "notes": "У Habr нет отдельного spec для web3 / blockchain, но по сути это smart-contract разработчики (Solidity / Rust / TypeScript) — берём `backend` как прокси, probe-ru-market.ts сохранит запись с пометкой «proxy» в `ru_web3_developer.md`."
+  },
+  {
+    "slug": "system_admin",
+    "displayTitle": "System Administrator",
+    "category": "infra",
+    "aiRisk": "medium",
+    "habrSpec": "system_admin",
+    "aliases": [
+      "System Administrator",
+      "Системный администратор",
+      "Sysadmin",
+      "Сисадмин",
+      "Системный администратор Linux",
+      "Windows-администратор",
+      "Linux-администратор",
+      "Администратор серверов",
+      "IT-администратор"
+    ]
+  },
+  {
+    "slug": "tech_support_manager",
+    "displayTitle": "Technical Support",
+    "category": "support",
+    "aiRisk": "medium",
+    "habrSpec": "technical_support_manager",
+    "aliases": [
+      "Technical Support",
+      "Техническая поддержка",
+      "Инженер техподдержки",
+      "IT support",
+      "Helpdesk",
+      "Support Engineer",
+      "Helpdesk Engineer",
+      "Специалист техподдержки",
+      "Technical Support Engineer",
+      "Инженер службы поддержки"
+    ]
+  }
+]

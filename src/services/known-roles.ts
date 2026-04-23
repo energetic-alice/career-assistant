@@ -6,7 +6,7 @@
  *
  * Used as:
  *   - `z.enum(KNOWN_ROLES)` in `directionSchema` (role-slug validation)
- *   - keys of `RU_TITLE_VARIANTS` / `ITJW_SEARCH_MAP`
+ *   - keys of `RU_TITLE_VARIANTS` (loaded from `kb/roles-catalog.json`) / `ITJW_SEARCH_MAP`
  *   - filenames: `ru_<slug>.md`, `uk_<slug>.md`
  *   - `REGISTRY` in `build-market-index.ts`
  *

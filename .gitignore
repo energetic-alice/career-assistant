@@ -10,5 +10,6 @@ test-output/
 !package-lock.json
 !tsconfig.json
 !src/data/**
+!src/prompts/kb/**
 !/data/market-index.json
 .env

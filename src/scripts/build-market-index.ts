@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 import {
   parseHhFile,
   parseItjwFile,
-  RU_TITLE_VARIANTS,
 } from "../services/market-data-service.js";
 import type {
   AiRisk,
@@ -45,6 +44,11 @@ interface RoleDef {
   slug: string;
   displayTitle: string;
   category: string;
+  aiRisk: AiRisk;
+  /** habr.com/career spec_aliases[] value (for future live fetches) */
+  habrSpec: string | null;
+  /** habr.com/career skills[] filter (optional) */
+  habrSkill?: string;
   /**
    * Технологический стек (см. комментарий в `market-index.ts`). Задавать
    * только для ролей, где язык/стек критичен (backend_*, frontend_*,
@@ -52,411 +56,86 @@ interface RoleDef {
    * оставлять undefined — там работает category-bridge.
    */
   stackFamily?: string;
-  /** habr.com/career spec_aliases[] value (for future live fetches) */
-  habrSpec: string | null;
-  /** habr.com/career skills[] filter (optional) */
-  habrSkill?: string;
   /**
-   * File under market-data/ for RU data (hh.ru scrape). Defaults to `ru_${slug}.md`.
-   * Override only when a role shares a file with another role (e.g. EM/TL).
-   * Set to `null` explicitly to skip RU data for this role.
+   * File under market-data/ для RU. Default `ru_<slug>.md`. Override только
+   * если файл шарится между ролями. `null` — отключить RU данные.
    */
   ruFile?: string | null;
-  /**
-   * File under market-data/ for UK data (itjobswatch scrape). Defaults to `uk_${slug}.md`.
-   * Omit (or set to null) when chosen on purpose (e.g. no UK abroad data for the role).
-   */
+  /** То же для UK (itjobswatch). Default `uk_<slug>.md`. */
   ukFile?: string | null;
-  /** Manually-added aliases (free-text ru/en tokens used by role-matcher) */
-  extraAliases?: string[];
-  /** Drop these aliases (useful for EM/TL split — tech_lead only, em only, etc.) */
+  /**
+   * Все RU/EN aliases для role-matcher и hh.ru-запросов. Сюда попадает всё
+   * что раньше было в `extraAliases` + `RU_TITLE_VARIANTS`.
+   */
+  aliases?: string[];
+  /** Удалить из итогового списка aliases (EM/TL split-кейсы). */
   dropAliases?: string[];
   /**
-   * Если true, UK-vacancies считаются как сумма `liveNow` по всем строкам
-   * uk_<slug>.md (используется, когда один канонический тайтл не покрывает
-   * реальный спрос, напр. Python ≈ Python Dev + Django Dev + FastAPI Dev).
-   * По умолчанию берём top-1 liveJobs.
-   * ПРИМЕЧАНИЕ: skill-page override (строка "Live total (skill page): N"
-   * в md-файле) имеет более высокий приоритет.
+   * Если true, UK-vacancies = сумма `liveNow` по всем строкам файла (когда
+   * один канонический тайтл не покрывает реальный спрос). По умолчанию top-1.
+   * skill-page override ("Live total (skill page): N") имеет более высокий приоритет.
    */
   ukSumLive?: boolean;
   /**
    * Если задан regex, RU-vacancies = сумма `vacancies` по строкам, чей title
-   * матчит regex (регистр игнорируется). По умолчанию берём `Math.max` по
-   * всем строкам — но для ролей, где keyword слишком широкий и ловит чужие
-   * вакансии (напр. "python" тянет ML/Data), нужно считать только по
-   * фреймворк-специфичным тайтлам (Django/FastAPI/Flask).
+   * матчит regex (регистр игнорируется). По умолчанию `Math.max` по всем.
+   * Нужно для ролей, где keyword слишком широкий (напр. "python" тянет ML/Data).
    */
   ruSumTitles?: string;
-  aiRisk: AiRisk;
 }
 
 // ---------------------------------------------------------------------------
-// Canonical registry — the one place where slugs, data files and metadata
-// live together. Keep sorted by category for easier review.
+// Canonical registry — живёт в `prompts/kb/roles-catalog.json`.
+// Чтобы поменять aiRisk / aliases / habrSpec — правь JSON, потом
+// `npx tsx src/scripts/build-market-index.ts`.
 // ---------------------------------------------------------------------------
 
-// Market-data files живут в app/src/prompts/market-data/ и называются по
-// схеме `ru_<slug>.md` / `uk_<slug>.md`. Если файла нет — достаточно
-// `ukFile: null` / `ruFile: null`. Override нужен только когда два slug'а
-// шарят один файл (EM/TL) или нужен merge-source (devops cluster).
+const ROLES_CATALOG_FILE = "roles-catalog.json";
 
-const REGISTRY: RoleDef[] = [
-  // ── Backend ────────────────────────────────────────────────────────────
-  {
-    slug: "backend_python", displayTitle: "Backend Developer (Python)", category: "backend",
-    stackFamily: "python",
-    habrSpec: "backend", habrSkill: "python",
-    extraAliases: ["Python developer", "Python engineer", "Django разработчик", "FastAPI разработчик", "Flask разработчик", "Python backend"],
-    // UK: sum Python Dev + Django + FastAPI + Flask + Senior/Lead/Full-Stack →
-    // ближе к реальному спросу (top-1 "Python Developer" слишком узкий).
-    ukSumLive: true,
-    // RU: "Python developer" на hh.ru тянет ML/Data (fuzzy-матч по описанию),
-    // поэтому считаем спрос только по backend-фреймворкам Django/FastAPI/Flask.
-    ruSumTitles: "django|fastapi|flask",
-    aiRisk: "medium",
-  },
-  {
-    slug: "backend_java", displayTitle: "Backend Developer (Java)", category: "backend",
-    stackFamily: "java",
-    habrSpec: "backend", habrSkill: "java",
-    extraAliases: ["Java developer", "Java engineer", "Spring разработчик", "Java backend"],
-    aiRisk: "medium",
-  },
-  {
-    slug: "backend_go", displayTitle: "Backend Developer (Go)", category: "backend",
-    stackFamily: "go",
-    habrSpec: "backend", habrSkill: "golang",
-    extraAliases: ["Go developer", "Go engineer", "Golang developer", "Golang engineer", "Go backend"],
-    aiRisk: "medium",
-  },
-  {
-    slug: "backend_nodejs", displayTitle: "Backend Developer (Node.js)", category: "backend",
-    stackFamily: "js",
-    habrSpec: "backend", habrSkill: "node-js",
-    extraAliases: ["Node developer", "Node.js developer", "NestJS разработчик", "Node backend"],
-    aiRisk: "medium",
-  },
-  {
-    slug: "backend_net", displayTitle: "Backend Developer (C# / .NET)", category: "backend",
-    stackFamily: "dotnet",
-    habrSpec: "backend", habrSkill: "net",
-    extraAliases: ["C# developer", ".NET developer", "C# engineer", "ASP.NET разработчик"],
-    aiRisk: "medium",
-  },
-  {
-    slug: "backend_php", displayTitle: "Backend Developer (PHP)", category: "backend",
-    stackFamily: "php",
-    habrSpec: "backend", habrSkill: "php",
-    extraAliases: ["PHP developer", "PHP engineer", "Laravel разработчик", "Symfony разработчик", "Bitrix разработчик"],
-    aiRisk: "medium",
-  },
-  {
-    slug: "backend_ruby", displayTitle: "Backend Developer (Ruby)", category: "backend",
-    stackFamily: "ruby",
-    habrSpec: "backend", habrSkill: "ruby",
-    extraAliases: ["Ruby developer", "Ruby on Rails", "Rails разработчик", "RoR developer"],
-    aiRisk: "medium",
-  },
-  {
-    slug: "backend_rust", displayTitle: "Backend Developer (Rust)", category: "backend",
-    stackFamily: "rust",
-    habrSpec: "backend", habrSkill: "rust",
-    extraAliases: ["Rust developer", "Rust engineer", "Rust backend"],
-    aiRisk: "medium",
-  },
-  {
-    // На itjobswatch C и C++ лежат в общем пуле embedded/systems-разработчиков,
-    // поэтому для UK берём общий запрос и считаем их одной ролью.
-    slug: "backend_cplusplus", displayTitle: "Backend Developer (C / C++)", category: "backend",
-    stackFamily: "cpp",
-    habrSpec: "backend", habrSkill: "cplusplus",
-    extraAliases: [
-      "C++ developer", "C++ engineer", "C developer", "C engineer",
-      "C/C++ разработчик", "Embedded C++", "Embedded C", "Cplusplus",
-    ],
-    aiRisk: "medium",
-  },
+interface CatalogEntry extends Partial<RoleDef> {
+  slug: string;
+  displayTitle: string;
+  category: string;
+  aiRisk: AiRisk;
+  notes?: string;
+}
 
-  // ── Frontend ───────────────────────────────────────────────────────────
-  {
-    slug: "frontend_react", displayTitle: "Frontend Developer (React)", category: "frontend",
-    stackFamily: "js",
-    habrSpec: "frontend", habrSkill: "react-js",
-    extraAliases: ["React developer", "React engineer", "Фронтенд React", "React.js разработчик", "React frontend"],
-    aiRisk: "high",
-  },
-  {
-    slug: "frontend_vue", displayTitle: "Frontend Developer (Vue)", category: "frontend",
-    stackFamily: "js",
-    habrSpec: "frontend", habrSkill: "vue-js",
-    extraAliases: ["Vue developer", "Vue.js developer", "Nuxt разработчик", "Vue frontend"],
-    aiRisk: "high",
-  },
-  {
-    slug: "frontend_angular", displayTitle: "Frontend Developer (Angular)", category: "frontend",
-    stackFamily: "js",
-    habrSpec: "frontend", habrSkill: "angular",
-    extraAliases: ["Angular developer", "Angular engineer", "Angular frontend"],
-    aiRisk: "high",
-  },
-
-  // ── Fullstack ──────────────────────────────────────────────────────────
-  {
-    slug: "fullstack", displayTitle: "Full-stack Developer", category: "fullstack",
-    stackFamily: "js",
-    habrSpec: "fullstack",
-    extraAliases: ["Full stack", "Full-stack", "Fullstack JS", "MERN разработчик"],
-    aiRisk: "medium",
-  },
-
-  // ── Mobile ─────────────────────────────────────────────────────────────
-  {
-    slug: "mobileapp_swift", displayTitle: "iOS Developer (Swift)", category: "mobile",
-    stackFamily: "swift",
-    habrSpec: "mobileapp_developer", habrSkill: "swift",
-    extraAliases: ["iOS developer", "Swift developer", "iOS engineer", "iOS разработчик"],
-    aiRisk: "medium",
-  },
-  {
-    slug: "mobileapp_kotlin", displayTitle: "Android Developer (Kotlin)", category: "mobile",
-    stackFamily: "kotlin",
-    habrSpec: "mobileapp_developer", habrSkill: "kotlin",
-    extraAliases: ["Android developer", "Kotlin developer", "Android engineer", "Android разработчик"],
-    aiRisk: "medium",
-  },
-  {
-    slug: "mobileapp_flutter", displayTitle: "Flutter Developer", category: "mobile",
-    stackFamily: "dart",
-    habrSpec: "mobileapp_developer", habrSkill: "flutter",
-    extraAliases: ["Flutter developer", "Dart developer", "Cross-platform Flutter"],
-    aiRisk: "medium",
-  },
-  {
-    slug: "mobileapp_react_native", displayTitle: "React Native Developer", category: "mobile",
-    stackFamily: "js",
-    habrSpec: "mobileapp_developer", habrSkill: "react-native",
-    extraAliases: ["React Native developer", "RN developer", "Cross-platform RN"],
-    aiRisk: "medium",
-  },
-
-  // ── DevOps / Infra ─────────────────────────────────────────────────────
-  // Collapsed cluster: DevOps + SRE + MLOps + Platform Engineer live as one
-  // canonical slug `devops`. These roles overlap heavily on the job market
-  // (same candidates, same hiring processes) and it's noise to recommend
-  // all four variants independently. Клиент с чётким запросом «хочу SRE»
-  // всё равно попадёт в devops по aliases (ниже), а в самом боте роль
-  // обсуждается словами. Рыночные цифры берём только из `ru_devops.md` /
-  // `uk_devops.md` — они репрезентативны для всего кластера.
-  {
-    slug: "devops", displayTitle: "DevOps / SRE / Platform Engineer", category: "infra",
-    habrSpec: "devops",
-    extraAliases: [
-      "DevOps", "инженер инфраструктуры",
-      "SRE", "Site Reliability Engineer", "инженер надёжности",
-      "MLOps", "MLOps Engineer", "ML инфраструктура", "ML platform engineer",
-      "Platform Engineer", "Платформенный инженер", "Internal Platform Engineer",
-      "Cloud Engineer", "Infrastructure Engineer",
-      "DevSecOps", "DevSecOps инженер", "DevSecOps engineer", "Security DevOps",
-      "FinOps", "FinOps Engineer",
-    ],
-    aiRisk: "low",
-  },
-
-  // ── Data / ML ──────────────────────────────────────────────────────────
-  {
-    slug: "data_engineer", displayTitle: "Data Engineer", category: "data",
-    habrSpec: "data_engineer",
-    extraAliases: ["Data Engineer", "ETL разработчик", "Big Data инженер", "DWH разработчик"],
-    aiRisk: "low",
-  },
-  {
-    slug: "ml_engineer", displayTitle: "ML Engineer / Data Scientist", category: "data",
-    habrSpec: "ml-engineer",
-    extraAliases: [
-      "ML Engineer", "Machine Learning инженер", "AI engineer", "LLM инженер",
-      "Data Scientist", "DS", "ML researcher", "NLP инженер", "CV инженер",
-    ],
-    aiRisk: "low",
-  },
-  {
-    slug: "data_analyst", displayTitle: "Data Analyst", category: "analytics",
-    habrSpec: "data_analyst",
-    extraAliases: ["Data Analyst", "Аналитик данных", "Дата аналитик"],
-    aiRisk: "medium",
-  },
-  {
-    slug: "product_analyst", displayTitle: "Product Analyst", category: "analytics",
-    habrSpec: "product_analyst",
-    extraAliases: ["Product Analyst", "Продакт-аналитик", "Growth аналитик", "CJM аналитик"],
-    aiRisk: "medium",
-  },
-
-  // ── QA ─────────────────────────────────────────────────────────────────
-  {
-    slug: "qa_engineer", displayTitle: "QA Automation Engineer", category: "qa",
-    habrSpec: "qa_engineer",
-    extraAliases: ["Automation QA", "SDET", "Test Automation Engineer", "Автотестировщик"],
-    aiRisk: "high",
-  },
-  {
-    slug: "manual_testing", displayTitle: "QA Manual Tester", category: "qa",
-    habrSpec: "manual_testing",
-    extraAliases: ["Manual QA", "Тестировщик ПО", "QA инженер", "Инженер по тестированию"],
-    aiRisk: "low",
-  },
-
-  // ── Management / Architecture ──────────────────────────────────────────
-  {
-    slug: "product_manager", displayTitle: "Product Manager", category: "management",
-    habrSpec: "product_manager",
-    extraAliases: ["Product Manager", "Менеджер продукта", "Продакт-менеджер", "Product Owner"],
-    aiRisk: "low",
-  },
-  {
-    slug: "project_manager", displayTitle: "Project Manager", category: "management",
-    habrSpec: "project_manager",
-    extraAliases: ["Project Manager", "Менеджер проектов", "Руководитель проекта", "Delivery Manager"],
-    aiRisk: "low",
-  },
-  {
-    slug: "tech_lead", displayTitle: "Tech Lead / Engineering Manager", category: "management",
-    habrSpec: null,
-    extraAliases: [
-      "Тимлид", "Tech Lead", "Team Lead", "Технический лид", "Lead developer", "Lead engineer",
-      "Engineering Manager", "Head of Engineering",
-      "Руководитель разработки", "Руководитель IT-отдела", "Руководитель направления разработки",
-    ],
-    aiRisk: "low",
-  },
-  {
-    slug: "software_architect", displayTitle: "Solution Architect", category: "architecture",
-    habrSpec: "software_architect",
-    extraAliases: ["Solution Architect", "Системный архитектор", "Software Architect", "Enterprise Architect"],
-    aiRisk: "low",
-  },
-
-  // ── Analysis (non-data) ────────────────────────────────────────────────
-  {
-    slug: "business_analyst", displayTitle: "Business Analyst", category: "analytics",
-    habrSpec: "business_analyst",
-    extraAliases: ["Business Analyst", "Бизнес-аналитик", "BA", "Аналитик бизнес-процессов"],
-    aiRisk: "medium",
-  },
-  {
-    slug: "systems_analyst", displayTitle: "Systems Analyst", category: "analytics",
-    habrSpec: "systems_analyst",
-    extraAliases: ["Systems Analyst", "Системный аналитик", "System Analyst"],
-    aiRisk: "medium",
-  },
-
-  // ── Design / Marketing / HR / Docs ─────────────────────────────────────
-  {
-    slug: "ui_ux_designer", displayTitle: "UX/UI Designer", category: "design",
-    habrSpec: "ui_ux_designer",
-    extraAliases: ["UX/UI designer", "UX designer", "UI designer", "Product Designer", "Дизайнер интерфейсов"],
-    aiRisk: "high",
-  },
-  {
-    slug: "marketing_manager", displayTitle: "Marketing Manager", category: "marketing",
-    habrSpec: "marketing_manager",
-    extraAliases: ["Marketing Manager", "Маркетолог", "Digital маркетолог", "Интернет маркетолог", "Бренд-менеджер"],
-    aiRisk: "medium",
-  },
-  {
-    slug: "recruiter", displayTitle: "IT Recruiter / HR", category: "hr",
-    habrSpec: "recruiter",
-    extraAliases: ["IT рекрутер", "HR менеджер", "Рекрутер", "Talent Acquisition", "IT recruiter", "Sourcer", "HR BP"],
-    aiRisk: "high",
-  },
-  {
-    slug: "technical_writer", displayTitle: "Technical Writer", category: "docs",
-    habrSpec: "technical_writer",
-    extraAliases: ["Technical Writer", "Технический писатель", "Документалист", "Documentation Engineer"],
-    aiRisk: "extreme",
-  },
-
-  // ── Security ───────────────────────────────────────────────────────────
-  {
-    slug: "infosecspec", displayTitle: "Cybersecurity / InfoSec Engineer", category: "security",
-    habrSpec: "infosecspec",
-    extraAliases: [
-      "Cybersecurity", "Специалист ИБ", "ИБ инженер", "Пентестер", "SOC аналитик",
-      "Security Engineer", "Information Security",
-    ],
-    aiRisk: "low",
-  },
-
-  // ── Other ──────────────────────────────────────────────────────────────
-  {
-    slug: "1c_developer", displayTitle: "1C Developer", category: "other",
-    stackFamily: "1c",
-    habrSpec: "1c_developer",
-    extraAliases: ["1С разработчик", "1С программист", "Разработчик 1С", "1С консультант"],
-    aiRisk: "medium",
-  },
-  {
-    slug: "gamedev_unity", displayTitle: "Unity GameDev Developer", category: "gamedev",
-    stackFamily: "unity_csharp",
-    habrSpec: "gamedev", habrSkill: "unity3d",
-    extraAliases: ["Unity разработчик", "Game developer", "Геймдев разработчик", "Unity engineer"],
-    aiRisk: "medium",
-  },
-  {
-    // У Habr нет отдельного spec для web3 / blockchain, но по сути это smart-contract
-    // разработчики (Solidity / Rust / TypeScript) — берём "backend" как прокси,
-    // probe-ru-market.ts сохранит запись с пометкой "proxy" в ru_web3_developer.md.
-    slug: "web3_developer", displayTitle: "Web3 / Blockchain Developer", category: "other",
-    stackFamily: "solidity",
-    habrSpec: "backend",
-    extraAliases: ["Web3 developer", "Blockchain разработчик", "Solidity разработчик", "Smart Contract Developer"],
-    aiRisk: "medium",
-  },
-
-  // ── Infra / Support ────────────────────────────────────────────────────
-  {
-    slug: "system_admin", displayTitle: "System Administrator", category: "infra",
-    habrSpec: "system_admin",
-    extraAliases: [
-      "System Administrator", "Системный администратор", "Sysadmin", "Сисадмин",
-      "Системный администратор Linux", "Windows-администратор", "Linux-администратор",
-    ],
-    aiRisk: "medium",
-  },
-  {
-    slug: "tech_support_manager", displayTitle: "Technical Support", category: "support",
-    habrSpec: "technical_support_manager",
-    extraAliases: [
-      "Technical Support", "Техническая поддержка", "Инженер техподдержки",
-      "IT support", "Helpdesk", "Support Engineer", "Helpdesk Engineer",
-    ],
-    aiRisk: "medium",
-  },
-];
+async function loadRolesCatalog(): Promise<RoleDef[]> {
+  const path = join(KB_DIR, ROLES_CATALOG_FILE);
+  const raw = await readFile(path, "utf-8");
+  const parsed = JSON.parse(raw) as CatalogEntry[];
+  if (!Array.isArray(parsed)) {
+    throw new Error(`[roles-catalog] ${path}: expected JSON array, got ${typeof parsed}`);
+  }
+  const roles: RoleDef[] = [];
+  for (const e of parsed) {
+    if (!e.slug) throw new Error(`[roles-catalog] entry missing 'slug': ${JSON.stringify(e)}`);
+    for (const required of ["displayTitle", "category", "aiRisk"] as const) {
+      if (!e[required]) throw new Error(`[roles-catalog] ${e.slug}: missing required '${required}'`);
+    }
+    const { notes: _ignored, ...rest } = e;
+    roles.push({
+      ...rest,
+      habrSpec: rest.habrSpec ?? null,
+    });
+  }
+  if (roles.length === 0) throw new Error(`[roles-catalog] no roles parsed from ${path}`);
+  return roles;
+}
 
 // ---------------------------------------------------------------------------
-// Alias collection — mix extraAliases + RU_TITLE_VARIANTS + displayTitle/slug variants
+// Alias collection — displayTitle + slug + catalog aliases - dropAliases
 // ---------------------------------------------------------------------------
 
 function collectAliases(def: RoleDef): string[] {
   const aliases = new Set<string>();
 
-  // displayTitle (strip parenthesised tech detail for cleaner matching)
   const title = def.displayTitle;
   aliases.add(title);
   aliases.add(title.replace(/\s*\(.*\)\s*/g, "").trim());
-
-  // slug with underscores replaced by spaces — good free-text fallback
   aliases.add(def.slug.replace(/_/g, " "));
 
-  // Hand-crafted RU variants from market-data-service (keyed by slug).
-  const variants = RU_TITLE_VARIANTS[def.slug] ?? [];
-  for (const v of variants) aliases.add(v);
-
-  // Role-specific extras
-  for (const a of def.extraAliases ?? []) aliases.add(a);
-
-  // Drop explicit undesired aliases (for EM/TL split, etc.)
+  for (const a of def.aliases ?? []) aliases.add(a);
   for (const d of def.dropAliases ?? []) aliases.delete(d);
 
   return [...aliases];
@@ -704,10 +383,13 @@ function withCompetition(
 }
 
 async function main(): Promise<void> {
-  console.log(`[market-index] Building from ${REGISTRY.length} roles…`);
+  const registry = await loadRolesCatalog();
+  console.log(
+    `[market-index] Building from ${registry.length} roles (loaded from kb/${ROLES_CATALOG_FILE})…`,
+  );
 
   const seen = new Set<string>();
-  for (const def of REGISTRY) {
+  for (const def of registry) {
     if (seen.has(def.slug)) throw new Error(`Duplicate slug: ${def.slug}`);
     seen.add(def.slug);
   }
@@ -721,7 +403,7 @@ async function main(): Promise<void> {
   );
 
   const index: MarketIndex = {};
-  for (const def of REGISTRY) {
+  for (const def of registry) {
     const ruRatio = competitionRu.get(def.slug);
     const euRatio = competitionEu.get(def.slug);
 
@@ -745,7 +427,7 @@ async function main(): Promise<void> {
 
   const entries = Object.values(index);
   const stats = {
-    total: REGISTRY.length,
+    total: registry.length,
     withRu: entries.filter((e) => e.ru).length,
     withUk: entries.filter((e) => e.uk).length,
     withRuCompetition: entries.filter(

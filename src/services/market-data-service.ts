@@ -1,7 +1,9 @@
 import { readFile, writeFile, mkdir, stat } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CandidateProfile, Direction, Region } from "../schemas/analysis-outputs.js";
+import type { MarketIndex } from "../schemas/market-index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MARKET_DATA_DIR = join(__dirname, "..", "prompts", "market-data");
@@ -74,219 +76,50 @@ export const REGIONS: Record<string, RegionConfig> = {
   },
 };
 
-// engineering manager и tech lead на ру-рынке — близкие тайтлы и часто
-// пересекаются. Используем общий набор формулировок, чтобы оба отчёта
-// показывали единую картину рынка лидов/руководителей разработки.
-const EM_TECHLEAD_VARIANTS = [
-  "Тимлид", "Tech Lead", "Team Lead", "Технический лид",
-  "Lead developer", "Lead engineer",
-  "Руководитель разработки", "Engineering Manager",
-  "Руководитель команды разработки", "Head of Engineering",
-  "Руководитель IT-отдела", "Руководитель направления разработки",
-];
+// ---------------------------------------------------------------------------
+// RU_TITLE_VARIANTS — теперь живут в `prompts/kb/roles-catalog.json` под
+// единым полем `aliases` (вместе с EN-формулировками). Сюда они попадают
+// через построенный `app/data/market-index.json`. Грузим синхронно при
+// старте, чтобы не менять сигнатуры buildRoleRuPrompt / buildTitleOptimizationPromptRu.
+// ---------------------------------------------------------------------------
+
+const MARKET_INDEX_PATH = join(__dirname, "..", "..", "data", "market-index.json");
+let CACHED_RU_TITLE_VARIANTS: Record<string, string[]> | null = null;
+
+function loadRuTitleVariants(): Record<string, string[]> {
+  if (CACHED_RU_TITLE_VARIANTS) return CACHED_RU_TITLE_VARIANTS;
+  try {
+    const idx = JSON.parse(readFileSync(MARKET_INDEX_PATH, "utf-8")) as MarketIndex;
+    const out: Record<string, string[]> = {};
+    for (const [slug, entry] of Object.entries(idx)) {
+      out[slug] = entry.aliases ?? [];
+    }
+    CACHED_RU_TITLE_VARIANTS = out;
+    return out;
+  } catch (err) {
+    console.warn(`[market-data] failed to load aliases from ${MARKET_INDEX_PATH}:`, err);
+    CACHED_RU_TITLE_VARIANTS = {};
+    return {};
+  }
+}
 
 /**
- * Russian / multilingual query variants per canonical slug. Используются в
- * probe-ru-market.ts (CLI-аргументы) и в build-market-index.ts → collectAliases
- * (для подмешивания в matcher-алиасы). Keys MUST match snake_case slugs из
- * KNOWN_ROLES / REGISTRY.
+ * Aliases per slug (RU + EN) — единый источник для probe-ru-market и Title
+ * Optimization промптов. Источник: `prompts/kb/roles-catalog.json` →
+ * `data/market-index.json`.
  */
-export const RU_TITLE_VARIANTS: Record<string, string[]> = {
-  // Backend
-  backend_java: [
-    "Java разработчик", "Java программист", "Java developer", "Java инженер",
-    "Backend Java", "Java Spring разработчик",
-  ],
-  backend_python: [
-    "Python разработчик", "Python программист", "Python developer", "Python инженер",
-    "Backend Python", "Django", "FastAPI", "Flask",
-  ],
-  backend_go: [
-    "Go разработчик", "Golang разработчик", "Golang developer", "Go программист",
-    "Backend Go", "Go инженер",
-  ],
-  backend_nodejs: [
-    "Node.js разработчик", "Node.js developer", "Node.js программист",
-    "Node разработчик", "Backend Node.js", "NestJS разработчик",
-  ],
-  backend_net: [
-    "C# разработчик", ".NET разработчик", "C# программист", "C# developer",
-    "Backend C#", "ASP.NET разработчик", ".NET инженер",
-  ],
-  backend_php: [
-    "PHP разработчик", "PHP программист", "PHP developer",
-    "Backend PHP", "Laravel разработчик", "Symfony разработчик", "Bitrix разработчик",
-  ],
-  backend_ruby: [
-    "Ruby разработчик", "Ruby on Rails", "Ruby программист",
-    "Rails разработчик", "RoR разработчик", "Backend Ruby",
-  ],
-  backend_rust: [
-    "Rust разработчик", "Rust developer", "Rust программист",
-    "Backend Rust", "Rust инженер",
-  ],
-  // C и C++ на hh.ru тоже лежат в одном пуле (embedded / systems).
-  // ВАЖНО: "C разработчик" / "Embedded C" без плюсов НЕ включать — hh.ru fuzzy-матч
-  // цепляет C# / Objective-C / упоминания буквы "C" в описании. Реального embedded C
-  // очень мало, язык C отдельной популяцией на hh практически не представлен.
-  backend_cplusplus: [
-    "C++ разработчик", "C++ программист", "C++ developer", "C/C++ разработчик",
-    "C++ инженер", "Embedded C++",
-  ],
-
-  // Frontend + Fullstack
-  frontend_react: [
-    "React разработчик", "Frontend React", "React developer", "React программист",
-    "Фронтенд React", "React инженер",
-  ],
-  frontend_vue: [
-    "Vue разработчик", "Vue.js developer", "Vue программист",
-    "Фронтенд Vue", "Nuxt разработчик", "Vue инженер",
-  ],
-  frontend_angular: [
-    "Angular разработчик", "Angular developer", "Angular программист",
-    "Фронтенд Angular", "Angular инженер",
-  ],
-  fullstack: [
-    "Fullstack разработчик", "Full stack developer", "Фулстек разработчик",
-    "Fullstack JS", "Fullstack engineer", "MERN разработчик", "Full-stack",
-  ],
-
-  // Mobile
-  mobileapp_swift: [
-    "iOS разработчик", "iOS developer", "Swift разработчик", "iOS программист",
-    "Swift developer", "iOS инженер", "iOS engineer",
-  ],
-  mobileapp_kotlin: [
-    "Android разработчик", "Android developer", "Kotlin разработчик", "Android программист",
-    "Kotlin developer", "Android инженер", "Android engineer",
-  ],
-  mobileapp_react_native: [
-    "React Native разработчик", "React Native developer", "React Native программист",
-    "RN разработчик", "React Native инженер", "Cross-platform разработчик",
-  ],
-  mobileapp_flutter: [
-    "Flutter разработчик", "Flutter developer", "Flutter программист",
-    "Flutter инженер", "Dart разработчик",
-  ],
-
-  // DevOps cluster — SRE / MLOps / Platform Engineer / DevSecOps / FinOps слиты
-  // в `devops`, берём их русские тайтлы сюда, чтобы hh.ru-скрейпер видел весь пул.
-  devops: [
-    "DevOps", "DevOps инженер", "DevOps engineer",
-    "инженер инфраструктуры", "инженер сопровождения",
-    "CI/CD инженер", "release engineer",
-    "SRE", "SRE инженер", "Site Reliability Engineer", "инженер надёжности",
-    "MLOps инженер", "MLOps Engineer", "MLOps", "ML platform engineer",
-    "Платформенный инженер", "Platform Engineer", "Инженер платформы",
-    "Internal Platform Engineer",
-    "DevSecOps инженер", "DevSecOps", "DevSecOps engineer",
-    "Security DevOps", "AppSec DevOps", "Безопасник DevOps",
-    "FinOps", "FinOps Engineer",
-  ],
-  // Data / ML
-  data_analyst: ["Аналитик данных", "Data Analyst", "Дата аналитик"],
-  product_analyst: [
-    "Продуктовый аналитик", "Product Analyst", "Аналитик продукта",
-    "Продакт-аналитик", "Growth аналитик", "CJM аналитик",
-  ],
-  data_engineer: [
-    "Инженер данных", "Data Engineer", "Дата инженер",
-    "ETL разработчик", "ETL инженер", "Big Data инженер", "DWH разработчик",
-  ],
-  // ml_engineer + data_scientist слиты в один слаг (на рынке они пересекаются
-  // настолько, что job description часто неотличимы).
-  ml_engineer: [
-    "ML инженер", "ML Engineer", "Machine Learning инженер",
-    "Инженер машинного обучения", "ML разработчик", "AI engineer", "LLM инженер",
-    "Data Scientist", "Специалист по данным", "Дата сайентист",
-    "DS", "ML researcher", "NLP инженер", "CV инженер",
-  ],
-
-  // QA
-  qa_engineer: [
-    "QA Automation", "Автоматизатор тестирования", "QA Engineer",
-    "Automation QA", "Test Automation Engineer", "SDET", "Автотестировщик",
-  ],
-  manual_testing: [
-    "QA инженер", "Тестировщик", "Manual QA",
-    "Тестировщик ПО", "Manual QA Engineer", "QA tester", "Инженер по тестированию",
-  ],
-
-  // Management / Architecture
-  product_manager: [
-    "Продакт менеджер", "Product Manager", "Менеджер продукта",
-    "Owner продукта", "Product owner",
-  ],
-  project_manager: [
-    "Проектный менеджер", "Project Manager", "Менеджер проектов",
-    "Руководитель проекта", "Руководитель проектов", "Delivery Manager",
-  ],
-  tech_lead: EM_TECHLEAD_VARIANTS,
-  software_architect: [
-    "Архитектор решений", "Solution Architect", "Системный архитектор",
-    "Архитектор ПО", "Software Architect", "Enterprise Architect", "Технический архитектор",
-  ],
-
-  // Analysis (non-data)
-  systems_analyst: ["Системный аналитик", "System Analyst"],
-  business_analyst: [
-    "Бизнес-аналитик", "Business Analyst", "Бизнес аналитик",
-    "BA", "Аналитик бизнес-процессов",
-  ],
-
-  // Design / Marketing / HR / Docs
-  ui_ux_designer: [
-    "UX/UI дизайнер", "UX дизайнер", "Продуктовый дизайнер", "UI дизайнер",
-    "Web дизайнер", "Product Designer", "Дизайнер интерфейсов", "UX/UI",
-  ],
-  marketing_manager: [
-    "Маркетолог", "Digital маркетолог", "Интернет маркетолог", "Marketing Manager",
-    "Performance маркетолог", "Product маркетолог", "Бренд-менеджер", "Head of Marketing",
-  ],
-  recruiter: [
-    "IT рекрутер", "HR менеджер", "Рекрутер", "Talent Acquisition",
-    "IT recruiter", "Sourcer", "HR BP", "HR generalist",
-  ],
-  technical_writer: [
-    "Технический писатель", "Technical Writer", "Техписатель",
-    "Документалист", "Tech Writer", "Documentation Engineer",
-  ],
-
-  // Security — чистый InfoSec / Cybersecurity (без DevSecOps: он в devops).
-  infosecspec: [
-    "Специалист по информационной безопасности", "Инженер по кибербезопасности",
-    "ИБ инженер", "Cybersecurity", "Специалист ИБ",
-    "Пентестер", "Penetration Tester", "SOC аналитик",
-    "Security Engineer", "Information Security",
-  ],
-
-  // Infra / Support
-  system_admin: [
-    "Системный администратор", "Sysadmin", "Сисадмин",
-    "System Administrator", "Linux-администратор", "Windows-администратор",
-    "Администратор серверов", "IT-администратор",
-  ],
-  tech_support_manager: [
-    "Техническая поддержка", "Инженер техподдержки", "Специалист техподдержки",
-    "IT support", "Helpdesk", "Technical Support Engineer",
-    "Инженер службы поддержки", "Support Engineer",
-  ],
-
-  // Other
-  "1c_developer": [
-    "1С разработчик", "1С программист", "Разработчик 1С",
-    "1C разработчик", "Программист 1С", "1С специалист", "1С консультант",
-  ],
-  web3_developer: [
-    "Blockchain разработчик", "Web3 developer", "Solidity разработчик",
-    "Smart Contract Developer", "Web3 разработчик", "Crypto разработчик", "EVM разработчик",
-  ],
-  gamedev_unity: [
-    "Unity разработчик", "Game developer", "Геймдев разработчик", "Unity программист",
-    "Game-разработчик", "Unity engineer", "Game developer Unity",
-  ],
-};
+export const RU_TITLE_VARIANTS: Record<string, string[]> = new Proxy(
+  {} as Record<string, string[]>,
+  {
+    get(_t, p: string) { return loadRuTitleVariants()[p]; },
+    has(_t, p: string) { return p in loadRuTitleVariants(); },
+    ownKeys() { return Object.keys(loadRuTitleVariants()); },
+    getOwnPropertyDescriptor(_t, p: string) {
+      const v = loadRuTitleVariants()[p];
+      return v === undefined ? undefined : { value: v, enumerable: true, configurable: true };
+    },
+  },
+);
 
 // ---------------------------------------------------------------------------
 // computeMarketAccess — заполняет булевые флаги и accessibleMarkets после Step 1

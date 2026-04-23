@@ -79,7 +79,11 @@ export const marketIndexEntrySchema = z.object({
    *   "solidity" | "1c"
    */
   stackFamily: z.string().optional(),
-  /** Free-text aliases (RU + EN) used by role-matcher. */
+  /**
+   * Free-text aliases (RU + EN) used by role-matcher AND probe-ru-market /
+   * Title Optimization prompts (hh.ru queries). Источник — `prompts/kb/roles-catalog.json`
+   * → поле `aliases`. Содержит и русские, и английские формулировки.
+   */
   aliases: z.array(z.string()),
 
   ru: regionStatsSchema.nullable(),

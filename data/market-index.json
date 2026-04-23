@@ -3,23 +3,24 @@
     "slug": "backend_python",
     "displayTitle": "Backend Developer (Python)",
     "category": "backend",
+    "stackFamily": "python",
     "aliases": [
       "Backend Developer (Python)",
       "Backend Developer",
       "backend python",
-      "Python разработчик",
-      "Python программист",
       "Python developer",
-      "Python инженер",
-      "Backend Python",
-      "Django",
-      "FastAPI",
-      "Flask",
       "Python engineer",
       "Django разработчик",
       "FastAPI разработчик",
       "Flask разработчик",
-      "Python backend"
+      "Python backend",
+      "Python разработчик",
+      "Python программист",
+      "Python инженер",
+      "Backend Python",
+      "Django",
+      "FastAPI",
+      "Flask"
     ],
     "ru": {
       "vacancies": 552,
@@ -42,26 +43,26 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "python"
+    "aiRisk": "medium"
   },
   "backend_java": {
     "slug": "backend_java",
     "displayTitle": "Backend Developer (Java)",
     "category": "backend",
+    "stackFamily": "java",
     "aliases": [
       "Backend Developer (Java)",
       "Backend Developer",
       "backend java",
-      "Java разработчик",
-      "Java программист",
       "Java developer",
-      "Java инженер",
-      "Backend Java",
-      "Java Spring разработчик",
       "Java engineer",
       "Spring разработчик",
-      "Java backend"
+      "Java backend",
+      "Java разработчик",
+      "Java программист",
+      "Java инженер",
+      "Backend Java",
+      "Java Spring разработчик"
     ],
     "ru": {
       "vacancies": 865,
@@ -84,27 +85,27 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "java"
+    "aiRisk": "medium"
   },
   "backend_go": {
     "slug": "backend_go",
     "displayTitle": "Backend Developer (Go)",
     "category": "backend",
+    "stackFamily": "go",
     "aliases": [
       "Backend Developer (Go)",
       "Backend Developer",
       "backend go",
-      "Go разработчик",
-      "Golang разработчик",
-      "Golang developer",
-      "Go программист",
-      "Backend Go",
-      "Go инженер",
       "Go developer",
       "Go engineer",
+      "Golang developer",
       "Golang engineer",
-      "Go backend"
+      "Go backend",
+      "Go разработчик",
+      "Golang разработчик",
+      "Go программист",
+      "Backend Go",
+      "Go инженер"
     ],
     "ru": {
       "vacancies": 465,
@@ -127,25 +128,25 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "go"
+    "aiRisk": "medium"
   },
   "backend_nodejs": {
     "slug": "backend_nodejs",
     "displayTitle": "Backend Developer (Node.js)",
     "category": "backend",
+    "stackFamily": "js",
     "aliases": [
       "Backend Developer (Node.js)",
       "Backend Developer",
       "backend nodejs",
-      "Node.js разработчик",
+      "Node developer",
       "Node.js developer",
+      "NestJS разработчик",
+      "Node backend",
+      "Node.js разработчик",
       "Node.js программист",
       "Node разработчик",
-      "Backend Node.js",
-      "NestJS разработчик",
-      "Node developer",
-      "Node backend"
+      "Backend Node.js"
     ],
     "ru": {
       "vacancies": 309,
@@ -168,26 +169,26 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "js"
+    "aiRisk": "medium"
   },
   "backend_net": {
     "slug": "backend_net",
     "displayTitle": "Backend Developer (C# / .NET)",
     "category": "backend",
+    "stackFamily": "dotnet",
     "aliases": [
       "Backend Developer (C# / .NET)",
       "Backend Developer",
       "backend net",
+      "C# developer",
+      ".NET developer",
+      "C# engineer",
+      "ASP.NET разработчик",
       "C# разработчик",
       ".NET разработчик",
       "C# программист",
-      "C# developer",
       "Backend C#",
-      "ASP.NET разработчик",
-      ".NET инженер",
-      ".NET developer",
-      "C# engineer"
+      ".NET инженер"
     ],
     "ru": {
       "vacancies": 397,
@@ -209,25 +210,25 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "dotnet"
+    "aiRisk": "medium"
   },
   "backend_php": {
     "slug": "backend_php",
     "displayTitle": "Backend Developer (PHP)",
     "category": "backend",
+    "stackFamily": "php",
     "aliases": [
       "Backend Developer (PHP)",
       "Backend Developer",
       "backend php",
-      "PHP разработчик",
-      "PHP программист",
       "PHP developer",
-      "Backend PHP",
+      "PHP engineer",
       "Laravel разработчик",
       "Symfony разработчик",
       "Bitrix разработчик",
-      "PHP engineer"
+      "PHP разработчик",
+      "PHP программист",
+      "Backend PHP"
     ],
     "ru": {
       "vacancies": 519,
@@ -249,25 +250,25 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "php"
+    "aiRisk": "medium"
   },
   "backend_ruby": {
     "slug": "backend_ruby",
     "displayTitle": "Backend Developer (Ruby)",
     "category": "backend",
+    "stackFamily": "ruby",
     "aliases": [
       "Backend Developer (Ruby)",
       "Backend Developer",
       "backend ruby",
-      "Ruby разработчик",
-      "Ruby on Rails",
-      "Ruby программист",
-      "Rails разработчик",
-      "RoR разработчик",
-      "Backend Ruby",
       "Ruby developer",
-      "RoR developer"
+      "Ruby on Rails",
+      "Rails разработчик",
+      "RoR developer",
+      "Ruby разработчик",
+      "Ruby программист",
+      "RoR разработчик",
+      "Backend Ruby"
     ],
     "ru": {
       "vacancies": 71,
@@ -289,24 +290,24 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "ruby"
+    "aiRisk": "medium"
   },
   "backend_rust": {
     "slug": "backend_rust",
     "displayTitle": "Backend Developer (Rust)",
     "category": "backend",
+    "stackFamily": "rust",
     "aliases": [
       "Backend Developer (Rust)",
       "Backend Developer",
       "backend rust",
-      "Rust разработчик",
       "Rust developer",
+      "Rust engineer",
+      "Rust backend",
+      "Rust разработчик",
       "Rust программист",
       "Backend Rust",
-      "Rust инженер",
-      "Rust engineer",
-      "Rust backend"
+      "Rust инженер"
     ],
     "ru": {
       "vacancies": 45,
@@ -328,28 +329,28 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "rust"
+    "aiRisk": "medium"
   },
   "backend_cplusplus": {
     "slug": "backend_cplusplus",
     "displayTitle": "Backend Developer (C / C++)",
     "category": "backend",
+    "stackFamily": "cpp",
     "aliases": [
       "Backend Developer (C / C++)",
       "Backend Developer",
       "backend cplusplus",
-      "C++ разработчик",
-      "C++ программист",
       "C++ developer",
-      "C/C++ разработчик",
-      "C++ инженер",
-      "Embedded C++",
       "C++ engineer",
       "C developer",
       "C engineer",
+      "C/C++ разработчик",
+      "Embedded C++",
       "Embedded C",
-      "Cplusplus"
+      "Cplusplus",
+      "C++ разработчик",
+      "C++ программист",
+      "C++ инженер"
     ],
     "ru": {
       "vacancies": 423,
@@ -370,26 +371,26 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "cpp"
+    "aiRisk": "medium"
   },
   "frontend_react": {
     "slug": "frontend_react",
     "displayTitle": "Frontend Developer (React)",
     "category": "frontend",
+    "stackFamily": "js",
     "aliases": [
       "Frontend Developer (React)",
       "Frontend Developer",
       "frontend react",
+      "React developer",
+      "React engineer",
+      "Фронтенд React",
+      "React.js разработчик",
+      "React frontend",
       "React разработчик",
       "Frontend React",
-      "React developer",
       "React программист",
-      "Фронтенд React",
-      "React инженер",
-      "React engineer",
-      "React.js разработчик",
-      "React frontend"
+      "React инженер"
     ],
     "ru": {
       "vacancies": 512,
@@ -412,25 +413,25 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "high",
-    "stackFamily": "js"
+    "aiRisk": "high"
   },
   "frontend_vue": {
     "slug": "frontend_vue",
     "displayTitle": "Frontend Developer (Vue)",
     "category": "frontend",
+    "stackFamily": "js",
     "aliases": [
       "Frontend Developer (Vue)",
       "Frontend Developer",
       "frontend vue",
-      "Vue разработчик",
+      "Vue developer",
       "Vue.js developer",
+      "Nuxt разработчик",
+      "Vue frontend",
+      "Vue разработчик",
       "Vue программист",
       "Фронтенд Vue",
-      "Nuxt разработчик",
-      "Vue инженер",
-      "Vue developer",
-      "Vue frontend"
+      "Vue инженер"
     ],
     "ru": {
       "vacancies": 209,
@@ -452,24 +453,24 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "high",
-    "stackFamily": "js"
+    "aiRisk": "high"
   },
   "frontend_angular": {
     "slug": "frontend_angular",
     "displayTitle": "Frontend Developer (Angular)",
     "category": "frontend",
+    "stackFamily": "js",
     "aliases": [
       "Frontend Developer (Angular)",
       "Frontend Developer",
       "frontend angular",
-      "Angular разработчик",
       "Angular developer",
+      "Angular engineer",
+      "Angular frontend",
+      "Angular разработчик",
       "Angular программист",
       "Фронтенд Angular",
-      "Angular инженер",
-      "Angular engineer",
-      "Angular frontend"
+      "Angular инженер"
     ],
     "ru": {
       "vacancies": 150,
@@ -491,24 +492,24 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "high",
-    "stackFamily": "js"
+    "aiRisk": "high"
   },
   "fullstack": {
     "slug": "fullstack",
     "displayTitle": "Full-stack Developer",
     "category": "fullstack",
+    "stackFamily": "js",
     "aliases": [
       "Full-stack Developer",
       "fullstack",
+      "Full stack",
+      "Full-stack",
+      "Fullstack JS",
+      "MERN разработчик",
       "Fullstack разработчик",
       "Full stack developer",
       "Фулстек разработчик",
-      "Fullstack JS",
-      "Fullstack engineer",
-      "MERN разработчик",
-      "Full-stack",
-      "Full stack"
+      "Fullstack engineer"
     ],
     "ru": {
       "vacancies": 280,
@@ -529,24 +530,24 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "js"
+    "aiRisk": "medium"
   },
   "mobileapp_swift": {
     "slug": "mobileapp_swift",
     "displayTitle": "iOS Developer (Swift)",
     "category": "mobile",
+    "stackFamily": "swift",
     "aliases": [
       "iOS Developer (Swift)",
       "iOS Developer",
       "mobileapp swift",
-      "iOS разработчик",
       "iOS developer",
+      "Swift developer",
+      "iOS engineer",
+      "iOS разработчик",
       "Swift разработчик",
       "iOS программист",
-      "Swift developer",
-      "iOS инженер",
-      "iOS engineer"
+      "iOS инженер"
     ],
     "ru": {
       "vacancies": 551,
@@ -569,24 +570,24 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "swift"
+    "aiRisk": "medium"
   },
   "mobileapp_kotlin": {
     "slug": "mobileapp_kotlin",
     "displayTitle": "Android Developer (Kotlin)",
     "category": "mobile",
+    "stackFamily": "kotlin",
     "aliases": [
       "Android Developer (Kotlin)",
       "Android Developer",
       "mobileapp kotlin",
-      "Android разработчик",
       "Android developer",
+      "Kotlin developer",
+      "Android engineer",
+      "Android разработчик",
       "Kotlin разработчик",
       "Android программист",
-      "Kotlin developer",
-      "Android инженер",
-      "Android engineer"
+      "Android инженер"
     ],
     "ru": {
       "vacancies": 601,
@@ -609,23 +610,23 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "kotlin"
+    "aiRisk": "medium"
   },
   "mobileapp_flutter": {
     "slug": "mobileapp_flutter",
     "displayTitle": "Flutter Developer",
     "category": "mobile",
+    "stackFamily": "dart",
     "aliases": [
       "Flutter Developer",
       "mobileapp flutter",
-      "Flutter разработчик",
       "Flutter developer",
+      "Dart developer",
+      "Cross-platform Flutter",
+      "Flutter разработчик",
       "Flutter программист",
       "Flutter инженер",
-      "Dart разработчик",
-      "Dart developer",
-      "Cross-platform Flutter"
+      "Dart разработчик"
     ],
     "ru": {
       "vacancies": 79,
@@ -648,24 +649,24 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "dart"
+    "aiRisk": "medium"
   },
   "mobileapp_react_native": {
     "slug": "mobileapp_react_native",
     "displayTitle": "React Native Developer",
     "category": "mobile",
+    "stackFamily": "js",
     "aliases": [
       "React Native Developer",
       "mobileapp react native",
-      "React Native разработчик",
       "React Native developer",
+      "RN developer",
+      "Cross-platform RN",
+      "React Native разработчик",
       "React Native программист",
       "RN разработчик",
       "React Native инженер",
-      "Cross-platform разработчик",
-      "RN developer",
-      "Cross-platform RN"
+      "Cross-platform разработчик"
     ],
     "ru": {
       "vacancies": 74,
@@ -688,8 +689,7 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "js"
+    "aiRisk": "medium"
   },
   "devops": {
     "slug": "devops",
@@ -699,35 +699,35 @@
       "DevOps / SRE / Platform Engineer",
       "devops",
       "DevOps",
+      "инженер инфраструктуры",
+      "SRE",
+      "Site Reliability Engineer",
+      "инженер надёжности",
+      "MLOps",
+      "MLOps Engineer",
+      "ML инфраструктура",
+      "ML platform engineer",
+      "Platform Engineer",
+      "Платформенный инженер",
+      "Internal Platform Engineer",
+      "Cloud Engineer",
+      "Infrastructure Engineer",
+      "DevSecOps",
+      "DevSecOps инженер",
+      "DevSecOps engineer",
+      "Security DevOps",
+      "FinOps",
+      "FinOps Engineer",
       "DevOps инженер",
       "DevOps engineer",
-      "инженер инфраструктуры",
       "инженер сопровождения",
       "CI/CD инженер",
       "release engineer",
-      "SRE",
       "SRE инженер",
-      "Site Reliability Engineer",
-      "инженер надёжности",
       "MLOps инженер",
-      "MLOps Engineer",
-      "MLOps",
-      "ML platform engineer",
-      "Платформенный инженер",
-      "Platform Engineer",
       "Инженер платформы",
-      "Internal Platform Engineer",
-      "DevSecOps инженер",
-      "DevSecOps",
-      "DevSecOps engineer",
-      "Security DevOps",
       "AppSec DevOps",
-      "Безопасник DevOps",
-      "FinOps",
-      "FinOps Engineer",
-      "ML инфраструктура",
-      "Cloud Engineer",
-      "Infrastructure Engineer"
+      "Безопасник DevOps"
     ],
     "ru": {
       "vacancies": 1132,
@@ -759,12 +759,12 @@
     "aliases": [
       "Data Engineer",
       "data engineer",
+      "ETL разработчик",
+      "Big Data инженер",
+      "DWH разработчик",
       "Инженер данных",
       "Дата инженер",
-      "ETL разработчик",
-      "ETL инженер",
-      "Big Data инженер",
-      "DWH разработчик"
+      "ETL инженер"
     ],
     "ru": {
       "vacancies": 1491,
@@ -796,20 +796,20 @@
     "aliases": [
       "ML Engineer / Data Scientist",
       "ml engineer",
-      "ML инженер",
       "ML Engineer",
       "Machine Learning инженер",
-      "Инженер машинного обучения",
-      "ML разработчик",
       "AI engineer",
       "LLM инженер",
       "Data Scientist",
-      "Специалист по данным",
-      "Дата сайентист",
       "DS",
       "ML researcher",
       "NLP инженер",
-      "CV инженер"
+      "CV инженер",
+      "ML инженер",
+      "Инженер машинного обучения",
+      "ML разработчик",
+      "Специалист по данным",
+      "Дата сайентист"
     ],
     "ru": {
       "vacancies": 590,
@@ -874,11 +874,11 @@
     "aliases": [
       "Product Analyst",
       "product analyst",
-      "Продуктовый аналитик",
-      "Аналитик продукта",
       "Продакт-аналитик",
       "Growth аналитик",
-      "CJM аналитик"
+      "CJM аналитик",
+      "Продуктовый аналитик",
+      "Аналитик продукта"
     ],
     "ru": {
       "vacancies": 1701,
@@ -909,13 +909,13 @@
     "aliases": [
       "QA Automation Engineer",
       "qa engineer",
+      "Automation QA",
+      "SDET",
+      "Test Automation Engineer",
+      "Автотестировщик",
       "QA Automation",
       "Автоматизатор тестирования",
-      "QA Engineer",
-      "Automation QA",
-      "Test Automation Engineer",
-      "SDET",
-      "Автотестировщик"
+      "QA Engineer"
     ],
     "ru": {
       "vacancies": 971,
@@ -947,13 +947,13 @@
     "aliases": [
       "QA Manual Tester",
       "manual testing",
-      "QA инженер",
-      "Тестировщик",
       "Manual QA",
       "Тестировщик ПО",
+      "QA инженер",
+      "Инженер по тестированию",
+      "Тестировщик",
       "Manual QA Engineer",
-      "QA tester",
-      "Инженер по тестированию"
+      "QA tester"
     ],
     "ru": {
       "vacancies": 891,
@@ -984,12 +984,11 @@
     "aliases": [
       "Product Manager",
       "product manager",
-      "Продакт менеджер",
       "Менеджер продукта",
-      "Owner продукта",
-      "Product owner",
       "Продакт-менеджер",
-      "Product Owner"
+      "Product Owner",
+      "Продакт менеджер",
+      "Owner продукта"
     ],
     "ru": {
       "vacancies": 3638,
@@ -1021,11 +1020,11 @@
     "aliases": [
       "Project Manager",
       "project manager",
-      "Проектный менеджер",
       "Менеджер проектов",
       "Руководитель проекта",
-      "Руководитель проектов",
-      "Delivery Manager"
+      "Delivery Manager",
+      "Проектный менеджер",
+      "Руководитель проектов"
     ],
     "ru": {
       "vacancies": 2554,
@@ -1061,12 +1060,12 @@
       "Технический лид",
       "Lead developer",
       "Lead engineer",
-      "Руководитель разработки",
       "Engineering Manager",
-      "Руководитель команды разработки",
       "Head of Engineering",
+      "Руководитель разработки",
       "Руководитель IT-отдела",
-      "Руководитель направления разработки"
+      "Руководитель направления разработки",
+      "Руководитель команды разработки"
     ],
     "ru": {
       "vacancies": 1052,
@@ -1097,11 +1096,11 @@
     "aliases": [
       "Solution Architect",
       "software architect",
-      "Архитектор решений",
       "Системный архитектор",
-      "Архитектор ПО",
       "Software Architect",
       "Enterprise Architect",
+      "Архитектор решений",
+      "Архитектор ПО",
       "Технический архитектор"
     ],
     "ru": {
@@ -1134,9 +1133,9 @@
       "Business Analyst",
       "business analyst",
       "Бизнес-аналитик",
-      "Бизнес аналитик",
       "BA",
-      "Аналитик бизнес-процессов"
+      "Аналитик бизнес-процессов",
+      "Бизнес аналитик"
     ],
     "ru": {
       "vacancies": 1768,
@@ -1192,7 +1191,7 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "high"
   },
   "ui_ux_designer": {
     "slug": "ui_ux_designer",
@@ -1201,17 +1200,17 @@
     "aliases": [
       "UX/UI Designer",
       "ui ux designer",
+      "UX/UI designer",
+      "UX designer",
+      "UI designer",
+      "Product Designer",
+      "Дизайнер интерфейсов",
       "UX/UI дизайнер",
       "UX дизайнер",
       "Продуктовый дизайнер",
       "UI дизайнер",
       "Web дизайнер",
-      "Product Designer",
-      "Дизайнер интерфейсов",
-      "UX/UI",
-      "UX/UI designer",
-      "UX designer",
-      "UI designer"
+      "UX/UI"
     ],
     "ru": {
       "vacancies": 595,
@@ -1244,9 +1243,9 @@
       "Маркетолог",
       "Digital маркетолог",
       "Интернет маркетолог",
+      "Бренд-менеджер",
       "Performance маркетолог",
       "Product маркетолог",
-      "Бренд-менеджер",
       "Head of Marketing"
     ],
     "ru": {
@@ -1311,10 +1310,10 @@
       "Technical Writer",
       "technical writer",
       "Технический писатель",
-      "Техписатель",
       "Документалист",
-      "Tech Writer",
-      "Documentation Engineer"
+      "Documentation Engineer",
+      "Техписатель",
+      "Tech Writer"
     ],
     "ru": {
       "vacancies": 242,
@@ -1344,16 +1343,16 @@
     "aliases": [
       "Cybersecurity / InfoSec Engineer",
       "infosecspec",
-      "Специалист по информационной безопасности",
-      "Инженер по кибербезопасности",
-      "ИБ инженер",
       "Cybersecurity",
       "Специалист ИБ",
+      "ИБ инженер",
       "Пентестер",
-      "Penetration Tester",
       "SOC аналитик",
       "Security Engineer",
-      "Information Security"
+      "Information Security",
+      "Специалист по информационной безопасности",
+      "Инженер по кибербезопасности",
+      "Penetration Tester"
     ],
     "ru": {
       "vacancies": 851,
@@ -1380,16 +1379,17 @@
     "slug": "1c_developer",
     "displayTitle": "1C Developer",
     "category": "other",
+    "stackFamily": "1c",
     "aliases": [
       "1C Developer",
       "1c developer",
       "1С разработчик",
       "1С программист",
       "Разработчик 1С",
+      "1С консультант",
       "1C разработчик",
       "Программист 1С",
-      "1С специалист",
-      "1С консультант"
+      "1С специалист"
     ],
     "ru": {
       "vacancies": 2025,
@@ -1405,22 +1405,22 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "1c"
+    "aiRisk": "medium"
   },
   "gamedev_unity": {
     "slug": "gamedev_unity",
     "displayTitle": "Unity GameDev Developer",
     "category": "gamedev",
+    "stackFamily": "unity_csharp",
     "aliases": [
       "Unity GameDev Developer",
       "gamedev unity",
       "Unity разработчик",
       "Game developer",
       "Геймдев разработчик",
+      "Unity engineer",
       "Unity программист",
       "Game-разработчик",
-      "Unity engineer",
       "Game developer Unity"
     ],
     "ru": {
@@ -1442,18 +1442,18 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "unity_csharp"
+    "aiRisk": "medium"
   },
   "web3_developer": {
     "slug": "web3_developer",
     "displayTitle": "Web3 / Blockchain Developer",
     "category": "other",
+    "stackFamily": "solidity",
     "aliases": [
       "Web3 / Blockchain Developer",
       "web3 developer",
-      "Blockchain разработчик",
       "Web3 developer",
+      "Blockchain разработчик",
       "Solidity разработчик",
       "Smart Contract Developer",
       "Web3 разработчик",
@@ -1479,8 +1479,7 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium",
-    "stackFamily": "solidity"
+    "aiRisk": "medium"
   },
   "system_admin": {
     "slug": "system_admin",
@@ -1492,11 +1491,11 @@
       "Системный администратор",
       "Sysadmin",
       "Сисадмин",
-      "Linux-администратор",
+      "Системный администратор Linux",
       "Windows-администратор",
+      "Linux-администратор",
       "Администратор серверов",
-      "IT-администратор",
-      "Системный администратор Linux"
+      "IT-администратор"
     ],
     "ru": {
       "vacancies": 244,
@@ -1528,13 +1527,13 @@
       "tech support manager",
       "Техническая поддержка",
       "Инженер техподдержки",
-      "Специалист техподдержки",
       "IT support",
       "Helpdesk",
-      "Technical Support Engineer",
-      "Инженер службы поддержки",
       "Support Engineer",
-      "Helpdesk Engineer"
+      "Helpdesk Engineer",
+      "Специалист техподдержки",
+      "Technical Support Engineer",
+      "Инженер службы поддержки"
     ],
     "ru": {
       "vacancies": 3045,
