@@ -248,19 +248,30 @@ ${baselineTable}
 
 ${gapList}
 
-## STRICT RULES (anti-hallucination)
+## RULES (anti-hallucination, but PREFER estimate over null)
 
-1. **If you don't know — return null. Inventing numbers is FORBIDDEN.**
-2. For EVERY non-null value you return, include URL citations in the \`citations\` array. No URL = no number.
-3. If your number is an estimate by analogy (e.g. "role X is similar to Y in skills, so I take 70% of Y"), put that explanation in \`reasoning\` field. This is an ESTIMATE, not a fact.
-4. You do NOT have direct LinkedIn API access. If data is only available from LinkedIn widgets — return null. Do not guess.
-5. Trustworthy sources: itjobswatch.co.uk, hh.ru, glassdoor.com, levels.fyi, Stack Overflow Developer Survey 2024-2025, Eurostat, Trueup, official government statistics. AVOID generic "search engine snippets" or "general knowledge".
-6. \`bucket\`:
-   - If client targets RU/CIS — use "ru" and report numbers in RUB
-   - Otherwise — use "abroad" and report numbers in GBP/EUR/USD (specify in \`medianSalaryCurrency\`)
-7. \`competitionPer100\`: vacancies per 100 specialists in the region (LinkedIn talent insights / hh.ru index, etc.). If unavailable — null.
-8. \`aiRisk\`: low / medium / high / extreme — your assessment of how AI will affect this role over 3-5 years. Required field, but only fill if you have any reasonable basis.
-9. \`trendRatio\`: ratio relative to 2 years ago (1.15 = +15% growth, 0.85 = -15%). If unavailable — null.
+1. **Inventing precise numbers without ANY basis is forbidden.** But if a precise figure is unavailable, you MUST give a best-effort ESTIMATE with reasoning — null should be the LAST resort, not the first.
+2. For every non-null value, prefer URL citations in the \`citations\` array. If you only have indirect evidence (job-board snippets, Glassdoor user reports, news articles, Reddit/Blind threads) — still cite the URLs and put a short note in \`reasoning\` like "estimate from N Glassdoor reports + 2 jobboards".
+3. ESTIMATE-FALLBACK is ENCOURAGED. Examples that are OK:
+   - "no UK itjobswatch entry; medianSalaryMid = 55% of HR Manager UK salary based on Glassdoor median for Recruiter role" → put in \`reasoning\`.
+   - "vacancies = order-of-magnitude from indeed.com/uk search '\\"recruiter\\"'" → cite the search URL.
+4. Trustworthy sources (broad list, use any combination):
+   - **Job boards**: itjobswatch.co.uk, indeed.com (any country TLD), reed.co.uk, totaljobs.co.uk, stepstone.de/.fr, talent.com, ziprecruiter.com, welcometothejungle.com, jobs.ch, hh.ru, hh.kz.
+   - **Salary aggregators**: glassdoor.com, levels.fyi, payscale.com, salary.com, salaryexpert.com, kununu.com, salaries.dev.
+   - **Surveys/stats**: Stack Overflow Developer Survey 2024/2025, Trueup, Eurostat, OECD, BLS, government stats.
+   - **LinkedIn web pages** (search results, public job pages) are OK to cite, but you don't have LinkedIn API access.
+5. \`bucket\`: if client targets RU/CIS — "ru" + RUB. Otherwise — "abroad" + GBP/EUR/USD (specify in \`medianSalaryCurrency\`).
+6. \`vacancies\`: count of open roles in the region. If exact number unknown — round to nearest 50/100/500 and put a note in \`reasoning\`.
+7. \`competitionPer100\`: vacancies per 100 specialists. If LinkedIn talent insights unavailable, estimate from market saturation (popular roles like recruiter/PM in EU → ~1-3, niche roles → 5-10). Always estimate when possible.
+8. \`aiRisk\`: low / medium / high / extreme — your assessment for 3-5 years. ALWAYS fill (this is qualitative, no source needed).
+9. \`trendRatio\`: ratio vs 2 years ago (1.15 = +15%). If unavailable — null is OK here.
+
+## NULL is acceptable ONLY when
+
+- The role is so obscure that no source mentions it (less than 10 google hits), AND no analogous role exists.
+- You have no idea even of the order of magnitude.
+
+In all other cases — give an ESTIMATE with reasoning. The downstream UI shows a "[~]" badge for estimates, so it's clear they're not exact.
 
 ## Output
 
@@ -341,7 +352,7 @@ async function callPerplexityBatch(
 
 // ─── Validate-gate (anti-fantasy) ────────────────────────────────────────────
 
-const ANALOGY_MARKERS = /\b(estimate|analogy|approximate|approximately|по аналогии|оценка|примерно)\b/i;
+const ANALOGY_MARKERS = /\b(estimate|estimat|analogy|approximate|approximately|midpoint|order[- ]of[- ]magnitude|rounded|indirect|по аналогии|оценка|примерно|приблизительно)\b/i;
 
 interface ValidatedFill {
   slug: string;
@@ -503,7 +514,7 @@ export async function enrichGapsForClient(
   // Промпт + cache key. CACHE_VERSION ломаем когда меняется логика
   // парсинга ответа Perplexity (validateFill, и т.п.), чтобы старые
   // (потенциально пустые) fills не цеплялись.
-  const CACHE_VERSION = "v2-rawcites";
+  const CACHE_VERSION = "v3-broader-sources-estimate-encouraged";
   const prompt = buildBatchPrompt(gaps, baseline, summary);
   const cacheKey = createHash("sha256")
     .update(`${CACHE_VERSION}|${prompt}`)
