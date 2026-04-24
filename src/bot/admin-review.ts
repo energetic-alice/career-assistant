@@ -3,8 +3,12 @@ import { Markup } from "telegraf";
 import { Input } from "telegraf";
 import { getAdminChatId, getBot } from "./bot-instance.js";
 import { getPipelineState } from "../pipeline/intake.js";
-import { dispatchShortlistCallback, startShortlist } from "./shortlist-review.js";
-import { dispatchDeepCallback } from "./deep-review.js";
+import {
+  dispatchShortlistCallback,
+  resendShortlist,
+  startShortlist,
+} from "./shortlist-review.js";
+import { dispatchDeepCallback, resendDeep } from "./deep-review.js";
 import {
   formatQuestionnaireForTelegram,
   formatClientCardForTelegram,
@@ -35,18 +39,55 @@ const STAGES_WITH_APPROVED: ReadonlySet<string> = new Set([
 function buildAnalyzeKeyboard(
   participantId: string,
   stage: string,
+  outputs: Record<string, unknown>,
 ): InlineKeyboardMarkup | undefined {
-  const rows = [
-    [Markup.button.callback("🔍 Предварительный анализ", `analyze:${participantId}`)],
-  ];
+  const rows: ReturnType<typeof Markup.button.callback>[][] = [];
+
+  // Если уже есть сохранённый shortlist — приоритетная кнопка «открыть
+  // существующий» (re-render из state, без перезапуска анализа).
+  const shortlist = outputs.shortlist as { slots?: unknown[] } | undefined;
+  const hasShortlist = !!shortlist?.slots && shortlist.slots.length > 0;
+  if (hasShortlist) {
+    rows.push([
+      Markup.button.callback(
+        "📋 Открыть shortlist",
+        `show_shortlist:${participantId}`,
+      ),
+    ]);
+  }
+
+  rows.push([
+    Markup.button.callback(
+      hasShortlist
+        ? "🔄 Перезапустить предварительный анализ"
+        : "🔍 Предварительный анализ",
+      `analyze:${participantId}`,
+    ),
+  ]);
+
+  // Глубокий анализ: если уже есть готовый Phase 2 — кнопка «открыть»,
+  // иначе (но shortlist одобрен) — «запустить Phase 2».
+  const deep = outputs.deepReview as { slots?: unknown[] } | undefined;
+  const hasDeep = !!deep?.slots && deep.slots.length > 0;
+  if (hasDeep) {
+    rows.push([
+      Markup.button.callback(
+        "🔬 Открыть глубокий анализ",
+        `show_deep:${participantId}`,
+      ),
+    ]);
+  }
   if (STAGES_WITH_APPROVED.has(stage)) {
     rows.push([
       Markup.button.callback(
-        "🔬 Глубокий анализ (Phase 2)",
+        hasDeep
+          ? "🔄 Перезапустить глубокий анализ (Phase 2)"
+          : "🔬 Глубокий анализ (Phase 2)",
         `analyze_deep:${participantId}`,
       ),
     ]);
   }
+
   return Markup.inlineKeyboard(rows).reply_markup;
 }
 
@@ -94,7 +135,7 @@ export async function sendClientCard(
   });
 
   const replyMarkup =
-    options.replyMarkup ?? buildAnalyzeKeyboard(participantId, state.stage);
+    options.replyMarkup ?? buildAnalyzeKeyboard(participantId, state.stage, outputs);
 
   const nick = normalizeNick(state.telegramNick) || "client";
   const safeNick = nick.replace(/[^a-zA-Z0-9_\-]/g, "_");
@@ -176,6 +217,40 @@ export async function sendIntakeNotification(participantId: string): Promise<voi
  */
 async function handleAnalyze(participantId: string, ctx: Context): Promise<void> {
   await startShortlist(participantId, ctx);
+}
+
+/**
+ * Перерисовать сохранённый shortlist в чате — без перезапуска анализа.
+ * Используется когда админ повторно открывает карточку: старые сообщения
+ * уехали наверх / >48ч — кнопки на них не работают.
+ */
+async function handleShowShortlist(
+  participantId: string,
+  ctx: Context,
+): Promise<void> {
+  const chatId = ctx.chat?.id;
+  if (chatId == null) return;
+  const ok = await resendShortlist(participantId, chatId);
+  if (!ok) {
+    await ctx.reply(
+      "Сохранённого shortlist нет — нажми «🔍 Предварительный анализ», чтобы построить.",
+    );
+  }
+}
+
+/** То же самое для Phase 2. */
+async function handleShowDeep(
+  participantId: string,
+  ctx: Context,
+): Promise<void> {
+  const chatId = ctx.chat?.id;
+  if (chatId == null) return;
+  const ok = await resendDeep(participantId, chatId);
+  if (!ok) {
+    await ctx.reply(
+      "Сохранённого глубокого анализа нет — запусти Phase 2 кнопкой выше.",
+    );
+  }
 }
 
 /**
@@ -283,6 +358,12 @@ export function registerAdminReview(bot: Telegraf): void {
         break;
       case "analyze_deep":
         await handleAnalyzeDeep(participantId, ctx);
+        break;
+      case "show_shortlist":
+        await handleShowShortlist(participantId, ctx);
+        break;
+      case "show_deep":
+        await handleShowDeep(participantId, ctx);
         break;
       default:
         break;

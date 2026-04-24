@@ -330,10 +330,28 @@ async function sendDirection(
 
 async function deleteDirectionMessage(slot: DirectionSlot): Promise<void> {
   if (slot.messageChatId == null || slot.messageId == null) return;
+  const bot = getBot();
+  const chatId = slot.messageChatId;
+  const messageId = slot.messageId;
   try {
-    await getBot().telegram.deleteMessage(slot.messageChatId, slot.messageId);
+    await bot.telegram.deleteMessage(chatId, messageId);
   } catch (err) {
-    console.error("[Shortlist] deleteMessage failed:", err);
+    // Telegram bots не могут удалять сообщения старше 48ч (или иногда удаление
+    // запрещено настройками чата). В этом случае помечаем карточку как удалённую
+    // через editMessageText + снимаем клавиатуру — иначе админу кажется что
+    // «кнопка не работает» (стейт обновлён, но сообщение в чате осталось).
+    console.warn("[Shortlist] deleteMessage failed, fallback to edit:", err);
+    try {
+      await bot.telegram.editMessageText(
+        chatId,
+        messageId,
+        undefined,
+        "🗑 <i>Удалено куратором.</i>",
+        { parse_mode: "HTML" },
+      );
+    } catch (editErr) {
+      console.error("[Shortlist] edit-fallback also failed:", editErr);
+    }
   }
   slot.messageChatId = undefined;
   slot.messageId = undefined;
@@ -391,6 +409,36 @@ function isAdminCtx(ctx: Context): boolean {
 // ─────────────────────────────────────────────────────────────────────────────
 // Actions
 // ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Перерисовать сохранённый shortlist в чате (без перезапуска анализа).
+ * Используется когда админ повторно открывает карточку клиента после рестарта
+ * бота / навигации по чату — старые сообщения уехали наверх или Telegram
+ * больше не даёт их редактировать (>48 ч). Шлём свежий header + по сообщению
+ * на каждый активный слот; обновляем `messageChatId/messageId` чтобы кнопки
+ * delete/reject снова попадали по живым карточкам.
+ *
+ * Возвращает true если что-то отрисовали, false если нет сохранённого стейта.
+ */
+export async function resendShortlist(
+  participantId: string,
+  chatId: number | string,
+): Promise<boolean> {
+  const shortlist = loadShortlist(participantId);
+  if (!shortlist || shortlist.slots.length === 0) return false;
+
+  const header = await sendHeader(chatId, participantId, shortlist);
+  shortlist.headerChatId = header.chatId;
+  shortlist.headerMessageId = header.messageId;
+
+  for (const slot of shortlist.slots) {
+    // sendDirection обновляет slot.messageChatId/messageId по месту
+    await sendDirection(chatId, participantId, shortlist, slot);
+  }
+
+  saveShortlist(participantId, shortlist);
+  return true;
+}
 
 /**
  * Запуск Phase 1 (shortlist) по клику "Предварительный анализ".
@@ -506,6 +554,11 @@ async function handleDelete(
   await refreshDirectionNumbers(participantId, shortlist);
   await editHeader(participantId, shortlist);
   saveShortlist(participantId, shortlist);
+  try {
+    await ctx.answerCbQuery("🗑 Удалено.");
+  } catch {
+    // already answered by upstream dispatcher — ok
+  }
 }
 
 /**

@@ -232,10 +232,26 @@ async function sendDeepDirection(
 
 async function deleteDeepMessage(slot: DeepDirectionSlot): Promise<void> {
   if (slot.messageChatId == null || slot.messageId == null) return;
+  const bot = getBot();
+  const chatId = slot.messageChatId;
+  const messageId = slot.messageId;
   try {
-    await getBot().telegram.deleteMessage(slot.messageChatId, slot.messageId);
+    await bot.telegram.deleteMessage(chatId, messageId);
   } catch (err) {
-    console.error("[Deep] deleteMessage failed:", err);
+    // > 48 ч — Telegram запрещает удаление; помечаем сообщение как удалённое,
+    // иначе админу кажется что «кнопка не работает».
+    console.warn("[Deep] deleteMessage failed, fallback to edit:", err);
+    try {
+      await bot.telegram.editMessageText(
+        chatId,
+        messageId,
+        undefined,
+        "🗑 <i>Удалено куратором.</i>",
+        { parse_mode: "HTML" },
+      );
+    } catch (editErr) {
+      console.error("[Deep] edit-fallback also failed:", editErr);
+    }
   }
   slot.messageChatId = undefined;
   slot.messageId = undefined;
@@ -345,18 +361,47 @@ export async function startDeepReview(
   return state;
 }
 
+/**
+ * Перерисовать сохранённый Phase 2 в чате (без повторного enrichment).
+ * Используется когда админ повторно открывает карточку клиента — старые
+ * сообщения уехали наверх / >48 ч → кнопки на них не работают. Шлём свежий
+ * header + по сообщению на каждый слот; обновляем messageChatId/messageId,
+ * чтобы delete/reject снова попадали по живым карточкам.
+ */
+export async function resendDeep(
+  participantId: string,
+  chatId: number | string,
+): Promise<boolean> {
+  const state = loadDeep(participantId);
+  if (!state || state.slots.length === 0) return false;
+
+  const header = await sendDeepHeader(chatId, participantId, state);
+  state.headerChatId = header.chatId;
+  state.headerMessageId = header.messageId;
+
+  for (const slot of state.slots) {
+    await sendDeepDirection(chatId, participantId, state, slot);
+  }
+
+  saveDeep(participantId, state);
+  return true;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Callbacks
 // ─────────────────────────────────────────────────────────────────────────────
 
 function isAdminCtx(ctx: Context): boolean {
-  // Same logic as shortlist-review — повторять не хочется, но импорт
-  // лишний; chat обычно === admin chat. Ленивая проверка:
-  const adminChat = process.env.ADMIN_CHAT_ID
-    ? Number(process.env.ADMIN_CHAT_ID)
-    : null;
-  if (adminChat == null) return true;
-  return ctx.chat?.id === adminChat;
+  const chatId = ctx.chat?.id ?? ctx.from?.id;
+  if (chatId == null) return false;
+  // Канонический env var — TELEGRAM_ADMIN_CHAT_ID (см. bot-instance.ts).
+  // ADMIN_CHAT_ID оставлен как fallback для совместимости со старой
+  // конфигурацией (Render env), но новый код должен ставить именно
+  // TELEGRAM_ADMIN_CHAT_ID.
+  const adminId =
+    process.env.TELEGRAM_ADMIN_CHAT_ID ?? process.env.ADMIN_CHAT_ID ?? null;
+  if (adminId == null) return true;
+  return String(chatId) === String(adminId);
 }
 
 async function handleDelete(
