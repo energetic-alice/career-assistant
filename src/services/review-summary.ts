@@ -246,6 +246,100 @@ export function formatQuestionnaireForTelegram(
   return buildHtmlDoc(title, pairs, unmapped);
 }
 
+export interface ResumeDocumentVersion {
+  id?: string;
+  createdAt?: string;
+  source?: string;
+  sourceFileName?: string;
+  mimeType?: string;
+  textLength?: number;
+  text?: string;
+}
+
+export function formatResumeForTelegram(input: {
+  title?: string;
+  resumeText?: string;
+  resumeVersions?: ResumeDocumentVersion[];
+  activeResumeVersionId?: string;
+  rawNamedValues?: Record<string, string>;
+  clientSummary?: ClientSummary;
+}): string | null {
+  const versions = input.resumeVersions ?? [];
+  const activeVersion =
+    (input.activeResumeVersionId
+      ? versions.find((v) => v.id === input.activeResumeVersionId)
+      : undefined) ?? versions[versions.length - 1];
+
+  const text = (activeVersion?.text || input.resumeText || "").trim();
+  const sourceUrls = new Set<string>();
+
+  for (const [key, value] of Object.entries(input.rawNamedValues ?? {})) {
+    if (!/резюме/i.test(key)) continue;
+    for (const url of value.match(/https?:\/\/[^\s,]+/g) ?? []) {
+      sourceUrls.add(url);
+    }
+  }
+
+  const summaryUrls = input.clientSummary?.resumeUrls?.length
+    ? input.clientSummary.resumeUrls
+    : input.clientSummary?.resumeUrl
+      ? [input.clientSummary.resumeUrl]
+      : [];
+  for (const url of summaryUrls) {
+    if (url) sourceUrls.add(url);
+  }
+
+  if (
+    activeVersion?.source === "google_drive_url" &&
+    activeVersion.sourceFileName?.startsWith("http")
+  ) {
+    sourceUrls.add(activeVersion.sourceFileName);
+  }
+
+  if (!text && sourceUrls.size === 0) return null;
+
+  const pairs: { question: string; answer: string }[] = [];
+  if (sourceUrls.size > 0) {
+    pairs.push({
+      question: "Исходные ссылки на резюме",
+      answer: [...sourceUrls].join("\n"),
+    });
+  }
+
+  if (activeVersion) {
+    const meta = [
+      activeVersion.createdAt ? `Дата: ${activeVersion.createdAt}` : "",
+      activeVersion.source ? `Источник: ${activeVersion.source}` : "",
+      activeVersion.sourceFileName ? `Файл/ссылка: ${activeVersion.sourceFileName}` : "",
+      activeVersion.mimeType ? `MIME: ${activeVersion.mimeType}` : "",
+      activeVersion.textLength != null ? `Длина: ${activeVersion.textLength} символов` : "",
+    ].filter(Boolean);
+    if (meta.length > 0) {
+      pairs.push({ question: "Активная версия", answer: meta.join("\n") });
+    }
+  } else if (text) {
+    pairs.push({ question: "Активная версия", answer: "Текст из текущего pipeline input" });
+  }
+
+  if (versions.length > 1) {
+    const history = versions.map((v, idx) => {
+      const active = v.id && v.id === input.activeResumeVersionId ? "активная" : "";
+      const created = v.createdAt ?? "unknown date";
+      const source = v.source ?? "unknown source";
+      const length = v.textLength != null ? `${v.textLength} символов` : "длина неизвестна";
+      return `${idx + 1}. ${created} · ${source} · ${length}${active ? ` · ${active}` : ""}`;
+    });
+    pairs.push({ question: "История версий", answer: history.join("\n") });
+  }
+
+  pairs.push({
+    question: "Распознанный текст резюме",
+    answer: text || "Пока нет распознанного текста. Есть только исходная ссылка выше.",
+  });
+
+  return buildHtmlDoc(input.title ?? "Резюме клиента", pairs);
+}
+
 export const STAGE_LABELS: Record<PipelineStage, string> = {
   intake_received: "🟡 Анкета получена",
   resume_parsed: "🟡 Резюме распознано",

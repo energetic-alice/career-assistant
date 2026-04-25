@@ -12,6 +12,8 @@ import { dispatchDeepCallback, resendDeep } from "./deep-review.js";
 import {
   formatQuestionnaireForTelegram,
   formatClientCardForTelegram,
+  formatResumeForTelegram,
+  type ResumeDocumentVersion,
 } from "../services/review-summary.js";
 import type { RawQuestionnaire } from "../schemas/participant.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
@@ -122,6 +124,12 @@ export async function sendClientCard(
   const clientSummary = outputs.clientSummary as ClientSummary | undefined;
   const legacyDocUrl = outputs.legacyDocUrl as string | undefined;
   const legacyTariff = outputs.legacyTariff as string | undefined;
+  const analysisInput = outputs.analysisInput as { resumeText?: string } | undefined;
+  const pipelineInput = outputs.pipelineInput as { resumeText?: string } | undefined;
+  const resumeVersions = Array.isArray(outputs.resumeVersions)
+    ? (outputs.resumeVersions as ResumeDocumentVersion[])
+    : undefined;
+  const activeResumeVersionId = outputs.activeResumeVersionId as string | undefined;
 
   const cardHtml = formatClientCardForTelegram({
     telegramNick: state.telegramNick,
@@ -144,13 +152,23 @@ export async function sendClientCard(
     title: `Анкета @${nick}`,
     unmapped: unmappedFields,
   });
+  const resumeHtmlDoc = formatResumeForTelegram({
+    title: `Резюме @${nick}`,
+    resumeText: analysisInput?.resumeText || pipelineInput?.resumeText,
+    resumeVersions,
+    activeResumeVersionId,
+    rawNamedValues,
+    clientSummary,
+  });
 
   const buffer = Buffer.from(htmlDoc, "utf-8");
+  const resumeBuffer = resumeHtmlDoc ? Buffer.from(resumeHtmlDoc, "utf-8") : null;
 
   // Базовый кейс (как раньше): карточка = caption прикреплённого файла, всё
   // приходит одним сообщением. Telegram режет caption на 1024 симв., поэтому
   // только если карточка ВЛЕЗАЕТ — делаем так. Для редких «жирных» карточек
   // фолбэк — два сообщения (карточка + документ с коротким caption).
+  // Если есть резюме, отправляем его отдельным HTML-документом рядом с анкетой.
   const CAPTION_LIMIT = 1024;
   if (cardHtml.length <= CAPTION_LIMIT) {
     await bot.telegram.sendDocument(
@@ -162,6 +180,16 @@ export async function sendClientCard(
         ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
       },
     );
+    if (resumeBuffer) {
+      await bot.telegram.sendDocument(
+        chatId,
+        Input.fromBuffer(resumeBuffer, `Резюме_${safeNick}.html`),
+        {
+          caption: `Распознанное резюме @${nick}`,
+          parse_mode: "HTML",
+        },
+      );
+    }
     return;
   }
 
@@ -178,6 +206,16 @@ export async function sendClientCard(
       ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
     },
   );
+  if (resumeBuffer) {
+    await bot.telegram.sendDocument(
+      chatId,
+      Input.fromBuffer(resumeBuffer, `Резюме_${safeNick}.html`),
+      {
+        caption: `Распознанное резюме @${nick}`,
+        parse_mode: "HTML",
+      },
+    );
+  }
 }
 
 /**
