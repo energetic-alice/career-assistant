@@ -556,9 +556,11 @@ async function processResumeAndRunAnalysis(
 
   const alreadyHasResume = !!analysisInput.resumeText;
 
-  if (resumeFileUrl && !alreadyHasResume) {
+  const firstResumeUrl = resumeFileUrl?.split(",").map((u) => u.trim()).find(Boolean);
+
+  if (firstResumeUrl && !alreadyHasResume) {
     try {
-      const { buffer, mimeType } = await downloadFromGoogleDrive(resumeFileUrl);
+      const { buffer, mimeType } = await downloadFromGoogleDrive(firstResumeUrl);
       const resumeText = await extractResumeText(buffer, mimeType);
       (analysisInput as Record<string, unknown>).resumeText = resumeText;
 
@@ -568,11 +570,12 @@ async function processResumeAndRunAnalysis(
     } catch (err) {
       const msg = `Resume processing failed: ${err instanceof Error ? err.message : String(err)}`;
       console.error(`[Intake] ${msg}`);
-      state.error = msg;
+      outputs.resumeError = msg;
       state.updatedAt = new Date().toISOString();
       persistPipelineStates();
       await notifyAdminError(participantId, msg);
-      return;
+      // Не блокируем Phase 0: список клиентов и карточка должны заполняться
+      // даже если Drive-файл недоступен или резюме можно будет дослать позже.
     }
   }
 
