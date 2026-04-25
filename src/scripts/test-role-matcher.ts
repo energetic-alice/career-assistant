@@ -15,11 +15,15 @@ const SINGLE: Case[] = [
   { input: "Python разработчик", expect: "backend_python" },
   { input: "Backend Python", expect: "backend_python" },
   { input: "Python developer", expect: "backend_python" },
+  { input: "developer_python", expect: "backend_python" },
+  { input: "django_developer", expect: "backend_python" },
   { input: "FastAPI разработчик", expect: "backend_python" },
   { input: "Golang разработчик", expect: "backend_go" },
   { input: "Go Developer", expect: "backend_go" },
   { input: "Java разработчик", expect: "backend_java" },
   { input: "C# .NET разработчик", expect: "backend_net" },
+  { input: "backend_node_typescript", expect: "backend_nodejs" },
+  { input: "nodejs_typescript_developer", expect: "backend_nodejs" },
 
   // frontend
   { input: "React разработчик", expect: "frontend_react" },

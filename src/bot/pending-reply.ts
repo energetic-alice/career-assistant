@@ -13,13 +13,22 @@
  * это допустимо (админ просто нажмёт кнопку ещё раз).
  */
 
-export interface PendingReply {
-  kind: "shortlist:reject" | "deep:reject";
+type PendingReplyMeta =
+  | {
+      kind: "shortlist:reject" | "deep:reject";
+      participantId: string;
+      slotId: string;
+    }
+  | {
+      kind: "resume:update";
+      participantId: string;
+    };
+
+export type PendingReply = PendingReplyMeta & {
   participantId: string;
-  slotId: string;
   /** ISO-таймштамп создания (для очистки старых). */
   createdAt: string;
-}
+};
 
 const pending = new Map<string, PendingReply>();
 
@@ -30,7 +39,7 @@ function key(chatId: number | string, messageId: number): string {
 export function registerPendingReply(
   chatId: number | string,
   messageId: number,
-  meta: Omit<PendingReply, "createdAt">,
+  meta: PendingReplyMeta,
 ): void {
   pending.set(key(chatId, messageId), {
     ...meta,
@@ -41,9 +50,11 @@ export function registerPendingReply(
 export function takePendingReply(
   chatId: number | string,
   messageId: number,
+  kind?: PendingReply["kind"],
 ): PendingReply | undefined {
   const k = key(chatId, messageId);
   const value = pending.get(k);
+  if (kind && value?.kind !== kind) return undefined;
   if (value) pending.delete(k);
   return value;
 }

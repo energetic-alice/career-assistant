@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { MarketIndex } from "../schemas/market-index.js";
+import { KNOWN_ROLES, type KnownRoleSlug } from "./known-roles.js";
 
 /**
  * Match free-text profession strings (ru/en) to canonical market-index slugs.
@@ -28,6 +29,53 @@ type AliasEntry = { slug: string; alias: string; normalized: string };
 
 let cachedIndex: MarketIndex | null = null;
 let cachedAliases: AliasEntry[] | null = null;
+
+const CANONICAL_SLUG_ALIASES: Record<string, KnownRoleSlug> = {
+  developer_python: "backend_python",
+  python_developer: "backend_python",
+  python_backend_developer: "backend_python",
+  backend_django: "backend_python",
+  backend_django_developer: "backend_python",
+  django: "backend_python",
+  django_developer: "backend_python",
+  fastapi: "backend_python",
+  fastapi_developer: "backend_python",
+  flask: "backend_python",
+  flask_developer: "backend_python",
+
+  backend_node: "backend_nodejs",
+  backend_node_js: "backend_nodejs",
+  backend_nodejs_developer: "backend_nodejs",
+  backend_node_typescript: "backend_nodejs",
+  backend_nodejs_typescript: "backend_nodejs",
+  node_backend: "backend_nodejs",
+  node_developer: "backend_nodejs",
+  node_js_developer: "backend_nodejs",
+  nodejs_developer: "backend_nodejs",
+  node_typescript_developer: "backend_nodejs",
+  nodejs_typescript_developer: "backend_nodejs",
+  nestjs: "backend_nodejs",
+  nestjs_developer: "backend_nodejs",
+};
+
+function normalizeSlugLike(raw: string): string {
+  return raw
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/node[\s._-]*js/g, "nodejs")
+    .replace(/type[\s._-]*script/g, "typescript")
+    .replace(/[^a-z0-9а-я]+/giu, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_");
+}
+
+export function canonicalizeRoleSlug(raw: string): KnownRoleSlug | null {
+  if (!raw || !raw.trim()) return null;
+  const normalized = normalizeSlugLike(raw);
+  const knownSet = new Set<string>(KNOWN_ROLES);
+  if (knownSet.has(normalized)) return normalized as KnownRoleSlug;
+  return CANONICAL_SLUG_ALIASES[normalized] ?? null;
+}
 
 export async function loadMarketIndex(path: string = DEFAULT_INDEX_PATH): Promise<MarketIndex> {
   if (cachedIndex) return cachedIndex;
@@ -149,6 +197,10 @@ const CONFIDENCE_MIN = 0.75;
 
 export async function matchRoleToSlug(raw: string): Promise<RoleMatch | null> {
   if (!raw || !raw.trim()) return null;
+  const canonicalSlug = canonicalizeRoleSlug(raw);
+  if (canonicalSlug) {
+    return { slug: canonicalSlug, confidence: 1.0, matchedAlias: canonicalSlug, raw };
+  }
   const normalized = normalize(raw);
   if (!normalized) return null;
   const aliases = await getAliases();

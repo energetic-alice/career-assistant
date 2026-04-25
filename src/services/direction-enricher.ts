@@ -3,6 +3,7 @@ import type { Direction } from "../schemas/analysis-outputs.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
 import type { MarketIndexEntry, RegionStats } from "../schemas/market-index.js";
 import { KNOWN_ROLES, type KnownRoleSlug } from "./known-roles.js";
+import { canonicalizeRoleSlug, matchRoleToSlug } from "./role-matcher.js";
 
 /**
  * «Широкие» slug'и — их каталожная запись на деле покрывает семейство
@@ -52,11 +53,63 @@ export async function postValidateDirections(
 
   for (const orig of directions) {
     const d: Direction = { ...orig };
-    const slug = (d.roleSlug || "").trim();
+    let slug = (d.roleSlug || "").trim();
 
     if (!slug) {
       console.warn(`[postValidate] DROP "${d.title}": empty roleSlug`);
       continue;
+    }
+
+    // Канонизация slug'а: Claude часто придумывает свои варианты вроде
+    // `fullstack_react_node`, `frontend_react_typescript`, `data_engineer_python` —
+    // которые не попадают в KNOWN_ROLES и market-index, поэтому direction уходит
+    // в off-index или дропается. Пробуем мапить через role-matcher (alias hits +
+    // substring + fuzzy). Если нашли канонический slug с хорошим confidence —
+    // подменяем. Это ставит direction на канонические рельсы (с реальными
+    // данными рынка из market-index) и снимает лишний поход в Perplexity.
+    if (!knownSet.has(slug)) {
+      const directCanonical = canonicalizeRoleSlug(slug);
+      if (directCanonical) {
+        console.log(
+          `[postValidate] canonical slug override ${slug} → ${directCanonical} ` +
+            `(title "${d.title}")`,
+        );
+        slug = directCanonical;
+        d.roleSlug = directCanonical;
+        d.offIndex = false;
+        d.marketEvidence = undefined;
+      }
+    }
+
+    if (!knownSet.has(slug)) {
+      const candidates = [
+        slug.replace(/[_\-]+/g, " "),
+        d.title,
+        `${slug.replace(/[_\-]+/g, " ")} ${d.title}`,
+      ];
+      let normalized: string | null = null;
+      let normalizedAlias = "";
+      let normalizedConf = 0;
+      for (const probe of candidates) {
+        const hit = await matchRoleToSlug(probe);
+        if (!hit || hit.confidence < 0.85) continue;
+        if (!knownSet.has(hit.slug)) continue;
+        if (hit.confidence > normalizedConf) {
+          normalized = hit.slug;
+          normalizedAlias = hit.matchedAlias;
+          normalizedConf = hit.confidence;
+        }
+      }
+      if (normalized && normalized !== slug) {
+        console.log(
+          `[postValidate] normalize slug ${slug} → ${normalized} ` +
+            `(conf ${normalizedConf}, alias "${normalizedAlias}", title "${d.title}")`,
+        );
+        slug = normalized;
+        d.roleSlug = normalized;
+        d.offIndex = false;
+        d.marketEvidence = undefined;
+      }
     }
 
     const entry = index[slug] || null;
@@ -198,10 +251,11 @@ export async function enrichDirections(
   const knownSet: Set<string> = new Set(KNOWN_ROLES);
 
   return directions.map((d, i) => {
-    const slug = d.roleSlug?.trim() ?? "";
+    const rawSlug = d.roleSlug?.trim() ?? "";
+    const slug = canonicalizeRoleSlug(rawSlug) ?? rawSlug;
     const entry = slug && index[slug] ? index[slug] : null;
     const known = knownSet.has(slug);
-    const offIndex = Boolean(d.offIndex);
+    const offIndex = known ? false : Boolean(d.offIndex);
 
     let source: EnrichSource;
     if (entry) {

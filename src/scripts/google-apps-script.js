@@ -1,17 +1,27 @@
 /**
- * Google Apps Script — установить в таблице, связанной с Google Form.
+ * Google Apps Script — установить в Google Form ИЛИ в таблице, связанной с Form.
  *
- * Две функции:
- * 1. onFormSubmit(e) — триггер: отправляет анкету на сервер через webhook
- * 2. doPost(e) — веб-приложение: создаёт Google Doc из HTML (вызывается сервером)
+ * Три функции:
+ * 1. onFormSubmit(e) — trigger: отправляет анкету на сервер через webhook.
+ *    Работает и с Form trigger (`e.response`), и со Sheet trigger (`e.namedValues`).
+ * 2. resendAllFromForm() — вручную переотправляет ВСЕ ответы из самой формы,
+ *    обходя Google Sheets. Это rescue-путь, если Forms показывает 16 ответов,
+ *    а связанная таблица получила только часть.
+ * 3. doPost(e) — web app: создаёт Google Doc из HTML (вызывается сервером).
  *
- * Инструкция:
- * 1. Открыть Google Sheets → Расширения → Apps Script
+ * Рекомендуемая настройка intake:
+ * 1. Открыть Google Form → Extensions / Расширения → Apps Script
  * 2. Вставить этот код
- * 3. Заменить WEBHOOK_URL и WEBHOOK_SECRET на реальные значения
- * 4. Настроить триггер для onFormSubmit:
+ * 3. Заменить WEBHOOK_URL и WEBHOOK_SECRET на реальные значения.
+ *    Если скрипт не bound к форме, заполнить FORM_ID.
+ * 4. Настроить trigger:
+ *    Triggers → Add Trigger → onFormSubmit → From form → On form submit
+ *
+ * Если скрипт уже живёт в Google Sheets, он тоже работает:
  *    Triggers → Add Trigger → onFormSubmit → From spreadsheet → On form submit
- * 5. Деплой как веб-приложение для doPost:
+ *
+ * Настройка создания Google Doc:
+ * 5. Deploy как web app для doPost:
  *    Deploy → New deployment → Web app →
  *    Execute as: Me → Who has access: Anyone → Deploy
  *    Скопировать URL и добавить в Render как APPS_SCRIPT_DOC_URL
@@ -19,36 +29,137 @@
 
 const WEBHOOK_URL = "https://YOUR-SERVER.com/api/webhook/new-participant";
 const WEBHOOK_SECRET = "your-webhook-secret-here";
+// Optional: нужен только если скрипт НЕ привязан напрямую к Google Form.
+const FORM_ID = "";
 
 /* ── Триггер: отправка анкеты на сервер ── */
 
 function onFormSubmit(e) {
   try {
-    const namedValues = e.namedValues;
-
-    const options = {
-      method: "post",
-      contentType: "application/json",
-      headers: {
-        "X-Webhook-Secret": WEBHOOK_SECRET,
-      },
-      payload: JSON.stringify({ namedValues: namedValues }),
-      muteHttpExceptions: true,
-    };
-
-    const response = UrlFetchApp.fetch(WEBHOOK_URL, options);
-    const code = response.getResponseCode();
-
-    if (code !== 200) {
-      Logger.log(
-        "Webhook error: " + code + " — " + response.getContentText(),
-      );
-    } else {
-      Logger.log("Webhook success: " + response.getContentText());
-    }
+    const namedValues = namedValuesFromEvent(e);
+    sendNamedValuesToWebhook(namedValues, "onFormSubmit");
   } catch (error) {
     Logger.log("Webhook exception: " + error.toString());
   }
+}
+
+function namedValuesFromEvent(e) {
+  if (e && e.namedValues) {
+    return e.namedValues; // Spreadsheet trigger.
+  }
+  if (e && e.response) {
+    return namedValuesFromFormResponse(e.response); // Form trigger.
+  }
+  throw new Error("Unsupported onFormSubmit event: no namedValues or response");
+}
+
+function namedValuesFromFormResponse(response) {
+  const namedValues = {};
+  const submittedAt = response.getTimestamp();
+  namedValues.Timestamp = [
+    Utilities.formatDate(
+      submittedAt,
+      Session.getScriptTimeZone(),
+      "yyyy/MM/dd h:mm:ss a z",
+    ),
+  ];
+
+  response.getItemResponses().forEach(function(itemResponse) {
+    const title = itemResponse.getItem().getTitle();
+    namedValues[title] = [formatFormResponseValue(itemResponse.getResponse())];
+  });
+
+  return namedValues;
+}
+
+function formatFormResponseValue(value) {
+  if (Array.isArray(value)) {
+    return value.map(formatSingleFormValue).join(", ");
+  }
+  return formatSingleFormValue(value);
+}
+
+function formatSingleFormValue(value) {
+  if (value == null) return "";
+
+  // File upload responses from form-bound triggers are usually Drive file IDs.
+  // The backend expects a Drive URL, so convert IDs into open?id URLs.
+  const s = String(value);
+  if (/^[a-zA-Z0-9_-]{20,}$/.test(s) && s.indexOf("http") !== 0) {
+    return "https://drive.google.com/open?id=" + s;
+  }
+  return s;
+}
+
+function sendNamedValuesToWebhook(namedValues, source) {
+  const options = {
+    method: "post",
+    contentType: "application/json",
+    headers: {
+      "X-Webhook-Secret": WEBHOOK_SECRET,
+    },
+    payload: JSON.stringify({ namedValues: namedValues }),
+    muteHttpExceptions: true,
+  };
+
+  const response = UrlFetchApp.fetch(WEBHOOK_URL, options);
+  const code = response.getResponseCode();
+  const body = response.getContentText();
+
+  if (code !== 200) {
+    Logger.log(source + " webhook error: " + code + " — " + body);
+  } else {
+    Logger.log(source + " webhook success: " + body);
+  }
+  return response;
+}
+
+function getTargetForm() {
+  if (FORM_ID) return FormApp.openById(FORM_ID);
+  const form = FormApp.getActiveForm();
+  if (!form) {
+    throw new Error("No active form. Set FORM_ID or run this from a form-bound script.");
+  }
+  return form;
+}
+
+/**
+ * Rescue/backfill: переотправить ВСЕ ответы прямо из Google Form.
+ * Использовать, когда во вкладке Responses видно 16 ответов, но linked Sheet
+ * получил меньше строк. Сервер дедуплицирует по telegramNick.
+ */
+function resendAllFromForm() {
+  const form = getTargetForm();
+  const responses = form.getResponses();
+  Logger.log("Form responses: " + responses.length);
+
+  responses.forEach(function(response, index) {
+    const namedValues = namedValuesFromFormResponse(response);
+    const nick = namedValues["Твой ник в телеграм"]
+      ? namedValues["Твой ник в телеграм"][0]
+      : "response " + (index + 1);
+    Logger.log("Sending response " + (index + 1) + ": " + nick);
+
+    try {
+      const webhookResponse = sendNamedValuesToWebhook(
+        namedValues,
+        "resendAllFromForm row " + (index + 1),
+      );
+      Logger.log(
+        "Response " + (index + 1) + " (" + nick + "): " +
+          webhookResponse.getResponseCode() + " " +
+          webhookResponse.getContentText().substring(0, 200),
+      );
+    } catch (err) {
+      Logger.log("Response " + (index + 1) + " ERROR: " + err.toString());
+    }
+
+    if (index < responses.length - 1) {
+      Utilities.sleep(2000);
+    }
+  });
+
+  Logger.log("Done. Sent " + responses.length + " form responses.");
 }
 
 /* ── Веб-приложение: создание Google Doc из HTML ── */
@@ -124,7 +235,7 @@ function doPost(e) {
   }
 }
 
-/* ── Переотправка всех строк из таблицы ── */
+/* ── Переотправка всех строк из таблицы (legacy rescue path) ── */
 
 /**
  * Переотправить все заполненные строки из таблицы на сервер.
@@ -153,14 +264,7 @@ function resendAll() {
     Logger.log("Sending row " + i + ": " + nick);
 
     try {
-      var options = {
-        method: "post",
-        contentType: "application/json",
-        headers: { "X-Webhook-Secret": WEBHOOK_SECRET },
-        payload: JSON.stringify({ namedValues: namedValues }),
-        muteHttpExceptions: true,
-      };
-      var response = UrlFetchApp.fetch(WEBHOOK_URL, options);
+      var response = sendNamedValuesToWebhook(namedValues, "resendAll row " + i);
       Logger.log("Row " + i + " (" + nick + "): " + response.getResponseCode() + " " + response.getContentText().substring(0, 200));
     } catch (err) {
       Logger.log("Row " + i + " ERROR: " + err.toString());

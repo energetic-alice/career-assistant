@@ -47,16 +47,34 @@ export function scoreBadge(d: Direction): string {
 }
 
 /**
- * `medianSalaryMid` в market-index — месячная зарплата в локальной валюте
- * bucket'а (RUB для ru, EUR для abroad-буката — enricher уже приводит
- * UK→EUR при выборке). Для `usa` — USD. Раньше для `abroad` рисовали
- * голое `~Xk/мес` без символа, из-за чего €348k читались глазом как ₽.
+ * Медианная зарплата по конвенциям источников:
+ *   - ru     → hh.ru, RUB/месяц (рисуем как есть)
+ *   - abroad → itjobswatch.co.uk, GBP/год (конвертим в EUR/мес × 1.17 / 12,
+ *              чтобы UI был в одном масштабе с RU и совпадал с тем, что
+ *              реально считает scorer для ранжирования. Раньше показывали
+ *              сырой £70k/год как `~€70k/мес` — все senior-роли становились
+ *              «одинаковыми» евромиллионерами).
+ *   - usa    → US-источники, USD/год → USD/мес (÷12).
+ *
+ * GBP→EUR курс синхронизирован с `role-scorer.GBP_TO_EUR` (1.17), специально
+ * не импортим оттуда чтобы не таскать жирный модуль в bot-форматтер.
  */
+const GBP_TO_EUR_DISPLAY = 1.17;
+
 function formatMoney(n: number | null, bucket: Direction["bucket"]): string {
   if (n == null) return "—";
-  const k = Math.round(n / 1000);
-  if (bucket === "ru") return `~${k}k ₽/мес`;
-  if (bucket === "usa") return `~$${k}k/мес`;
+  if (bucket === "ru") {
+    const k = Math.round(n / 1000);
+    return `~${k}k ₽/мес`;
+  }
+  if (bucket === "usa") {
+    const monthlyUsd = n / 12;
+    const k = Math.round(monthlyUsd / 1000);
+    return `~$${k}k/мес`;
+  }
+  // abroad: GBP/год из UK → EUR/мес для отображения.
+  const monthlyEur = (n * GBP_TO_EUR_DISPLAY) / 12;
+  const k = Math.round(monthlyEur / 1000);
   return `~€${k}k/мес`;
 }
 

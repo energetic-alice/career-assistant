@@ -23,6 +23,24 @@ export { parseNamedValues };
 const STORE_NAME = "pipelineStates";
 export const pipelineStates: Map<string, PipelineState> = loadMap<PipelineState>(STORE_NAME);
 
+export interface ResumeVersion {
+  id: string;
+  createdAt: string;
+  source: "telegram_document" | "telegram_text" | "google_drive_url";
+  sourceFileName?: string;
+  mimeType?: string;
+  textLength: number;
+  text: string;
+}
+
+export interface SaveResumeVersionInput {
+  participantId: string;
+  text: string;
+  source: ResumeVersion["source"];
+  sourceFileName?: string;
+  mimeType?: string;
+}
+
 console.log(`[Intake] Loaded ${pipelineStates.size} pipeline states from disk`);
 
 function persistPipelineStates(): void {
@@ -52,6 +70,45 @@ export function updatePipelineStage(
     state.stageOutputs = outputs;
   }
   persistPipelineStates();
+}
+
+export function saveResumeVersion(input: SaveResumeVersionInput): ResumeVersion | null {
+  const state = pipelineStates.get(input.participantId);
+  if (!state) return null;
+
+  const text = input.text.trim();
+  const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
+  const analysisInput = outputs.analysisInput as AnalysisInput | undefined;
+  const pipelineInput = outputs.pipelineInput as AnalysisPipelineInput | undefined;
+  const previousVersions = Array.isArray(outputs.resumeVersions)
+    ? (outputs.resumeVersions as ResumeVersion[])
+    : [];
+
+  const version: ResumeVersion = {
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+    source: input.source,
+    ...(input.sourceFileName ? { sourceFileName: input.sourceFileName } : {}),
+    ...(input.mimeType ? { mimeType: input.mimeType } : {}),
+    textLength: text.length,
+    text,
+  };
+
+  outputs.resumeVersions = [...previousVersions, version];
+  outputs.activeResumeVersionId = version.id;
+
+  if (analysisInput) {
+    (analysisInput as Record<string, unknown>).resumeText = text;
+  }
+  if (pipelineInput) {
+    pipelineInput.resumeText = text;
+  }
+
+  state.stageOutputs = outputs;
+  state.updatedAt = version.createdAt;
+  persistPipelineStates();
+
+  return version;
 }
 
 /**
@@ -108,6 +165,8 @@ export function registerIntakeRoutes(app: FastifyInstance) {
         const prevOutputs = (existing?.stageOutputs ?? {}) as Record<string, unknown>;
         const legacyDocUrl = prevOutputs.legacyDocUrl as string | undefined;
         const legacyTariff = prevOutputs.legacyTariff as string | undefined;
+        const resumeVersions = prevOutputs.resumeVersions as unknown;
+        const activeResumeVersionId = prevOutputs.activeResumeVersionId as string | undefined;
 
         const state: PipelineState = {
           participantId,
@@ -122,6 +181,8 @@ export function registerIntakeRoutes(app: FastifyInstance) {
             ...(unmappedFields.length > 0 ? { unmappedFields } : {}),
             ...(legacyDocUrl ? { legacyDocUrl } : {}),
             ...(legacyTariff ? { legacyTariff } : {}),
+            ...(Array.isArray(resumeVersions) ? { resumeVersions } : {}),
+            ...(activeResumeVersionId ? { activeResumeVersionId } : {}),
           },
         };
 

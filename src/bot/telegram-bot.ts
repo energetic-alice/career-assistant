@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { initBot, getBot } from "./bot-instance.js";
 import { registerAdminReview } from "./admin-review.js";
+import { handleResumeUpdateMessage, registerResumeUpdate } from "./resume-update.js";
 import { STAGE_LABELS } from "../services/review-summary.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
 import { normalizeNick } from "../services/intake-mapper.js";
@@ -176,6 +177,10 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
             );
             if (ok) await ctx.reply("✓ Причина отклонения сохранена.");
             else await ctx.reply("⚠ Не нашёл слот — возможно был удалён.");
+          } else if (pending.kind === "resume:update") {
+            await handleResumeUpdateMessage(ctx, {
+              participantId: pending.participantId,
+            });
           }
         } catch (err) {
           console.error("[Bot] reject reason apply failed:", err);
@@ -249,6 +254,7 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
     await sendClientCard(ctx.chat!.id, matches[0].participantId);
   });
 
+  registerResumeUpdate(bot);
   registerAdminReview(bot);
 
   try {
@@ -256,6 +262,7 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
       { command: "start", description: "Информация о боте" },
       { command: "clients", description: "Список клиентов со статусами" },
       { command: "client", description: "Карточка клиента: /client <ник>" },
+      { command: "resume", description: "Обновить резюме: /resume <ник>" },
       { command: "status", description: "Сводка очереди по стейджам" },
     ]);
     await bot.telegram.setChatMenuButton({
