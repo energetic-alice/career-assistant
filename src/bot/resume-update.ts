@@ -2,10 +2,12 @@ import type { Context, Telegraf } from "telegraf";
 import { downloadFromGoogleDrive, extractResumeText } from "../services/file-service.js";
 import { normalizeNick } from "../services/intake-mapper.js";
 import {
+  addSelectedTargetRole,
   getAllPipelineStates,
   saveResumeVersion,
   type ResumeVersion,
 } from "../pipeline/intake.js";
+import { matchRoleToSlug } from "../services/role-matcher.js";
 import { registerPendingReply, takePendingReply } from "./pending-reply.js";
 
 type TelegramDocument = {
@@ -246,6 +248,26 @@ export async function handleResumeUpdateMessage(
     await ctx.reply(
       `Готово: сохранила новую активную версию резюме для @${participant.nick} (${version.textLength} символов).${duplicateNote}\n\nДля уже сгенерированного анализа я ничего не перезапускала автоматически. Чтобы применить новое резюме, перезапусти нужную фазу анализа.`,
     );
+
+    const roleMatch = await matchRoleToSlug(source.text.slice(0, 5000));
+    if (roleMatch && roleMatch.confidence >= 0.85) {
+      await ctx.reply(
+        `Похоже, резюме уже упаковано под <code>${roleMatch.slug}</code>. Добавить это направление в clientSummary.selectedTargetRoles?`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: `🎯 Добавить ${roleMatch.slug}`,
+                  callback_data: `resume_target:${participant.participantId}:${roleMatch.slug}`,
+                },
+              ],
+            ],
+          },
+        },
+      );
+    }
     return true;
   } catch (err) {
     console.error("[resume-update] failed:", err);
@@ -257,6 +279,39 @@ export async function handleResumeUpdateMessage(
 }
 
 export function registerResumeUpdate(bot: Telegraf): void {
+  bot.action(/^resume_target:([^:]+):([^:]+)$/, async (ctx) => {
+    const [, participantId, roleSlug] = (ctx.match as RegExpExecArray);
+    let result: ReturnType<typeof addSelectedTargetRole>;
+    try {
+      result = addSelectedTargetRole({
+        participantId,
+        roleSlug,
+        title: roleSlug,
+        source: "resume",
+      });
+    } catch (err) {
+      await ctx.answerCbQuery("Некорректный target slug.");
+      await ctx.reply(
+        `Не могу добавить <code>${roleSlug}</code>: ${
+          err instanceof Error ? err.message : "slug не прошёл проверку"
+        }`,
+        { parse_mode: "HTML" },
+      );
+      return;
+    }
+
+    if (!result) {
+      await ctx.answerCbQuery("Клиент не найден.");
+      return;
+    }
+    await ctx.answerCbQuery(result.added ? "Добавлено в упаковку." : "Уже было выбрано.");
+    await ctx.reply(
+      `${result.added ? "🎯 Добавила" : "Уже есть"} в clientSummary.selectedTargetRoles: <code>${roleSlug}</code>\n` +
+        `Всего выбранных направлений: <b>${result.roles.length}</b>.`,
+      { parse_mode: "HTML" },
+    );
+  });
+
   bot.command("resume", async (ctx) => {
     const text = (ctx.message as { text?: string } | undefined)?.text ?? "";
     const arg = text.replace(/^\/resume(@\w+)?\s*/i, "").trim();

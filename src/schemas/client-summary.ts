@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { regionEnum } from "./analysis-outputs.js";
+import { KNOWN_ROLES } from "../services/known-roles.js";
 
 /**
  * Claude периодически возвращает number как строку ("0.9", "100000") и boolean
@@ -58,6 +59,43 @@ const tolerantBool = () =>
       }),
     ])
     .pipe(z.boolean());
+
+const knownRolesSet = new Set<string>(KNOWN_ROLES);
+
+const selectedTargetRoleSchema = z.object({
+  id: z.string(),
+  selectedAt: z.string(),
+  source: z.enum(["shortlist", "deep", "resume"]),
+  roleSlug: z.string(),
+  title: z.string(),
+  bucket: z.enum(["ru", "abroad", "usa"]),
+  offIndex: z.boolean().optional(),
+  marketEvidence: z.string().optional(),
+  direction: z.unknown().optional(),
+}).superRefine((role, ctx) => {
+  const known = knownRolesSet.has(role.roleSlug);
+  if (known && role.offIndex) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["offIndex"],
+      message: "known role slug must not be offIndex",
+    });
+  }
+  if (!known && !role.offIndex) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["offIndex"],
+      message: "unknown role slug requires offIndex=true",
+    });
+  }
+  if (!known && !role.marketEvidence?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["marketEvidence"],
+      message: "off-index selected target requires marketEvidence",
+    });
+  }
+});
 
 /**
  * Compact one-shot summary built right after intake (Claude call).
@@ -247,6 +285,16 @@ export const clientSummarySchema = z.object({
       }),
     )
     .optional(),
+
+  /**
+   * Направления, которые клиент в итоге выбрал для упаковки и поиска работы
+   * после карьерного анализа. Это ручной/операционный выбор консультанта,
+   * не генерируется Клодом в Phase 0. Хранится в clientSummary, чтобы карточка
+   * клиента и дальнейшие шаги (идеальное резюме) имели один бизнес-источник.
+   */
+  selectedTargetRoles: z
+    .array(selectedTargetRoleSchema)
+    .default([]),
 
   /**
    * Список slug-ов из каталога `market-index.json`, на которые клиент может

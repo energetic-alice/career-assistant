@@ -7,6 +7,8 @@ type InlineKeyboardMarkup = ReturnType<typeof Markup.inlineKeyboard>["reply_mark
 import { getAdminChatId, getBot } from "./bot-instance.js";
 import {
   getPipelineState,
+  isSelectedTargetRole,
+  toggleSelectedTargetRole,
   updatePipelineStage,
 } from "../pipeline/intake.js";
 import {
@@ -234,6 +236,7 @@ function directionKeyboard(
 ): InlineKeyboardMarkup {
   const slotId = slot.slotId;
   const recommended = isRecommended(slot.direction);
+  const selected = isSelectedTargetRole(participantId, slot.direction);
   const rejectBtn = recommended
     ? Markup.button.callback("🚫 Отклонить", `shortlist:reject:${participantId}:${slotId}`)
     : Markup.button.callback("✅ Вернуть", `shortlist:unreject:${participantId}:${slotId}`);
@@ -242,6 +245,12 @@ function directionKeyboard(
       Markup.button.callback("🗑 Удалить", `shortlist:del:${participantId}:${slotId}`),
       rejectBtn,
       Markup.button.callback("↻ Заменить", `shortlist:regen:${participantId}:${slotId}`),
+    ],
+    [
+      Markup.button.callback(
+        selected ? "🎯 Убрать из упаковки" : "🎯 Выбрать для упаковки",
+        `shortlist:target:${participantId}:${slotId}`,
+      ),
     ],
   ]).reply_markup;
 }
@@ -872,6 +881,54 @@ async function handleUnreject(
   await ctx.answerCbQuery("✅ Возвращено в рекомендуемые.");
 }
 
+async function handleTarget(
+  participantId: string,
+  slotId: string,
+  ctx: Context,
+): Promise<void> {
+  if (!isAdminCtx(ctx)) return;
+  const shortlist = loadShortlist(participantId);
+  if (!shortlist) {
+    await ctx.answerCbQuery("Shortlist не найден.");
+    return;
+  }
+  const idx = findSlotIdx(shortlist, slotId);
+  if (idx < 0) {
+    await ctx.answerCbQuery("Слот пропал.");
+    return;
+  }
+  const slot = shortlist.slots[idx];
+  let result: ReturnType<typeof toggleSelectedTargetRole>;
+  try {
+    result = toggleSelectedTargetRole(participantId, slot.direction, "shortlist");
+  } catch (err) {
+    await ctx.answerCbQuery("Нельзя выбрать slug без marketEvidence.");
+    await ctx.reply(
+      `Не могу выбрать <code>${escapeHtml(slot.direction.roleSlug)}</code>: ${
+        err instanceof Error ? escapeHtml(err.message) : "некорректный slug"
+      }`,
+      { parse_mode: "HTML" },
+    );
+    return;
+  }
+  if (!result) {
+    await ctx.answerCbQuery("Клиент не найден.");
+    return;
+  }
+  await refreshDirectionNumbers(participantId, shortlist);
+  await ctx.answerCbQuery(
+    result.selected
+      ? `Добавлено в упаковку: ${slot.direction.roleSlug}`
+      : `Убрано из упаковки: ${slot.direction.roleSlug}`,
+  );
+  await ctx.reply(
+    `${result.selected ? "🎯 Выбрано" : "Убрано"} для упаковки: <b>${escapeHtml(slot.direction.title)}</b>\n` +
+      `Всего выбранных направлений: <b>${result.roles.length}</b>.\n` +
+      `Открой /client_${normalizeNick(getPipelineState(participantId)?.telegramNick ?? "")}, чтобы увидеть это в карточке.`,
+    { parse_mode: "HTML" },
+  );
+}
+
 /**
  * Применить введённую админом причину reject (из text-handler).
  * Возвращает true если что-то изменилось.
@@ -934,6 +991,10 @@ export async function dispatchShortlistCallback(
     case "unreject":
       if (!slotOrIdx) return false;
       await handleUnreject(participantId, slotOrIdx, ctx);
+      return true;
+    case "target":
+      if (!slotOrIdx) return false;
+      await handleTarget(participantId, slotOrIdx, ctx);
       return true;
     case "approve":
       await handleApprove(participantId, ctx);

@@ -410,6 +410,14 @@ export interface ClientCardSource {
   legacyDocUrl?: string;
   /** Для stage=completed_legacy: тариф (Групповой / ВИП). */
   legacyTariff?: string;
+  /** Направления, выбранные для дальнейшей упаковки/поиска работы. */
+  selectedTargetRoles?: Array<{
+    roleSlug: string;
+    title: string;
+    bucket?: string;
+    offIndex?: boolean;
+    selectedAt?: string;
+  }>;
 }
 
 /**
@@ -424,6 +432,9 @@ export function formatClientCardForTelegram(src: ClientCardSource): string {
     ? renderFromClientSummary(src.clientSummary, src.telegramNick, src.stage)
     : renderFromRawFallback(src);
 
+  const selectedTargets = formatSelectedTargetRoles(src.selectedTargetRoles);
+  const withTargets = selectedTargets ? `${body}\n\n${selectedTargets}` : body;
+
   if (src.stage === "completed_legacy") {
     const parts: string[] = [];
     if (src.legacyTariff) {
@@ -437,11 +448,31 @@ export function formatClientCardForTelegram(src: ClientCardSource): string {
       parts.push("<b>📄 Анализ:</b> ссылка утеряна");
     }
     if (parts.length > 0) {
-      return `${body}\n\n${parts.join("\n")}`;
+      return `${withTargets}\n\n${parts.join("\n")}`;
     }
   }
 
-  return body;
+  return withTargets;
+}
+
+function formatSelectedTargetRoles(
+  roles: ClientCardSource["selectedTargetRoles"],
+): string {
+  if (!roles || roles.length === 0) {
+    return "<b>🎯 Упаковка/поиск:</b> не выбрано";
+  }
+
+  const lines = roles.map((role, idx) => {
+    const tags = [
+      role.roleSlug,
+      role.bucket,
+      role.offIndex ? "off-index" : "",
+    ].filter(Boolean);
+    const meta = tags.length ? ` <code>${escapeHtml(tags.join(" · "))}</code>` : "";
+    return `${idx + 1}. ${escapeHtml(role.title)}${meta}`;
+  });
+
+  return [`<b>🎯 Упаковка/поиск:</b>`, ...lines].join("\n");
 }
 
 /**

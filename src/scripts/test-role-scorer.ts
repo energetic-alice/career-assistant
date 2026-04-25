@@ -33,6 +33,7 @@ function baseSummary(partial: Partial<ClientSummary>): ClientSummary {
     resumeUrls: [],
     linkedinUrl: null,
     ...partial,
+    selectedTargetRoles: partial.selectedTargetRoles ?? [],
   };
 }
 

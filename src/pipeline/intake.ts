@@ -6,6 +6,7 @@ import {
   type AnalysisInput,
 } from "../schemas/participant.js";
 import type { PipelineState } from "../schemas/pipeline-state.js";
+import type { ClientSummary } from "../schemas/client-summary.js";
 import {
   downloadFromGoogleDrive,
   extractResumeText,
@@ -14,9 +15,11 @@ import {
   runClientSummary,
   type AnalysisPipelineInput,
 } from "./run-analysis.js";
+import type { Direction } from "../schemas/analysis-outputs.js";
 import { getBot } from "../bot/bot-instance.js";
 import { saveMap, loadMap } from "../services/state-store.js";
 import { normalizeNick, parseNamedValues } from "../services/intake-mapper.js";
+import { KNOWN_ROLES } from "../services/known-roles.js";
 
 export { parseNamedValues };
 
@@ -40,6 +43,21 @@ export interface SaveResumeVersionInput {
   sourceFileName?: string;
   mimeType?: string;
 }
+
+export interface SelectedTargetRole {
+  id: string;
+  selectedAt: string;
+  source: "shortlist" | "deep" | "resume";
+  roleSlug: string;
+  title: string;
+  bucket: Direction["bucket"];
+  offIndex?: boolean;
+  marketEvidence?: string;
+  direction?: unknown;
+}
+
+type ClientSummaryWithTargets = ClientSummary;
+const KNOWN_ROLE_SET = new Set<string>(KNOWN_ROLES);
 
 console.log(`[Intake] Loaded ${pipelineStates.size} pipeline states from disk`);
 
@@ -111,6 +129,137 @@ export function saveResumeVersion(input: SaveResumeVersionInput): ResumeVersion 
   return version;
 }
 
+function selectedTargetId(direction: Pick<Direction, "roleSlug" | "bucket">): string {
+  return `${direction.roleSlug}|${direction.bucket}`;
+}
+
+export function isSelectedTargetRole(
+  participantId: string,
+  direction: Pick<Direction, "roleSlug" | "bucket">,
+): boolean {
+  const state = pipelineStates.get(participantId);
+  const outputs = (state?.stageOutputs ?? {}) as Record<string, unknown>;
+  const clientSummary = outputs.clientSummary as ClientSummaryWithTargets | undefined;
+  const selected = Array.isArray(clientSummary?.selectedTargetRoles)
+    ? clientSummary.selectedTargetRoles
+    : Array.isArray(outputs.selectedTargetRoles)
+      ? (outputs.selectedTargetRoles as SelectedTargetRole[])
+    : [];
+  return selected.some((r) => r.id === selectedTargetId(direction));
+}
+
+export function toggleSelectedTargetRole(
+  participantId: string,
+  direction: Direction,
+  source: SelectedTargetRole["source"],
+): { selected: boolean; roles: SelectedTargetRole[] } | null {
+  const state = pipelineStates.get(participantId);
+  if (!state) return null;
+
+  const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
+  const clientSummary = outputs.clientSummary as ClientSummaryWithTargets | undefined;
+  const previous = Array.isArray(clientSummary?.selectedTargetRoles)
+    ? clientSummary.selectedTargetRoles
+    : Array.isArray(outputs.selectedTargetRoles)
+      ? (outputs.selectedTargetRoles as SelectedTargetRole[])
+    : [];
+  const id = selectedTargetId(direction);
+  const exists = previous.some((r) => r.id === id);
+  const known = KNOWN_ROLE_SET.has(direction.roleSlug);
+  if (!exists && !known && (!direction.offIndex || !direction.marketEvidence?.trim())) {
+    throw new Error(
+      `Cannot select unknown roleSlug "${direction.roleSlug}" without offIndex=true and marketEvidence`,
+    );
+  }
+  const roles = exists
+    ? previous.filter((r) => r.id !== id)
+    : [
+        ...previous,
+        {
+          id,
+          selectedAt: new Date().toISOString(),
+          source,
+          roleSlug: direction.roleSlug,
+          title: direction.title,
+          bucket: direction.bucket,
+          ...(!known || direction.offIndex ? { offIndex: true } : {}),
+          ...(direction.marketEvidence ? { marketEvidence: direction.marketEvidence } : {}),
+          direction,
+        },
+      ];
+
+  if (clientSummary) {
+    clientSummary.selectedTargetRoles = roles;
+    outputs.clientSummary = clientSummary;
+  } else {
+    outputs.selectedTargetRoles = roles;
+  }
+  state.stageOutputs = outputs;
+  state.updatedAt = new Date().toISOString();
+  persistPipelineStates();
+
+  return { selected: !exists, roles };
+}
+
+export function addSelectedTargetRole(input: {
+  participantId: string;
+  roleSlug: string;
+  title?: string;
+  bucket?: Direction["bucket"];
+  offIndex?: boolean;
+  marketEvidence?: string;
+  source: SelectedTargetRole["source"];
+}): { added: boolean; roles: SelectedTargetRole[] } | null {
+  const state = pipelineStates.get(input.participantId);
+  if (!state) return null;
+
+  const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
+  const clientSummary = outputs.clientSummary as ClientSummaryWithTargets | undefined;
+  const previous = Array.isArray(clientSummary?.selectedTargetRoles)
+    ? clientSummary.selectedTargetRoles
+    : Array.isArray(outputs.selectedTargetRoles)
+      ? (outputs.selectedTargetRoles as SelectedTargetRole[])
+      : [];
+  const roleSlug = input.roleSlug.trim();
+  const bucket = input.bucket ?? "abroad";
+  const known = KNOWN_ROLE_SET.has(roleSlug);
+  if (!known && (!input.offIndex || !input.marketEvidence?.trim())) {
+    throw new Error(
+      `Cannot add unknown roleSlug "${roleSlug}" without offIndex=true and marketEvidence`,
+    );
+  }
+  const id = `${roleSlug}|${bucket}`;
+  if (previous.some((r) => r.id === id)) {
+    return { added: false, roles: previous };
+  }
+
+  const roles: SelectedTargetRole[] = [
+    ...previous,
+    {
+      id,
+      selectedAt: new Date().toISOString(),
+      source: input.source,
+      roleSlug,
+      title: input.title?.trim() || roleSlug,
+      bucket,
+      ...(!known || input.offIndex ? { offIndex: true } : {}),
+      ...(input.marketEvidence ? { marketEvidence: input.marketEvidence } : {}),
+    },
+  ];
+
+  if (clientSummary) {
+    clientSummary.selectedTargetRoles = roles;
+    outputs.clientSummary = clientSummary;
+  } else {
+    outputs.selectedTargetRoles = roles;
+  }
+  state.stageOutputs = outputs;
+  state.updatedAt = new Date().toISOString();
+  persistPipelineStates();
+
+  return { added: true, roles };
+}
+
 /**
  * Register intake webhook routes.
  */
@@ -167,6 +316,11 @@ export function registerIntakeRoutes(app: FastifyInstance) {
         const legacyTariff = prevOutputs.legacyTariff as string | undefined;
         const resumeVersions = prevOutputs.resumeVersions as unknown;
         const activeResumeVersionId = prevOutputs.activeResumeVersionId as string | undefined;
+        const prevClientSummary = prevOutputs.clientSummary as
+          | ClientSummaryWithTargets
+          | undefined;
+        const selectedTargetRoles =
+          prevClientSummary?.selectedTargetRoles ?? prevOutputs.selectedTargetRoles;
 
         const state: PipelineState = {
           participantId,
@@ -201,7 +355,13 @@ export function registerIntakeRoutes(app: FastifyInstance) {
           "New participant intake received",
         );
 
-        processResumeAndRunAnalysis(participantId, questionnaire.resumeFileUrl);
+        processResumeAndRunAnalysis(
+          participantId,
+          questionnaire.resumeFileUrl,
+          Array.isArray(selectedTargetRoles)
+            ? (selectedTargetRoles as SelectedTargetRole[])
+            : undefined,
+        );
 
         return reply.status(200).send({
           success: true,
@@ -386,6 +546,7 @@ async function notifyAdminError(participantId: string, error: string): Promise<v
 async function processResumeAndRunAnalysis(
   participantId: string,
   resumeFileUrl?: string,
+  selectedTargetRoles?: SelectedTargetRole[],
 ) {
   const state = pipelineStates.get(participantId);
   if (!state) return;
@@ -426,7 +587,10 @@ async function processResumeAndRunAnalysis(
         resumeText: analysisInput.resumeText,
         linkedinUrl: analysisInput.linkedinUrl,
         linkedinSSI: analysisInput.linkedinSSI,
-      });
+      }) as ClientSummaryWithTargets;
+      if (selectedTargetRoles && selectedTargetRoles.length > 0) {
+        clientSummary.selectedTargetRoles = selectedTargetRoles;
+      }
       outputs.clientSummary = clientSummary;
       state.updatedAt = new Date().toISOString();
       persistPipelineStates();

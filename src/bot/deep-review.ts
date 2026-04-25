@@ -8,6 +8,8 @@ type InlineKeyboardMarkup = ReturnType<typeof Markup.inlineKeyboard>["reply_mark
 import { getBot } from "./bot-instance.js";
 import {
   getPipelineState,
+  isSelectedTargetRole,
+  toggleSelectedTargetRole,
   updatePipelineStage,
 } from "../pipeline/intake.js";
 import {
@@ -151,6 +153,7 @@ function deepDirectionKeyboard(
 ): InlineKeyboardMarkup {
   const slotId = slot.slotId;
   const recommended = isRecommended(slot.direction);
+  const selected = isSelectedTargetRole(participantId, slot.direction);
   const rejectBtn = recommended
     ? Markup.button.callback("🚫 Отклонить", `deep:reject:${participantId}:${slotId}`)
     : Markup.button.callback("✅ Вернуть", `deep:unreject:${participantId}:${slotId}`);
@@ -158,6 +161,12 @@ function deepDirectionKeyboard(
     [
       Markup.button.callback("🗑 Удалить", `deep:del:${participantId}:${slotId}`),
       rejectBtn,
+    ],
+    [
+      Markup.button.callback(
+        selected ? "🎯 Убрать из упаковки" : "🎯 Выбрать для упаковки",
+        `deep:target:${participantId}:${slotId}`,
+      ),
     ],
   ]).reply_markup;
 }
@@ -544,6 +553,53 @@ async function handleUnreject(
   await ctx.answerCbQuery("✅ Возвращено в рекомендуемые.");
 }
 
+async function handleTarget(
+  participantId: string,
+  slotId: string,
+  ctx: Context,
+): Promise<void> {
+  if (!isAdminCtx(ctx)) return;
+  const state = loadDeep(participantId);
+  if (!state) {
+    await ctx.answerCbQuery("Deep state не найден.");
+    return;
+  }
+  const idx = findSlotIdx(state, slotId);
+  if (idx < 0) {
+    await ctx.answerCbQuery("Слот пропал.");
+    return;
+  }
+  const slot = state.slots[idx];
+  let result: ReturnType<typeof toggleSelectedTargetRole>;
+  try {
+    result = toggleSelectedTargetRole(participantId, slot.direction, "deep");
+  } catch (err) {
+    await ctx.answerCbQuery("Нельзя выбрать slug без marketEvidence.");
+    await ctx.reply(
+      `Не могу выбрать <code>${escapeHtml(slot.direction.roleSlug)}</code>: ${
+        err instanceof Error ? escapeHtml(err.message) : "некорректный slug"
+      }`,
+      { parse_mode: "HTML" },
+    );
+    return;
+  }
+  if (!result) {
+    await ctx.answerCbQuery("Клиент не найден.");
+    return;
+  }
+  await refreshDeepNumbers(participantId, state);
+  await ctx.answerCbQuery(
+    result.selected
+      ? `Добавлено в упаковку: ${slot.direction.roleSlug}`
+      : `Убрано из упаковки: ${slot.direction.roleSlug}`,
+  );
+  await ctx.reply(
+    `${result.selected ? "🎯 Выбрано" : "Убрано"} для упаковки: <b>${escapeHtml(slot.direction.title)}</b>\n` +
+      `Всего выбранных направлений: <b>${result.roles.length}</b>.`,
+    { parse_mode: "HTML" },
+  );
+}
+
 export async function applyDeepRejectReason(
   participantId: string,
   slotId: string,
@@ -589,6 +645,10 @@ export async function dispatchDeepCallback(
     case "unreject":
       if (!slotOrIdx) return false;
       await handleUnreject(participantId, slotOrIdx, ctx);
+      return true;
+    case "target":
+      if (!slotOrIdx) return false;
+      await handleTarget(participantId, slotOrIdx, ctx);
       return true;
     case "approve":
       await handleApprove(participantId, ctx);

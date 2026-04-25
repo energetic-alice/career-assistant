@@ -130,6 +130,11 @@ export async function sendClientCard(
     ? (outputs.resumeVersions as ResumeDocumentVersion[])
     : undefined;
   const activeResumeVersionId = outputs.activeResumeVersionId as string | undefined;
+  const selectedTargetRoles =
+    clientSummary?.selectedTargetRoles ??
+    (Array.isArray(outputs.selectedTargetRoles)
+      ? (outputs.selectedTargetRoles as Parameters<typeof formatClientCardForTelegram>[0]["selectedTargetRoles"])
+      : undefined);
 
   const cardHtml = formatClientCardForTelegram({
     telegramNick: state.telegramNick,
@@ -140,6 +145,7 @@ export async function sendClientCard(
     rawNamedValues,
     legacyDocUrl,
     legacyTariff,
+    selectedTargetRoles,
   });
 
   const replyMarkup =
