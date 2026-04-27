@@ -1,0 +1,210 @@
+{
+  "slug": "1c_developer",
+  "displayTitle": "1C Developer",
+  "builtAt": "2026-04-25T10:17:45.466Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Программист 1С",
+    "Junior 1С Developer",
+    "Инженер-программист 1С",
+    "Ведущий программист 1С",
+    "Middle 1С Developer",
+    "Senior 1С Developer",
+    "1С-разработчик",
+    "Программист-аналитик 1С"
+  ],
+  "summaryPatterns": [
+    "I'm an experienced 1C developer with 7+ years specializing in complex business automation on 1C:Enterprise 8.x platform, successfully delivered 15+ full-cycle projects from analysis to deployment",
+    "I'm a 1C programmer with 6+ years building high-load systems and integrations, reduced development costs by 25% through in-house automation and managed teams of 3+ specialists",
+    "I'm a senior 1C developer with 18+ years experience in enterprise solutions, worked with 90+ organizations and 2000+ users, specialized in ERP implementations and document flow systems",
+    "I'm a 1C developer with 14+ years in government and enterprise sectors, implemented EDO system saving ~2M rubles and managed database migrations for 9+ databases",
+    "I'm a skilled 1C programmer with 5+ years in distributed systems, worked on 40TB+ databases with 400+ developers team using collaborative development through repositories"
+  ],
+  "skillCategories": [
+    {
+      "category": "1C Platform & Configurations",
+      "items": [
+        "1С:Предприятие 8.x",
+        "1С:УТ 11.x",
+        "1С:ERP",
+        "1С:УПП",
+        "1С:БП 3.0",
+        "1С:ЗУП 3.x",
+        "1С:КА 2.0",
+        "1С:Документооборот",
+        "1С:УНФ",
+        "1С:WMS",
+        "Управляемые формы",
+        "Обычные формы",
+        "БСП",
+        "СКД"
+      ]
+    },
+    {
+      "category": "Development Tools & Languages",
+      "items": [
+        "1С:EDT",
+        "Конфигуратор 1С",
+        "Встроенный язык 1С",
+        "Язык запросов 1С",
+        "Python",
+        "C#",
+        "Dart/Flutter",
+        "Delphi",
+        "JavaScript"
+      ]
+    },
+    {
+      "category": "Integration & APIs",
+      "items": [
+        "REST API",
+        "SOAP",
+        "HTTP-сервисы",
+        "XML",
+        "JSON",
+        "Планы обмена",
+        "КД 2.0",
+        "OLE Automation",
+        "COM-соединения",
+        "Web-сервисы"
+      ]
+    },
+    {
+      "category": "Databases & Administration",
+      "items": [
+        "MS SQL Server",
+        "PostgreSQL",
+        "MySQL",
+        "Кластер серверов 1С",
+        "Резервное копирование",
+        "Оптимизация запросов",
+        "Индексирование",
+        "Администрирование БД"
+      ]
+    },
+    {
+      "category": "External Systems Integration",
+      "items": [
+        "Bitrix24",
+        "ЕГАИС",
+        "Честный Знак",
+        "ОФД",
+        "ГИИС ДМДК",
+        "Ozon API",
+        "Wildberries API",
+        "Яндекс.Карты",
+        "Банковские системы"
+      ]
+    },
+    {
+      "category": "Development Practices",
+      "items": [
+        "Git",
+        "GitHub",
+        "GitLab",
+        "Хранилище конфигураций",
+        "Code Review",
+        "Расширения конфигураций",
+        "Agile/Scrum",
+        "Vanessa-ADD",
+        "Тестирование"
+      ]
+    },
+    {
+      "category": "Business Intelligence & Reporting",
+      "items": [
+        "Аналитические отчеты",
+        "Дашборды",
+        "KPI-панели",
+        "Управленческая отчетность",
+        "Печатные формы",
+        "Внешние отчеты",
+        "P&L отчеты",
+        "БДДС"
+      ]
+    },
+    {
+      "category": "Hardware Integration",
+      "items": [
+        "ККТ",
+        "ТСД",
+        "POS-терминалы",
+        "Сканеры штрих-кодов",
+        "Frontol",
+        "Весовое оборудование",
+        "Принтеры этикеток"
+      ]
+    },
+    {
+      "category": "Enterprise Architecture",
+      "items": [
+        "Микросервисная архитектура",
+        "РИБ",
+        "Клиент-серверная архитектура",
+        "Распределенные системы",
+        "Docker",
+        "Шина данных",
+        "1С:Шина"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Successfully delivered 15+ full-cycle projects from analysis to deployment",
+    "Reduced development costs by 25% through in-house automation",
+    "Saved implementation costs of ~2M rubles through custom EDO system",
+    "Improved warehouse staff efficiency by 30% with mobile app modules",
+    "Managed distributed system with 40TB+ database and 400+ developers",
+    "Automated 90+ organizations with 2000+ users across enterprise group",
+    "Reduced annual contractor costs by 2-3M rubles with in-house development",
+    "Successfully migrated 4 file-based configurations to server architecture",
+    "Built team of 6 specialists (3 programmers + 3 analysts) for full in-house development",
+    "Implemented seamless transition from 1C:UPP to 1C:ZUP 3.1 with historical data migration",
+    "Established backup system for 9+ databases with point-in-time recovery",
+    "Integrated 1C systems with major marketplaces (Ozon, WB, Yandex) via API",
+    "Completed enterprise transition from UT 11 to 1C:ERP within 6 months timeline",
+    "Optimized heavy queries in production and costing modules for better performance",
+    "Created centralized data bus for heterogeneous information systems integration"
+  ],
+  "keyResponsibilities": [
+    "Development and customization of 1C configurations for business automation",
+    "Integration with external systems via REST API, SOAP, and web services",
+    "Database administration and performance optimization",
+    "Design and implementation of analytical reports using SDK",
+    "Architecture design for scalable enterprise information systems",
+    "Technical documentation and user training",
+    "Code review and quality control according to 1C standards",
+    "Migration of data between different 1C configurations",
+    "Configuration updates and version management",
+    "Business process analysis and automation requirements gathering"
+  ],
+  "certifications": [
+    "1С:СПЕЦИАЛИСТ по платформе",
+    "1С:СПЕЦИАЛИСТ по конфигурированию и внедрению торговых решений",
+    "1С:СПЕЦИАЛИСТ по конфигурированию и внедрению подсистем расчета зарплаты",
+    "1С:СПЕЦИАЛИСТ-КОНСУЛЬТАНТ по документообороту",
+    "1С:ПРОФЕССИОНАЛ по технологическим вопросам",
+    "1С Эксперт"
+  ],
+  "popularIndustries": [
+    "automotive",
+    "retail",
+    "manufacturing",
+    "healthcare",
+    "government",
+    "logistics",
+    "food production",
+    "construction",
+    "IT consulting",
+    "system integration"
+  ],
+  "redFlags": [
+    "Listing generic responsibilities without specific achievements or metrics",
+    "Claiming expertise in too many unrelated technologies (30+ skills)",
+    "No mention of specific 1C configurations or versions worked with",
+    "Lack of integration experience with external systems",
+    "No database administration or performance optimization experience",
+    "Missing details about project scale (number of users, data volumes)",
+    "No experience with modern development practices (Git, code review)"
+  ],
+  "notes": "1C Developer - это специализированная роль, требующая глубоких знаний экосистемы 1С:Предприятие. Сильные кандидаты демонстрируют: 1) Экспертизу в конкретных конфигурациях (УТ, ERP, БП, ЗУП), 2) Опыт интеграций с внешними системами через API, 3) Навыки администрирования БД и оптимизации производительности, 4) Понимание бизнес-процессов и отраслевой специфики, 5) Опыт работы с высоконагруженными системами. Важны конкретные достижения с цифрами: количество проектов, размер команд, объемы данных, экономия средств. Рынок ценит универсальных специалистов, способных работать на всех этапах проекта - от анализа требований до внедрения и поддержки."
+}

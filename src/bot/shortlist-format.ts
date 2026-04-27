@@ -80,10 +80,12 @@ function formatMoney(n: number | null, bucket: Direction["bucket"]): string {
 
 /**
  * Префикс-бейдж источника данных (Phase 2 enrichment).
- *   `[m]` — market-index (наша KB, надёжно)
- *   `[p]` — perplexity (дозаполнено через ИИ-поиск, есть URL-citations)
- *   `[~]` — perplexity-estimate (оценка по аналогии — низкая уверенность)
- *   `[?]` — none (данных нет; Phase 3 разберётся)
+ *   `[m]`  — market-index (наша KB, надёжно)
+ *   `[p]`  — perplexity (дозаполнено через ИИ-поиск, есть URL-citations)
+ *   `[~p]` — perplexity-estimate (оценка по аналогии — низкая уверенность)
+ *   `[c]`  — claude+web_search (citations прошли relevance-gate)
+ *   `[~c]` — claude-estimate (confidence=low или citations не прошли gate)
+ *   `[?]`  — none (данных нет; Phase 3 разберётся)
  *
  * Возвращает пустую строку для baseline без явного `dataSource`
  * (старые состояния до Phase 2) — чтобы не ломать обратную совместимость.
@@ -95,7 +97,11 @@ export function dataSourceBadge(enriched?: EnrichedDirection): string {
   switch (src) {
     case "market-index": return "[m]";
     case "perplexity": return "[p]";
-    case "perplexity-estimate": return "[~]";
+    case "perplexity-estimate": return "[~p]";
+    case "claude": return "[c]";
+    case "claude-estimate": return "[~c]";
+    case "itjw-canonical": return "[itjw]";
+    case "itjw-live": return "[itjw·live]";
     case "none": return "[?]";
     default: return "";
   }
@@ -179,11 +185,16 @@ export function formatDirection(
   if (d.offIndex) {
     footer.push(`⚠ off-index slug <code>${escapeHtml(d.roleSlug)}</code>`);
   }
-  // Phase 2: если данные дозаполнены через Perplexity — даём проверяемые
-  // источники в подвале, чтобы можно было ткнуть и убедиться.
+  // Phase 2: если данные дозаполнены через провайдер (Perplexity / Claude /
+  // niche-resolver) — даём проверяемые источники в подвале, чтобы можно было
+  // ткнуть и убедиться.
   if (
     enriched?.dataSource === "perplexity" ||
-    enriched?.dataSource === "perplexity-estimate"
+    enriched?.dataSource === "perplexity-estimate" ||
+    enriched?.dataSource === "claude" ||
+    enriched?.dataSource === "claude-estimate" ||
+    enriched?.dataSource === "itjw-canonical" ||
+    enriched?.dataSource === "itjw-live"
   ) {
     if (enriched.perplexityReasoning) {
       footer.push(`<i>~ ${escapeHtml(enriched.perplexityReasoning.slice(0, 200))}</i>`);

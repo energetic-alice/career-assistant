@@ -1,5 +1,6 @@
 import type { Context, Telegraf } from "telegraf";
-import { downloadFromGoogleDrive, extractResumeText } from "../services/file-service.js";
+import { extractResumeText } from "../services/file-service.js";
+import { fetchResumeFromUrl, findUrls } from "../services/url-fetcher.js";
 import { normalizeNick } from "../services/intake-mapper.js";
 import {
   addSelectedTargetRole,
@@ -7,6 +8,7 @@ import {
   saveResumeVersion,
   type ResumeVersion,
 } from "../pipeline/intake.js";
+import { addClientNote, listClientNotes } from "../pipeline/client-notes.js";
 import { matchRoleToSlug } from "../services/role-matcher.js";
 import { registerPendingReply, takePendingReply } from "./pending-reply.js";
 
@@ -49,6 +51,10 @@ type ResumeSource = {
 };
 
 const DRIVE_URL_RE = /https?:\/\/(?:drive|docs)\.google\.com\/[^\s<>)"]+/i;
+
+/** URLs that look like a resume host or end with a parsable extension. */
+const RESUME_URL_HINT_RE =
+  /(\.pdf(\?|$)|\.docx?(\?|$)|\.rtf(\?|$)|\.odt(\?|$)|hh\.ru\/resume|hh\.kz\/resume|superjob\.ru\/resume|career\.habr\.com)/i;
 
 function getMessage(ctx: Context): ResumeMessage | undefined {
   return ctx.message as ResumeMessage | undefined;
@@ -154,14 +160,18 @@ async function extractResumeSource(
   }
 
   const body = [message.caption, message.text].filter(Boolean).join("\n").trim();
-  const driveUrl = DRIVE_URL_RE.exec(body)?.[0];
-  if (driveUrl) {
-    const { buffer, mimeType } = await downloadFromGoogleDrive(driveUrl);
+  const urls = findUrls(body);
+  const candidate =
+    urls.find((u) => DRIVE_URL_RE.test(u)) ??
+    urls.find((u) => RESUME_URL_HINT_RE.test(u)) ??
+    null;
+  if (candidate) {
+    const { buffer, mimeType, sourceUrl } = await fetchResumeFromUrl(candidate);
     const text = await extractResumeText(buffer, mimeType);
     return {
       text,
-      source: "google_drive_url",
-      sourceFileName: driveUrl,
+      source: DRIVE_URL_RE.test(candidate) ? "google_drive_url" : "telegram_text",
+      sourceFileName: sourceUrl,
       mimeType,
     };
   }
@@ -217,10 +227,47 @@ export async function handleResumeUpdateMessage(
     return false;
   }
 
+  const hasFile = Boolean(message.document || message.photo?.length);
+  const hasUrl = Boolean(findUrls(body).length);
+  const isShortPlainForward =
+    looksLikeForward && !hasFile && !hasUrl && body.trim().length < 200;
+
+  if (isShortPlainForward) {
+    const note = addClientNote({
+      participantId: participant.participantId,
+      text: body.trim(),
+      source: "telegram_forward",
+      authorUsername: getForwardedUsername(message) || undefined,
+      enteredByUsername: (ctx.from as { username?: string } | undefined)?.username,
+    });
+    if (note) {
+      const total = listClientNotes(participant.participantId).length;
+      await ctx.reply(
+        `Сохранила как заметку для @${participant.nick} (всего активных: ${total}).`,
+      );
+      return true;
+    }
+  }
+
   try {
     await ctx.reply(`Нашла клиента @${participant.nick}. Парсю резюме…`);
     const source = await extractResumeSource(ctx, message);
     if (!source || !source.text.trim()) {
+      if (looksLikeForward && body.trim()) {
+        const note = addClientNote({
+          participantId: participant.participantId,
+          text: body.trim(),
+          source: "telegram_forward",
+          authorUsername: getForwardedUsername(message) || undefined,
+          enteredByUsername: (ctx.from as { username?: string } | undefined)?.username,
+        });
+        if (note) {
+          await ctx.reply(
+            `Не похоже на резюме. Сохранила как заметку для @${participant.nick}.`,
+          );
+          return true;
+        }
+      }
       await ctx.reply(
         "Не нашла в сообщении резюме. Пришли PDF/DOCX/TXT/картинку, ссылку Google Drive или текст резюме.",
       );

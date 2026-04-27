@@ -30,7 +30,12 @@ export function buildReviewSummary(
   }
 
   for (const dir of analysis.directions) {
-    if (dir.market.vacanciesPer100Specialists < 3) {
+    // null = метрики нет (UK/EU/US — справочник содержит только оценочные ratio).
+    // Флаг по конкуренции рисуем только когда есть точное число (RU).
+    if (
+      dir.market.vacanciesPer100Specialists !== null &&
+      dir.market.vacanciesPer100Specialists < 3
+    ) {
       flags.push({
         type: "yellow",
         message: `${dir.title}: конкуренция высокая (${dir.market.vacanciesPer100Specialists} вак/100 спец)`,
@@ -110,8 +115,10 @@ export function formatReviewForTelegram(summary: ReviewSummary): string {
     lines.push(
       `${medal} <b>${d.title}</b>`,
     );
+    const vacPer100Str =
+      d.vacPer100 !== null ? `${d.vacPer100} вак/100` : "конкуренция: оценка";
     lines.push(
-      `   ${d.type} | ${d.adjacency}% | ${d.vacPer100} вак/100 | AI: ${d.aiRisk}`,
+      `   ${d.type} | ${d.adjacency}% | ${vacPer100Str} | AI: ${d.aiRisk}`,
     );
     lines.push(`   ${d.salary}`);
   }
@@ -362,6 +369,9 @@ export const STAGE_LABELS: Record<PipelineStage, string> = {
   deep_ready: "🔵 Глубокий анализ готов — ждёт ревью",
   deep_failed: "❌ Глубокий анализ упал",
   deep_approved: "🔵 Глубокий анализ одобрен",
+  final_generating: "⚙️ Финальный анализ собирается…",
+  final_ready: "🟢 Финальный анализ готов",
+  final_failed: "❌ Финальный анализ упал",
 };
 
 function pickResumeUrl(rnv: Record<string, string> | undefined): string | undefined {
@@ -410,6 +420,16 @@ export interface ClientCardSource {
   legacyDocUrl?: string;
   /** Для stage=completed_legacy: тариф (Групповой / ВИП). */
   legacyTariff?: string;
+  /**
+   * Для stage=final_ready: ссылка на свежесгенерированный Google Doc финального
+   * карьерного анализа (Phase 3 + Phase 4). Берётся из
+   * `state.stageOutputs.finalAnalysis.docUrl`.
+   */
+  analysisDocUrl?: string;
+  /** Для stage=final_ready: ISO timestamp генерации (для подписи в карточке). */
+  analysisGeneratedAt?: string;
+  /** Для stage=final_failed: текст ошибки последней попытки. */
+  analysisError?: string;
   /** Направления, выбранные для дальнейшей упаковки/поиска работы. */
   selectedTargetRoles?: Array<{
     roleSlug: string;
@@ -417,6 +437,14 @@ export interface ClientCardSource {
     bucket?: string;
     offIndex?: boolean;
     selectedAt?: string;
+  }>;
+  /** Активные ручные заметки клиента (forward / /note). */
+  clientNotes?: Array<{
+    id: string;
+    createdAt: string;
+    text: string;
+    authorUsername?: string;
+    source?: string;
   }>;
 }
 
@@ -433,7 +461,11 @@ export function formatClientCardForTelegram(src: ClientCardSource): string {
     : renderFromRawFallback(src);
 
   const selectedTargets = formatSelectedTargetRoles(src.selectedTargetRoles);
-  const withTargets = selectedTargets ? `${body}\n\n${selectedTargets}` : body;
+  const notesBlock = formatClientNotes(src.clientNotes);
+  const finalAnalysisBlock = formatFinalAnalysisBlock(src);
+  const withTargets = [body, selectedTargets, notesBlock, finalAnalysisBlock]
+    .filter((s) => s && s.length > 0)
+    .join("\n\n");
 
   if (src.stage === "completed_legacy") {
     const parts: string[] = [];
@@ -473,6 +505,39 @@ function formatSelectedTargetRoles(
   });
 
   return [`<b>🎯 Упаковка/поиск:</b>`, ...lines].join("\n");
+}
+
+function formatFinalAnalysisBlock(src: ClientCardSource): string {
+  if (src.stage === "final_ready" && src.analysisDocUrl) {
+    const date = (src.analysisGeneratedAt || "").slice(0, 10);
+    const dateLabel = date ? ` · ${escapeHtml(date)}` : "";
+    return (
+      `<b>📄 Карьерный анализ:</b> ` +
+      `<a href="${escapeHtml(src.analysisDocUrl)}">Google Doc</a>${dateLabel}`
+    );
+  }
+  if (src.stage === "final_generating") {
+    return `<b>📄 Карьерный анализ:</b> ⚙️ собирается…`;
+  }
+  if (src.stage === "final_failed") {
+    const err = src.analysisError ? ` (${escapeHtml(src.analysisError.slice(0, 200))})` : "";
+    return `<b>📄 Карьерный анализ:</b> ❌ генерация упала${err}`;
+  }
+  return "";
+}
+
+function formatClientNotes(
+  notes: ClientCardSource["clientNotes"],
+): string {
+  if (!notes || notes.length === 0) return "";
+  const lines = notes.slice(0, 8).map((n, i) => {
+    const date = (n.createdAt || "").slice(0, 10);
+    const author = n.authorUsername ? ` <i>от @${escapeHtml(n.authorUsername)}</i>` : "";
+    const truncated = n.text.length > 220 ? n.text.slice(0, 220) + "…" : n.text;
+    return `${i + 1}. <code>${escapeHtml(n.id.slice(0, 8))}</code> ${date}${author}: ${escapeHtml(truncated)}`;
+  });
+  const more = notes.length > 8 ? `\n…и ещё ${notes.length - 8}` : "";
+  return [`<b>📝 Заметки (${notes.length}):</b>`, ...lines].join("\n") + more;
 }
 
 /**

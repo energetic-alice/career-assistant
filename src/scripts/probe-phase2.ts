@@ -6,25 +6,27 @@ import {
   type EnrichedDirection,
 } from "../services/direction-enricher.js";
 import {
-  enrichGapsForClient,
   _internals as deepInternals,
+  directionKey,
 } from "../services/deep-research-service.js";
+import { getMarketResearchProvider } from "../services/market-research/index.js";
 import type { Direction } from "../schemas/analysis-outputs.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
 
 /**
- * Phase 2 probe — тест enrichGapsForClient на 2-3 клиентах.
+ * Phase 2 probe — тест MarketResearch enrichment на 2-3 клиентах.
  *
  * Берёт последний successful shortlist клиента с прода (`stageOutputs.shortlist`),
  * имитирует apply approve всех direction'ов (или берёт `shortlistApproved` если уже одобрены),
- * и прогоняет `enrichGapsForClient`. Печатает таблицу "было → стало" + обнаруженные дыры
- * + dataSource по каждой роли.
+ * и прогоняет выбранный provider (env `MARKET_RESEARCH_PROVIDER`). Печатает таблицу
+ * "было → стало" + обнаруженные дыры + dataSource по каждой роли.
  *
  * Никаких записей на прод. Никакого Telegram.
  *
  * Usage:
- *   NICKS=rain_nl,energetic_alice,karina_kasik npx tsx src/scripts/probe-phase2.ts
- *   NICKS=rain_nl PERPLEXITY_API_KEY=xxx npx tsx src/scripts/probe-phase2.ts
+ *   NICKS=daryarioux MARKET_RESEARCH_PROVIDER=claude npx tsx src/scripts/probe-phase2.ts
+ *   NICKS=rain_nl   MARKET_RESEARCH_PROVIDER=perplexity npx tsx src/scripts/probe-phase2.ts
+ *   NICKS=rain_nl   MARKET_RESEARCH_PROVIDER=none       npx tsx src/scripts/probe-phase2.ts
  */
 
 const PROD_URL = process.env.PROD_URL || "https://career-assistant-w7z3.onrender.com";
@@ -93,7 +95,15 @@ function fmtSourceBadge(src: EnrichedDirection["dataSource"]): string {
     case "perplexity":
       return "[p]";
     case "perplexity-estimate":
-      return "[~]";
+      return "[~p]";
+    case "claude":
+      return "[c]";
+    case "claude-estimate":
+      return "[~c]";
+    case "itjw-canonical":
+      return "[itjw]";
+    case "itjw-live":
+      return "[itjw·live]";
     case "none":
       return "[?]";
     default:
@@ -220,18 +230,16 @@ async function probeOne(state: PipeState): Promise<void> {
   console.log(`  approved: ${approvedDirections.length} directions ${approvedSlugs.length > 0 ? "(from approved.slugs)" : "(approve-all imitation)"}`);
   console.log(`  approved slugs: ${approvedDirections.map((d) => d.roleSlug).join(", ")}`);
 
-  // Baseline по slug+bucket из enriched. Если что-то не нашлось — пересчитываем
-  // отдельно и кладём в нужное место (enrichGapsForClient требует длину = directions.length).
+  // Baseline через `directionKey` (title|bucket), не slug|bucket.
+  // Иначе direction'ы с одинаковым slug+bucket (Daria — AppSec / DevSecOps /
+  // SOC, все `infosecspec|usa`) схлопываются в один.
   const enrichedMap = new Map<string, EnrichedDirection>();
   for (const e of baselineFromState) {
-    enrichedMap.set(`${e.roleSlug}|${e.bucket ?? "abroad"}`, e);
+    enrichedMap.set(directionKey(e), e);
   }
-  const missingIdx: number[] = [];
   const missingDirs: Direction[] = [];
-  approvedDirections.forEach((d, i) => {
-    const key = `${d.roleSlug}|${d.bucket === "ru" ? "ru" : "abroad"}`;
-    if (!enrichedMap.has(key)) {
-      missingIdx.push(i);
+  approvedDirections.forEach((d) => {
+    if (!enrichedMap.has(directionKey(d))) {
       missingDirs.push(d);
     }
   });
@@ -239,14 +247,11 @@ async function probeOne(state: PipeState): Promise<void> {
     console.log(`  (recomputing baseline for ${missingDirs.length} missing direction(s))`);
     const fresh = await enrichDirections(missingDirs, cs);
     fresh.forEach((e, j) => {
-      const dir = missingDirs[j];
-      const key = `${dir.roleSlug}|${dir.bucket === "ru" ? "ru" : "abroad"}`;
-      enrichedMap.set(key, e);
+      enrichedMap.set(directionKey(missingDirs[j]), e);
     });
   }
   const baselineRaw: EnrichedDirection[] = approvedDirections.map((d) => {
-    const key = `${d.roleSlug}|${d.bucket === "ru" ? "ru" : "abroad"}`;
-    return enrichedMap.get(key) as EnrichedDirection;
+    return enrichedMap.get(directionKey(d)) as EnrichedDirection;
   });
 
   // Migration patch: если baseline пришёл из старого state без `dataSource`,
@@ -266,17 +271,22 @@ async function probeOne(state: PipeState): Promise<void> {
     );
   }
 
-  // Если есть gaps и есть Perplexity — покажем промпт
+  // Если есть gaps и есть Perplexity — покажем legacy-промпт для дебага.
   if (gaps.length > 0 && process.env.PERPLEXITY_API_KEY) {
-    const prompt = deepInternals.buildBatchPrompt(gaps, baseline, cs);
+    const prompt = deepInternals.buildBatchPrompt(gaps, baseline, approvedDirections, cs);
     await dumpJson(`${nick}.prompt.txt`, prompt);
     console.log(`  prompt saved: test-output/probe-phase2/${nick}.prompt.txt (${prompt.length} chars)`);
   }
 
-  // Запускаем enrichment
-  console.log(`\n  Running enrichGapsForClient...`);
+  // Запускаем enrichment через выбранный provider
+  const provider = getMarketResearchProvider();
+  console.log(`\n  Running provider=${provider.name}...`);
   const t0 = Date.now();
-  const after = await enrichGapsForClient(approvedDirections, baseline, cs);
+  const after = await provider.enrichGaps({
+    directions: approvedDirections,
+    baseline,
+    summary: cs,
+  });
   const ms = Date.now() - t0;
   console.log(`  done in ${ms}ms`);
 
@@ -291,8 +301,15 @@ async function probeOne(state: PipeState): Promise<void> {
     const b = baseline[i];
     if (!a || !b) continue;
 
-    if (a.dataSource === "perplexity" || a.dataSource === "perplexity-estimate") {
-      console.log(`  ${fmtSourceBadge(a.dataSource)} ${a.roleSlug}:`);
+    const isFilledByProvider =
+      a.dataSource === "perplexity" ||
+      a.dataSource === "perplexity-estimate" ||
+      a.dataSource === "claude" ||
+      a.dataSource === "claude-estimate" ||
+      a.dataSource === "itjw-canonical" ||
+      a.dataSource === "itjw-live";
+    if (isFilledByProvider) {
+      console.log(`  ${fmtSourceBadge(a.dataSource)} ${a.roleSlug} — "${a.title}":`);
       console.log(`     diff: ${diffRow(b, a)}`);
       if (a.perplexityCitations && a.perplexityCitations.length > 0) {
         console.log(`     citations:`);
@@ -310,9 +327,19 @@ async function probeOne(state: PipeState): Promise<void> {
 
   await dumpJson(`${nick}.result.json`, {
     nick,
+    provider: provider.name,
     targetMarketRegions: cs.targetMarketRegions,
     gapsDetected: gaps.length,
-    perplexityFills: after.filter((e) => e.dataSource === "perplexity" || e.dataSource === "perplexity-estimate").length,
+    enrichmentFills: after.filter((e) =>
+      [
+        "perplexity",
+        "perplexity-estimate",
+        "claude",
+        "claude-estimate",
+        "itjw-canonical",
+        "itjw-live",
+      ].includes(e.dataSource),
+    ).length,
     durationMs: ms,
     baseline: baseline.map((e) => ({
       slug: e.roleSlug,
@@ -338,7 +365,9 @@ async function probeOne(state: PipeState): Promise<void> {
 async function main(): Promise<void> {
   const states = await fetchAll();
   console.log(`Загружено ${states.length} клиентов с прода. Probe для: ${NICKS.join(", ")}`);
-  console.log(`PERPLEXITY_API_KEY: ${process.env.PERPLEXITY_API_KEY ? "set" : "NOT SET (enrichment skipped)"}`);
+  console.log(`PERPLEXITY_API_KEY: ${process.env.PERPLEXITY_API_KEY ? "set" : "NOT SET"}`);
+  console.log(`ANTHROPIC_API_KEY:  ${process.env.ANTHROPIC_API_KEY ? "set" : "NOT SET"}`);
+  console.log(`MARKET_RESEARCH_PROVIDER: ${process.env.MARKET_RESEARCH_PROVIDER ?? "(default: claude)"}`);
 
   for (const nick of NICKS) {
     const s = findByNick(states, nick);

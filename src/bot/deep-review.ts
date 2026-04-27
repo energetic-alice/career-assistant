@@ -13,11 +13,17 @@ import {
   updatePipelineStage,
 } from "../pipeline/intake.js";
 import {
+  runAnalysisPhase4,
+  runDeepFromShortlist,
   runDeepResearch,
   type ShortlistResult,
 } from "../pipeline/run-analysis.js";
 import type { Direction } from "../schemas/analysis-outputs.js";
-import type { EnrichedDirection } from "../services/direction-enricher.js";
+import {
+  formatEnrichedAsMarketData,
+  type EnrichedDirection,
+} from "../services/direction-enricher.js";
+import { createGoogleDoc } from "../services/google-docs-service.js";
 import { normalizeNick } from "../services/intake-mapper.js";
 import {
   countRecommended,
@@ -27,6 +33,7 @@ import {
   isRecommended,
   scoreBadge,
 } from "./shortlist-format.js";
+import { getShortlistState, toShortlistResult } from "./shortlist-review.js";
 import { registerPendingReply } from "./pending-reply.js";
 
 /**
@@ -136,14 +143,35 @@ function deepHeaderKeyboard(
   const recommended = countRecommended(state.slots);
   const canApprove = recommended >= 1;
   const rows: CallbackButton[][] = [];
-  rows.push([
-    Markup.button.callback(
-      canApprove
-        ? `✓ Одобрить → финальный анализ (${recommended})`
-        : `✓ Одобрить (нет рекомендуемых)`,
-      canApprove ? `deep:approve:${participantId}` : `deep:noop:${participantId}`,
-    ),
-  ]);
+
+  // На стадии deep_ready показываем "Одобрить".
+  // После Approve (deep_approved / final_*) — кнопка превращается в "Сгенерировать финальный анализ",
+  // которая дёргает Phase 3 + Phase 4 и сохраняет ссылку на Google Doc.
+  const stage = getPipelineState(participantId)?.stage;
+  const isApproved = stage === "deep_approved" || stage === "final_ready" || stage === "final_failed";
+  const isGenerating = stage === "final_generating";
+
+  if (isGenerating) {
+    rows.push([
+      Markup.button.callback("⚙️ Финальный анализ собирается…", `deep:noop:${participantId}`),
+    ]);
+  } else if (isApproved) {
+    const label = stage === "final_ready"
+      ? "🔁 Перегенерировать финальный анализ"
+      : stage === "final_failed"
+      ? "🔁 Повторить финальный анализ"
+      : "📄 Сгенерировать финальный анализ";
+    rows.push([Markup.button.callback(label, `deep:final:${participantId}`)]);
+  } else {
+    rows.push([
+      Markup.button.callback(
+        canApprove
+          ? `✓ Одобрить → финальный анализ (${recommended})`
+          : `✓ Одобрить (нет рекомендуемых)`,
+        canApprove ? `deep:approve:${participantId}` : `deep:noop:${participantId}`,
+      ),
+    ]);
+  }
   return Markup.inlineKeyboard(rows).reply_markup;
 }
 
@@ -153,7 +181,7 @@ function deepDirectionKeyboard(
 ): InlineKeyboardMarkup {
   const slotId = slot.slotId;
   const recommended = isRecommended(slot.direction);
-  const selected = isSelectedTargetRole(participantId, slot.direction);
+  const selected = isSelectedTargetRole(participantId, slot.direction, slotId);
   const rejectBtn = recommended
     ? Markup.button.callback("🚫 Отклонить", `deep:reject:${participantId}:${slotId}`)
     : Markup.button.callback("✅ Вернуть", `deep:unreject:${participantId}:${slotId}`);
@@ -472,15 +500,162 @@ async function handleApprove(
     },
   });
 
+  // Перерисовываем header — теперь там кнопка «Сгенерировать финальный анализ».
+  await editDeepHeader(participantId, state);
+
   await ctx.reply(
     `✅ Глубокий анализ одобрен.\n` +
       `Рекомендованы: <b>${recommendedDirections.length}</b>` +
       (rejectedDirections.length > 0
         ? `\n🚫 Отклонены (попадут в финал как «обсудили»): <b>${rejectedDirections.length}</b>`
         : "") +
-      `\n\nФинальный анализ (Phase 3) будет запущен отдельно — этот шаг ещё в разработке.`,
+      `\n\nЖми <b>📄 Сгенерировать финальный анализ</b> в шапке — соберём top-3 + финальный документ в Google Docs.`,
     { parse_mode: "HTML" },
   );
+}
+
+interface FinalAnalysisOutput {
+  docUrl: string;
+  generatedAt: string;
+  top3Titles: string[];
+  rejectedTitles: string[];
+}
+
+async function handleFinal(
+  participantId: string,
+  ctx: Context,
+): Promise<void> {
+  if (!isAdminCtx(ctx)) return;
+  const state = loadDeep(participantId);
+  if (!state) {
+    await ctx.answerCbQuery("Deep state не найден.");
+    return;
+  }
+  const ps = getPipelineState(participantId);
+  if (!ps) {
+    await ctx.answerCbQuery("Клиент не найден.");
+    return;
+  }
+  const outputs = (ps.stageOutputs ?? {}) as Record<string, unknown>;
+  const approved = outputs[APPROVED_KEY] as
+    | {
+        directions?: Direction[];
+        rejectedDirections?: Direction[];
+        enriched?: EnrichedDirection[];
+        rejectedEnriched?: EnrichedDirection[];
+      }
+    | undefined;
+  if (!approved?.directions || approved.directions.length === 0) {
+    await ctx.answerCbQuery("Нет одобренных направлений (нужно сначала Approve).");
+    return;
+  }
+
+  const shortlistState = getShortlistState(participantId);
+  if (!shortlistState) {
+    await ctx.answerCbQuery("Shortlist state не найден.");
+    return;
+  }
+
+  await ctx.answerCbQuery("⚙️ Запустила финальный анализ. Это займёт пару минут.");
+
+  updatePipelineStage(participantId, "final_generating", {});
+  // Перерисуем header — теперь покажет «Финальный анализ собирается…»
+  await editDeepHeader(participantId, state);
+
+  const chatId = ctx.chat?.id;
+  const replyText = (text: string) =>
+    chatId != null
+      ? getBot().telegram.sendMessage(chatId, text, { parse_mode: "HTML" })
+      : Promise.resolve();
+
+  try {
+    const t0 = Date.now();
+
+    // approvedDirections для prompt-03 = recommended ∪ rejected (отклонённые
+    // тоже надо упомянуть в финале как «обсудили и отклонили»).
+    const approvedAll: Direction[] = [
+      ...approved.directions,
+      ...(approved.rejectedDirections ?? []),
+    ];
+
+    // Готовим marketData из Phase 2 enriched, чтобы пропустить Step 5
+    // (повторный Perplexity).
+    const enrichedAll: EnrichedDirection[] = [
+      ...(approved.enriched ?? []),
+      ...(approved.rejectedEnriched ?? []),
+    ];
+    const marketData = enrichedAll.length > 0
+      ? formatEnrichedAsMarketData(enrichedAll)
+      : undefined;
+
+    const shortlistResult = toShortlistResult(shortlistState);
+
+    console.log(
+      `[Final] ${participantId}: starting Phase 3+4. ` +
+        `approved=${approved.directions.length} rejected=${approved.rejectedDirections?.length ?? 0} ` +
+        `marketData=${marketData ? `${marketData.length}c` : "none"}`,
+    );
+
+    const phase1 = await runDeepFromShortlist(shortlistResult, approvedAll, {
+      marketData,
+      skipPerplexityStep5: marketData !== undefined,
+    });
+
+    const phase4 = await runAnalysisPhase4(
+      phase1.profile,
+      phase1.directions,
+      phase1.analysis,
+    );
+
+    const candidateName = phase1.profile.name || ps.telegramNick || participantId;
+    const docTitle = `Карьерный анализ — ${candidateName}`;
+    const docUrl = await createGoogleDoc(docTitle, phase4.finalDocument);
+
+    const out: FinalAnalysisOutput = {
+      docUrl,
+      generatedAt: new Date().toISOString(),
+      top3Titles: phase1.analysis.directions.map((d) => d.title),
+      rejectedTitles:
+        phase1.analysis.rejectedDirections?.map((r) => r.originalTitle) ?? [],
+    };
+
+    updatePipelineStage(participantId, "final_ready", {
+      finalAnalysis: out,
+    });
+
+    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+    console.log(
+      `[Final] ${participantId}: done in ${elapsed}s, doc=${docUrl}`,
+    );
+
+    // Refresh header
+    const refreshed = loadDeep(participantId);
+    if (refreshed) {
+      await editDeepHeader(participantId, refreshed);
+    }
+
+    await replyText(
+      `🎉 <b>Финальный анализ готов</b> (${elapsed}s)\n` +
+        `Top-3: ${out.top3Titles.map((t) => escapeHtml(t)).join(" · ")}\n\n` +
+        `📄 <a href="${escapeHtml(docUrl)}">Открыть Google Doc</a>`,
+    );
+  } catch (err) {
+    console.error(`[Final] ${participantId}: failed`, err);
+    updatePipelineStage(participantId, "final_failed", {
+      finalAnalysisError: err instanceof Error ? err.message : String(err),
+    });
+    const refreshed = loadDeep(participantId);
+    if (refreshed) {
+      await editDeepHeader(participantId, refreshed);
+    }
+    await replyText(
+      `❌ <b>Финальный анализ упал</b>\n` +
+        `<code>${escapeHtml(
+          err instanceof Error ? err.message : String(err),
+        ).slice(0, 500)}</code>\n\n` +
+        `Можно нажать «Повторить» в шапке.`,
+    );
+  }
 }
 
 async function handleReject(
@@ -572,7 +747,7 @@ async function handleTarget(
   const slot = state.slots[idx];
   let result: ReturnType<typeof toggleSelectedTargetRole>;
   try {
-    result = toggleSelectedTargetRole(participantId, slot.direction, "deep");
+    result = toggleSelectedTargetRole(participantId, slot.direction, "deep", slot.slotId);
   } catch (err) {
     await ctx.answerCbQuery("Нельзя выбрать slug без marketEvidence.");
     await ctx.reply(
@@ -652,6 +827,12 @@ export async function dispatchDeepCallback(
       return true;
     case "approve":
       await handleApprove(participantId, ctx);
+      return true;
+    case "final":
+      await handleFinal(participantId, ctx);
+      return true;
+    case "noop":
+      await ctx.answerCbQuery();
       return true;
     default:
       return false;

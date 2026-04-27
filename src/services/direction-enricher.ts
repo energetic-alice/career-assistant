@@ -166,10 +166,19 @@ export type EnrichBucket = "ru" | "abroad";
 /**
  * Источник данных в EnrichedDirection после Phase 2 enrichment.
  *
- * - `market-index` — данные из локальной KB (надёжно, наш датасет).
- * - `perplexity` — заполнено через Perplexity с URL-citations (доверять с проверкой).
+ * - `market-index`        — данные из локальной KB (надёжно, наш датасет).
+ * - `perplexity`          — заполнено через Perplexity Sonar с URL-citations.
  * - `perplexity-estimate` — Perplexity дал оценку по аналогии (низкая уверенность).
- * - `none` — данных нет ни в KB, ни Perplexity не помог. Phase 3 разбирается вручную.
+ * - `claude`              — заполнено через Claude + web_search, citations прошли relevance-gate.
+ * - `claude-estimate`     — Claude вернул confidence=low ИЛИ citations не прошли relevance-gate.
+ * - `itjw-canonical`      — Phase 2 niche-resolver нашёл per-niche row в основной
+ *                            таблице `<region>_<slug>.md` (через alias или
+ *                            scoring fallback). Надёжно, тот же источник что
+ *                            market-index.
+ * - `itjw-live`           — Phase 2 niche-resolver на лету заскрейпил
+ *                            itjobswatch (alias miss + scoring miss). Данные
+ *                            одноразовые, не сохраняются в md.
+ * - `none`                — данных нет ни в KB, ни provider не помог. Phase 3 разбирается вручную.
  *
  * Для Phase 1 enriched (до Phase 2) поле всегда либо `market-index`, либо `none`.
  */
@@ -177,6 +186,10 @@ export type EnrichDataSource =
   | "market-index"
   | "perplexity"
   | "perplexity-estimate"
+  | "claude"
+  | "claude-estimate"
+  | "itjw-canonical"
+  | "itjw-live"
   | "none";
 
 export interface EnrichedDirection {
@@ -204,13 +217,17 @@ export interface EnrichedDirection {
   entry: MarketIndexEntry | null;
 
   /**
-   * Phase 2: источник данных (market-index по умолчанию, perplexity после
-   * успешного дозаполнения, none если данных нет).
+   * Phase 2: источник данных (market-index по умолчанию, perplexity/claude
+   * после успешного дозаполнения, none если данных нет).
    */
   dataSource: EnrichDataSource;
-  /** URL-citations от Perplexity для проверяемости (только если dataSource=perplexity*). */
+  /**
+   * URL-citations от внешнего провайдера (Perplexity/Claude). Поле сохранило
+   * старое имя для обратной совместимости со state-файлами на проде; новое
+   * заполнение пишет сюда же независимо от провайдера.
+   */
   perplexityCitations?: string[];
-  /** Reasoning от Perplexity (только для оценок по аналогии). */
+  /** Reasoning от провайдера (часто только для оценок по аналогии). */
   perplexityReasoning?: string;
 }
 
@@ -302,6 +319,80 @@ export async function enrichDirections(
       dataSource,
     };
   });
+}
+
+/**
+ * Renders Phase 2 EnrichedDirection[] in a markdown shape suitable for
+ * substitution into prompt-03's `{{marketData}}` slot. Replaces the
+ * `formattedText` from Perplexity Step 5 when caller has decided to skip
+ * Step 5 (`runDeepFromShortlist({ skipPerplexityStep5: true })`).
+ *
+ * Goal: keep prompt-03 stable, but feed it data that already passed the
+ * relevance gate. Each direction gets a clear source badge so Claude in
+ * Step 6 knows which numbers to lean on and which to treat as estimates.
+ */
+export function formatEnrichedAsMarketData(rows: EnrichedDirection[]): string {
+  if (rows.length === 0) return "Данные рынка не предоставлены.";
+
+  const lines: string[] = [];
+  lines.push("# Данные рынка по направлениям (Phase 2 enrichment)\n");
+  lines.push(
+    "Источники: `[m]` market-index (наша KB), `[p]` Perplexity, `[~p]` Perplexity-estimate, " +
+      "`[c]` Claude+web_search, `[~c]` Claude-estimate, " +
+      "`[itjw]` itjobswatch canonical, `[itjw·live]` itjw live-scraped, `[?]` нет данных.\n",
+  );
+
+  for (const r of rows) {
+    const badge = sourceBadge(r.dataSource);
+    const title = `## ${badge} ${r.title || r.roleSlug}`;
+    lines.push(title);
+    lines.push(`- slug: \`${r.roleSlug}\`${r.offIndex ? " (off-index)" : ""}`);
+    lines.push(`- bucket: ${r.bucket ?? "—"}`);
+    // competition/100 — точная метрика только для RU (расчёт hh.ru вакансий/резюме).
+    // Для bucket=abroad число в market-index приходит из competition-eu.md
+    // (оценочное ratio LinkedIn/ITJW), и подавать его модели как факт не стоит —
+    // см. user-rule «оставим только где они реально есть из данных рынка».
+    const compPart =
+      r.bucket === "ru" && r.competitionPer100 !== null
+        ? ` · competition/100 (hh.ru): ${r.competitionPer100.toFixed(1)}`
+        : "";
+    lines.push(
+      `- vacancies: ${fmtNum(r.vacancies)} · medianSalary: ${fmtNum(r.medianSalaryMid)}${compPart}`,
+    );
+    lines.push(
+      `- aiRisk: ${r.aiRisk ?? "—"} · trend: ${r.trendRatio !== null ? `${((r.trendRatio - 1) * 100).toFixed(0)}%` : "—"}`,
+    );
+    if (r.perplexityReasoning) {
+      lines.push(`- reasoning: ${r.perplexityReasoning}`);
+    }
+    if (r.perplexityCitations && r.perplexityCitations.length > 0) {
+      lines.push(`- sources:`);
+      for (const c of r.perplexityCitations.slice(0, 5)) {
+        lines.push(`  - ${c}`);
+      }
+    }
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+function sourceBadge(src: EnrichDataSource): string {
+  switch (src) {
+    case "market-index": return "[m]";
+    case "perplexity": return "[p]";
+    case "perplexity-estimate": return "[~p]";
+    case "claude": return "[c]";
+    case "claude-estimate": return "[~c]";
+    case "itjw-canonical": return "[itjw]";
+    case "itjw-live": return "[itjw·live]";
+    case "none": return "[?]";
+    default: return "[ ]";
+  }
+}
+
+function fmtNum(n: number | null): string {
+  return n === null ? "—" : String(n);
 }
 
 export function formatEnrichedForLog(rows: EnrichedDirection[]): string {

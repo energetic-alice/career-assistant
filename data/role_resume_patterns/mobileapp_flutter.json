@@ -1,0 +1,194 @@
+{
+  "slug": "mobileapp_flutter",
+  "displayTitle": "Flutter Developer",
+  "builtAt": "2026-04-25T10:25:05.994Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Flutter Developer",
+    "Flutter-разработчик",
+    "Junior Flutter Developer",
+    "Middle Flutter Developer",
+    "Senior Flutter Developer",
+    "Flutter/Android Developer",
+    "Mobile Flutter Developer"
+  ],
+  "summaryPatterns": [
+    "I'm a Flutter Developer with 4+ years of experience, delivered 10+ production apps across fintech, IoT, and e-commerce sectors, published 5+ apps to App Store/Google Play",
+    "I'm a Senior Flutter Developer (5+ years) who built scalable cross-platform apps serving 2000+ users, reduced app load time by 40%, increased user engagement by 20%",
+    "I'm a Flutter Developer (3+ years) who launched profitable features generating hundreds of sales in first month, improved app ratings from 4.3 to 4.5 stars",
+    "I'm a Mobile Flutter Developer with 6+ years experience, led technical interviews and mentoring, architected modular systems reducing time-to-market by 30-40%"
+  ],
+  "skillCategories": [
+    {
+      "category": "Core Flutter & Dart",
+      "items": [
+        "Flutter",
+        "Dart",
+        "Flutter Web",
+        "Flutter Desktop",
+        "Null Safety",
+        "Material Design",
+        "Cupertino"
+      ]
+    },
+    {
+      "category": "State Management",
+      "items": [
+        "BLoC",
+        "Cubit",
+        "Riverpod",
+        "Provider",
+        "GetX",
+        "RxDart",
+        "StateNotifier"
+      ]
+    },
+    {
+      "category": "Architecture & Patterns",
+      "items": [
+        "Clean Architecture",
+        "MVVM",
+        "Feature-first",
+        "SOLID",
+        "OOP",
+        "Design Patterns",
+        "Dependency Injection"
+      ]
+    },
+    {
+      "category": "Networking & Data",
+      "items": [
+        "REST API",
+        "Dio",
+        "HTTP",
+        "GraphQL",
+        "WebSocket",
+        "JSON",
+        "Freezed",
+        "Retrofit"
+      ]
+    },
+    {
+      "category": "Navigation & Routing",
+      "items": [
+        "GoRouter",
+        "AutoRoute",
+        "Navigator 2.0",
+        "Deep Links"
+      ]
+    },
+    {
+      "category": "Local Storage & Database",
+      "items": [
+        "SQLite",
+        "Drift",
+        "Hive",
+        "Shared Preferences",
+        "Secure Storage",
+        "Room"
+      ]
+    },
+    {
+      "category": "Firebase & Backend Services",
+      "items": [
+        "Firebase Auth",
+        "Firestore",
+        "Firebase Cloud Messaging",
+        "Firebase Crashlytics",
+        "Sentry",
+        "Analytics"
+      ]
+    },
+    {
+      "category": "Testing & Quality",
+      "items": [
+        "Unit Testing",
+        "Widget Testing",
+        "Integration Testing",
+        "Mockito",
+        "Test Coverage",
+        "Code Review"
+      ]
+    },
+    {
+      "category": "DevOps & CI/CD",
+      "items": [
+        "GitHub Actions",
+        "Fastlane",
+        "Git",
+        "CI/CD",
+        "Docker",
+        "App Store",
+        "Google Play"
+      ]
+    },
+    {
+      "category": "Native & Platform Integration",
+      "items": [
+        "Android SDK",
+        "iOS SDK",
+        "Kotlin",
+        "Swift",
+        "Platform Channels",
+        "BLE",
+        "NFC",
+        "WebAuthn"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced app load time by 40% through caching optimization",
+    "Increased user engagement by 20% with AI coaching system",
+    "Improved app ratings from 4.3 to 4.5 stars",
+    "Generated hundreds of sales in first month with gift certificates feature",
+    "Increased booking sessions growth by ~15% with advanced search module",
+    "Reduced time-to-market by 30-40% with modular architecture",
+    "Achieved 100% unit test coverage for critical functionality",
+    "Supported 2000+ concurrent users with optimized performance",
+    "Accelerated release preparation by 2 hours with CI/CD improvements",
+    "Increased user retention by 30% on analytics dashboard",
+    "Reduced profile filling time from 10-15 minutes to ~2 minutes",
+    "Achieved 80%+ test coverage reducing regression bugs",
+    "Cut deployment time from several hours to 20 minutes",
+    "Published 5+ apps successfully to App Store and Google Play",
+    "Optimized first load time 3x faster from 15 to 5 seconds",
+    "Built scalable platform serving 5+ clients simultaneously",
+    "Increased conversion rate by 18% with online booking module",
+    "Reduced data loss to nearly zero with offline-first system"
+  ],
+  "keyResponsibilities": [
+    "Develop and maintain Flutter applications for iOS and Android platforms",
+    "Design and implement scalable app architecture using Clean Architecture principles",
+    "Integrate REST APIs and third-party services into mobile applications",
+    "Collaborate with cross-functional teams including backend, QA, design, and product",
+    "Conduct code reviews and mentor junior developers",
+    "Write unit, widget, and integration tests to ensure code quality",
+    "Optimize app performance and user experience",
+    "Manage app deployment and publishing to App Store and Google Play",
+    "Implement CI/CD pipelines for automated testing and deployment",
+    "Debug and resolve production issues using crash reporting tools"
+  ],
+  "certifications": [],
+  "popularIndustries": [
+    "fintech",
+    "e-commerce",
+    "healthcare",
+    "fitness",
+    "tourism",
+    "logistics",
+    "IoT",
+    "telecommunications",
+    "media",
+    "social networking"
+  ],
+  "redFlags": [
+    "Listing technologies without demonstrating actual experience or results",
+    "Missing metrics or quantifiable achievements in project descriptions",
+    "Overloading skills section with 30+ unrelated technologies",
+    "Vague job descriptions without specific technical implementations",
+    "No mention of testing practices or code quality measures",
+    "Absence of CI/CD or deployment experience",
+    "Generic phrases without concrete business impact"
+  ],
+  "notes": "Flutter-разработчики в топовых резюме демонстрируют полный цикл разработки от архитектуры до публикации в сторах. Ключевые особенности: обязательное владение BLoC/Cubit для управления состоянием, Clean Architecture, опыт с Dio/REST API, Firebase интеграции. Важны метрики производительности (время загрузки, рейтинги приложений, количество пользователей). Сильные кандидаты показывают кроссплатформенный опыт, знание нативной разработки (Android/iOS), умение работать с CI/CD и автоматизацией релизов. Востребованы навыки тестирования (unit/widget тесты), работы с картами, офлайн-режимами, real-time функциями. Многие имеют опыт в финтехе, что подчеркивает важность работы с чувствительными данными и высокими требованиями к стабильности."
+}

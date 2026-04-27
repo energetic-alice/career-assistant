@@ -1,0 +1,216 @@
+{
+  "slug": "mobileapp_kotlin",
+  "displayTitle": "Android Developer (Kotlin)",
+  "builtAt": "2026-04-25T10:25:37.988Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Junior Android Developer",
+    "Middle Android Developer",
+    "Senior Android Developer",
+    "Android Developer",
+    "Lead Android Developer",
+    "Android (Kotlin) Developer"
+  ],
+  "summaryPatterns": [
+    "I'm a Senior Android Developer with 8+ years experience building scalable mobile applications for 15,000+ users across fintech, telecom and e-commerce domains.",
+    "I'm a Middle Android Developer (5+ years) who delivered 30+ features and led CI/CD migrations from Bamboo to Jenkins in cross-functional teams of 5-6 engineers.",
+    "I'm an Android Developer with 6+ years experience leading teams of 3+ developers, increasing app ratings from 3.0 to 4.5 stars and reducing crash rates to 1%.",
+    "I'm a Mobile Developer (4+ years) specializing in Kotlin Multiplatform, reduced app load times from 7 to 2 seconds and decreased critical defects by 32%.",
+    "I'm an Android Developer with 3+ years commercial experience building high-load real-time applications with 1,500 DAU and 2,000+ daily data sync operations."
+  ],
+  "skillCategories": [
+    {
+      "category": "Programming Languages",
+      "items": [
+        "Kotlin",
+        "Java",
+        "Swift",
+        "Groovy"
+      ]
+    },
+    {
+      "category": "Android Development",
+      "items": [
+        "Android SDK",
+        "Jetpack Compose",
+        "XML",
+        "Jetpack Navigation",
+        "Android Architecture Components",
+        "CameraX",
+        "WorkManager",
+        "Services",
+        "Fragments",
+        "RecyclerView"
+      ]
+    },
+    {
+      "category": "Architecture & Patterns",
+      "items": [
+        "MVVM",
+        "MVI",
+        "MVP",
+        "Clean Architecture",
+        "SOLID",
+        "DRY",
+        "KISS",
+        "Multimodule Architecture"
+      ]
+    },
+    {
+      "category": "Async & Reactive",
+      "items": [
+        "Kotlin Coroutines",
+        "Flow",
+        "StateFlow",
+        "RxJava",
+        "RxJava2",
+        "RxJava3",
+        "LiveData"
+      ]
+    },
+    {
+      "category": "Dependency Injection",
+      "items": [
+        "Dagger2",
+        "Hilt",
+        "Koin",
+        "Toothpick",
+        "Kodein"
+      ]
+    },
+    {
+      "category": "Network & API",
+      "items": [
+        "Retrofit",
+        "OkHttp",
+        "Ktor",
+        "REST API",
+        "WebSocket",
+        "GraphQL"
+      ]
+    },
+    {
+      "category": "Database & Storage",
+      "items": [
+        "Room",
+        "SQLite",
+        "SQLDelight",
+        "DataStore",
+        "Firebase Realtime Database"
+      ]
+    },
+    {
+      "category": "Cross-Platform & KMP",
+      "items": [
+        "Kotlin Multiplatform",
+        "KMP",
+        "Compose Multiplatform",
+        "D-KMP",
+        "Decompose"
+      ]
+    },
+    {
+      "category": "Firebase & Analytics",
+      "items": [
+        "Firebase",
+        "Firebase Analytics",
+        "Crashlytics",
+        "Firebase Cloud Messaging",
+        "AppMetrica",
+        "AppsFlyer",
+        "Google Analytics"
+      ]
+    },
+    {
+      "category": "Testing & Quality",
+      "items": [
+        "JUnit",
+        "MockK",
+        "Espresso",
+        "Turbine",
+        "Unit Tests",
+        "UI Tests",
+        "Detekt",
+        "Lint Rules"
+      ]
+    },
+    {
+      "category": "CI/CD & DevOps",
+      "items": [
+        "Jenkins",
+        "GitLab CI/CD",
+        "GitHub Actions",
+        "Fastlane",
+        "Danger",
+        "Docker",
+        "Gradle",
+        "Proguard",
+        "R8"
+      ]
+    },
+    {
+      "category": "Tools & Version Control",
+      "items": [
+        "Git",
+        "GitHub",
+        "GitLab",
+        "Forgejo",
+        "Android Studio",
+        "Figma",
+        "Jira",
+        "Confluence"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Delivered 30+ features to production serving 15,000+ active users",
+    "Reduced app load time from 7 seconds to 2 seconds through network optimization",
+    "Increased app rating from 3.0 to 4.5 stars and reduced crash rate to 1%",
+    "Led CI/CD migration from Bamboo to Jenkins for team of 5-6 engineers",
+    "Decreased critical defects by 32% and production crashes by 46%",
+    "Built real-time tracking system handling 1,500 DAU with live updates",
+    "Improved test coverage from 20% to 70% reducing release bugs significantly",
+    "Managed daily data synchronization for 2,000+ records with 99% uptime",
+    "Reduced document processing time from 2 minutes to 3 seconds using OCR",
+    "Successfully migrated UI from XML to Jetpack Compose for 10+ core screens",
+    "Optimized build times by 40% using Gradle Profiler and R8 configuration",
+    "Led team of 3 Android developers through complete app refactoring",
+    "Decreased infrastructure costs by 25% through modular architecture redesign",
+    "Implemented offline-first architecture supporting 50,000+ cached records"
+  ],
+  "keyResponsibilities": [
+    "Developing and maintaining Android applications using Kotlin and modern Android SDK",
+    "Implementing Clean Architecture principles with MVVM/MVI patterns",
+    "Building responsive UI with Jetpack Compose and XML layouts",
+    "Integrating REST APIs and managing asynchronous operations with Coroutines",
+    "Writing unit and UI tests to ensure code quality and application stability",
+    "Conducting code reviews and mentoring junior developers",
+    "Collaborating with cross-functional teams including backend, QA, and design",
+    "Optimizing app performance and reducing crash rates in production",
+    "Setting up CI/CD pipelines and automating deployment processes",
+    "Managing local data persistence with Room database and caching strategies"
+  ],
+  "certifications": [],
+  "popularIndustries": [
+    "fintech",
+    "e-commerce",
+    "telecom",
+    "healthcare",
+    "entertainment",
+    "sharing economy",
+    "retail",
+    "government services",
+    "insurance",
+    "logistics"
+  ],
+  "redFlags": [
+    "Listing 30+ technologies without context or depth",
+    "Generic achievements without specific metrics or impact",
+    "Outdated technology stack without modern Android practices",
+    "No mention of architecture patterns or design principles",
+    "Lack of teamwork or cross-functional collaboration examples",
+    "Missing testing experience or quality assurance practices",
+    "No experience with modern UI frameworks like Jetpack Compose"
+  ],
+  "notes": "Сильные Android-резюме выделяются конкретными метриками воздействия (количество пользователей, время загрузки, процент крашей) и современным стеком технологий. Ключевые тренды: переход на Jetpack Compose, использование Kotlin Multiplatform, внедрение Clean Architecture и принципов SOLID. Важно показать опыт работы в кросс-функциональных командах, проведения code review и менторства. Особое внимание уделяется опыту оптимизации производительности, настройки CI/CD и работы с высоконагруженными приложениями. Резюме должно демонстрировать понимание полного цикла разработки — от архитектурного планирования до релиза в продакшн. Сильные кандидаты показывают способность работать с legacy-кодом и проводить его модернизацию."
+}

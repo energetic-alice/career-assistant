@@ -13,11 +13,17 @@
  * См. app/README.md → "Рыночные данные (обновлять регулярно!)".
  */
 import "dotenv/config";
-import * as cheerio from "cheerio";
 import { writeFile, mkdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { KNOWN_ROLES } from "../services/market-data-service.js";
+import {
+  fetchItjwSearch,
+  scrapeItjwDetail,
+  type ItjobswatchRow,
+  type ItjobswatchTrend,
+  sleep,
+} from "../services/itjw-scraper.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MARKET_DATA_DIR = join(__dirname, "..", "prompts", "market-data");
@@ -178,24 +184,10 @@ const ITJW_SEARCH_MAP: Record<string, ItjwSearchConfig> = {
 // ---------------------------------------------------------------------------
 // itjobswatch.co.uk scraper
 // ---------------------------------------------------------------------------
-
-interface ItjobswatchRow {
-  title: string;
-  rank: number | null;
-  rankYoYChange: number | null;
-  medianSalary: string;
-  salaryYoYChange: string;
-  permJobs: string;
-  permJobsPct: string;
-  liveJobs: number | null;
-}
-
-interface ItjobswatchTrend {
-  jobsNow: string;
-  jobs1yAgo: string;
-  jobs2yAgo: string;
-  medianSalary: string;
-}
+//
+// NB: основные scraping-функции (fetchItjwSearch / scrapeItjwDetail / типы)
+// живут в `app/src/services/itjw-scraper.ts` и импортируются выше.
+// Здесь — только bulk-CLI логика (per-slug фильтр + skill-page).
 
 interface ItjobswatchResult {
   query: string;
@@ -205,46 +197,6 @@ interface ItjobswatchResult {
   trend?: ItjobswatchTrend;
   /** Total live vacancies from skill-page `/jobs/uk/<slug>.do` (if configured). */
   skillPageLive?: { skill: string; live: number; url: string };
-}
-
-async function fetchItjwSearch(query: string): Promise<{ rows: ItjobswatchRow[]; $: cheerio.CheerioAPI; url: string }> {
-  const url = `https://www.itjobswatch.co.uk/default.aspx?q=${encodeURIComponent(query)}`;
-  const resp = await fetch(url, {
-    headers: { "User-Agent": "CareerAssistant/1.0 (market research)" },
-  });
-  if (!resp.ok) throw new Error(`itjobswatch ${resp.status}: ${await resp.text()}`);
-
-  const html = await resp.text();
-  const $ = cheerio.load(html);
-  const rows: ItjobswatchRow[] = [];
-
-  $("table.results tbody tr").each((_, tr) => {
-    const cells = $(tr).children("th, td");
-    if (cells.length < 7) return;
-
-    const title = $(cells[0]).text().trim();
-    const rankText = $(cells[1]).text().trim();
-    const rankChangeText = $(cells[2]).text().trim().replace(/[^0-9\-+]/g, "");
-    const salary = $(cells[3]).text().trim();
-    const salaryChange = $(cells[4]).text().trim();
-    const permJobsRaw = $(cells[5]).text().trim();
-    const liveJobsText = $(cells[6]).text().trim().replace(/,/g, "");
-
-    const permMatch = permJobsRaw.match(/([\d,]+)\s+([\d.]+%)/);
-
-    rows.push({
-      title,
-      rank: rankText ? parseInt(rankText.replace(/,/g, ""), 10) || null : null,
-      rankYoYChange: rankChangeText ? parseInt(rankChangeText, 10) || null : null,
-      medianSalary: salary || "N/A",
-      salaryYoYChange: salaryChange || "-",
-      permJobs: permMatch ? permMatch[1] : permJobsRaw.split(" ")[0] || "N/A",
-      permJobsPct: permMatch ? permMatch[2] : "",
-      liveJobs: liveJobsText ? parseInt(liveJobsText, 10) || null : null,
-    });
-  });
-
-  return { rows, $, url };
 }
 
 async function fetchSkillPageLive(skillSlug: string): Promise<{ live: number; url: string } | null> {
@@ -327,7 +279,7 @@ async function scrapeItjobswatch(role: string): Promise<ItjobswatchResult> {
       .attr("href");
     if (detailLink) {
       try {
-        trend = await scrapeItjobswatchDetail(`https://www.itjobswatch.co.uk${detailLink}`);
+        trend = await scrapeItjwDetail(`https://www.itjobswatch.co.uk${detailLink}`);
       } catch (err) {
         console.warn(`[itjw detail] Failed for "${topRow.title}":`, err);
       }
@@ -353,32 +305,6 @@ async function scrapeItjobswatch(role: string): Promise<ItjobswatchResult> {
     rows,
     trend,
     skillPageLive,
-  };
-}
-
-async function scrapeItjobswatchDetail(url: string): Promise<ItjobswatchTrend> {
-  const resp = await fetch(url, {
-    headers: { "User-Agent": "CareerAssistant/1.0 (market research)" },
-  });
-  if (!resp.ok) throw new Error(`itjobswatch detail ${resp.status}`);
-  const html = await resp.text();
-  const $ = cheerio.load(html);
-
-  const data: Record<string, string[]> = {};
-  $("table.summary tr").each((_, tr) => {
-    const label = $(tr).find("td").first().text().trim().toLowerCase();
-    const vals = $(tr).find("td.fig").map((__, td) => $(td).text().trim()).get();
-    if (vals.length >= 2) data[label] = vals;
-  });
-
-  const jobsRow = Object.entries(data).find(([k]) => /^permanent jobs (citing|requiring)/.test(k));
-  const p50Row = Object.entries(data).find(([k]) => k.includes("median annual salary"));
-
-  return {
-    jobsNow: jobsRow?.[1][0] ?? "N/A",
-    jobs1yAgo: jobsRow?.[1][1] ?? "N/A",
-    jobs2yAgo: jobsRow?.[1][2] ?? "N/A",
-    medianSalary: p50Row?.[1][0] ?? "N/A",
   };
 }
 
@@ -446,8 +372,8 @@ async function runItjobswatch(roles: readonly string[]) {
       if (result.rows.length === 0) {
         console.warn(`⚠ ${role}: 0 rows — skip write (preserve existing uk_${role}.md)`);
       } else {
-        const md = formatItjobswatchMd(result);
         const filePath = join(MARKET_DATA_DIR, `uk_${role}.md`);
+        const md = formatItjobswatchMd(result);
         await writeFile(filePath, md, "utf-8");
         const best = result.rows[0];
         console.log(
@@ -459,10 +385,6 @@ async function runItjobswatch(roles: readonly string[]) {
     }
     await sleep(500);
   }
-}
-
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
 }
 
 async function main() {

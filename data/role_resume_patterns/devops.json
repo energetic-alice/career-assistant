@@ -1,0 +1,191 @@
+{
+  "slug": "devops",
+  "displayTitle": "DevOps / SRE / Platform Engineer",
+  "builtAt": "2026-04-25T10:16:23.874Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Junior DevOps Engineer",
+    "DevOps Engineer",
+    "Senior DevOps Engineer",
+    "SRE Engineer",
+    "Senior SRE Engineer",
+    "Platform Engineer",
+    "Lead DevOps Engineer"
+  ],
+  "summaryPatterns": [
+    "I'm a Senior DevOps Engineer with 7+ years building high-availability infrastructure for 1500+ users and reducing MTTD by 33% through observability automation.",
+    "I'm a DevOps Engineer with 4+ years specializing in Kubernetes orchestration, serving 50+ engineers and accelerating Time-to-Market by 40%.",
+    "I'm an SRE with 9+ years managing cloud platforms for 2500+ corporate clients, handling 18k VMs with 99.99% SLA and leading teams of 6 engineers.",
+    "I'm a Platform Engineer with 5+ years automating CI/CD pipelines, reducing deployment time from hours to minutes and cutting infrastructure costs by 35%.",
+    "I'm a DevOps Engineer with 3+ years in production environments, migrating 10+ microservices to Kubernetes and achieving 2-3x CI/CD acceleration."
+  ],
+  "skillCategories": [
+    {
+      "category": "Infrastructure & Cloud",
+      "items": [
+        "AWS",
+        "Yandex Cloud",
+        "GCP",
+        "Azure",
+        "Selectel",
+        "VMware",
+        "Proxmox",
+        "Bare Metal",
+        "OpenStack"
+      ]
+    },
+    {
+      "category": "Containers & Orchestration",
+      "items": [
+        "Kubernetes",
+        "Docker",
+        "OpenShift",
+        "Helm",
+        "ArgoCD",
+        "Istio"
+      ]
+    },
+    {
+      "category": "CI/CD & GitOps",
+      "items": [
+        "GitLab CI",
+        "Jenkins",
+        "TeamCity",
+        "GitHub Actions",
+        "ArgoCD",
+        "Tekton"
+      ]
+    },
+    {
+      "category": "Infrastructure as Code",
+      "items": [
+        "Terraform",
+        "Terragrunt",
+        "Ansible",
+        "AWX",
+        "Crossplane"
+      ]
+    },
+    {
+      "category": "Observability & Monitoring",
+      "items": [
+        "Prometheus",
+        "VictoriaMetrics",
+        "Grafana",
+        "ELK Stack",
+        "Loki",
+        "Tempo",
+        "Mimir",
+        "Zabbix"
+      ]
+    },
+    {
+      "category": "Databases & Storage",
+      "items": [
+        "PostgreSQL",
+        "ClickHouse",
+        "MongoDB",
+        "Redis",
+        "Oracle",
+        "MySQL",
+        "TiDB"
+      ]
+    },
+    {
+      "category": "Message Queues & Streaming",
+      "items": [
+        "Kafka",
+        "RabbitMQ",
+        "Apache Kafka"
+      ]
+    },
+    {
+      "category": "Security & Secrets Management",
+      "items": [
+        "HashiCorp Vault",
+        "Keycloak",
+        "Trivy",
+        "DevSecOps",
+        "SSL/TLS"
+      ]
+    },
+    {
+      "category": "Networking & Load Balancing",
+      "items": [
+        "Nginx",
+        "HAProxy",
+        "Angie",
+        "Ingress",
+        "Service Mesh"
+      ]
+    },
+    {
+      "category": "Scripting & Programming",
+      "items": [
+        "Bash",
+        "Python",
+        "Go",
+        "Java",
+        "Shell scripting"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced infrastructure costs by 35%",
+    "Accelerated CI/CD pipelines by 4x through refactoring and parallel builds",
+    "Decreased MTTD from hours to 33% improvement",
+    "Built observability system serving 50+ monitoring engineers",
+    "Migrated 10+ PB of data with zero downtime",
+    "Achieved 99.99% SLA for 18k virtual machines",
+    "Reduced deployment time from 1.5 hours to 5 minutes",
+    "Optimized Docker images from 1.2GB to 350MB",
+    "Accelerated Time-to-Market by 40% through GitOps implementation",
+    "Saved 20+ hours of manual work per month through automation",
+    "Reduced container image sizes by 3x using multi-stage builds",
+    "Decreased CI/CD pipeline time from 20 to 8 minutes",
+    "Built HA architecture for 1500+ person department",
+    "Managed infrastructure serving millions of requests per day",
+    "Achieved 2-3x CI/CD acceleration through caching optimization",
+    "Reduced MTTR by 40% through postmortem culture implementation",
+    "Served 2500+ corporate clients with 99.9% availability",
+    "Automated deployment reducing setup time from 2 hours to 10 minutes"
+  ],
+  "keyResponsibilities": [
+    "Design and maintain CI/CD pipelines for microservices architecture",
+    "Manage Kubernetes clusters in production environments",
+    "Implement Infrastructure as Code using Terraform and Ansible",
+    "Build observability systems with monitoring and alerting",
+    "Ensure high availability and disaster recovery procedures",
+    "Automate deployment processes and reduce manual operations",
+    "Collaborate with development teams on platform improvements",
+    "Participate in on-call rotations and incident response",
+    "Optimize cloud infrastructure costs and resource utilization",
+    "Mentor junior engineers and conduct technical interviews"
+  ],
+  "certifications": [
+    "AWS Certified Solutions Architect",
+    "Certified Kubernetes Administrator (CKA)",
+    "HashiCorp Certified Terraform Associate",
+    "Google Cloud Professional Cloud Architect"
+  ],
+  "popularIndustries": [
+    "fintech",
+    "retail",
+    "telecom",
+    "e-commerce",
+    "banking",
+    "insurance",
+    "blockchain",
+    "logistics"
+  ],
+  "redFlags": [
+    "Listing generic responsibilities without specific metrics",
+    "Mentioning 30+ technologies without depth",
+    "No quantifiable achievements or business impact",
+    "Focusing only on tools without explaining problem-solving",
+    "Missing experience with cloud platforms or containers",
+    "No mention of automation or Infrastructure as Code",
+    "Lack of collaboration with development teams"
+  ],
+  "notes": "DevOps роль требует сильного технического бэкграунда с упором на автоматизацию и надежность систем. Ключевые компетенции включают управление контейнерной инфраструктурой (Kubernetes обязателен), построение CI/CD пайплайнов, Infrastructure as Code, и системы мониторинга. Кандидаты должны демонстрировать опыт работы с высоконагруженными системами, участие в инцидент-менеджменте, и способность к кросс-функциональному взаимодействию. Важно показывать бизнес-impact через конкретные метрики: сокращение времени деплоя, экономию инфраструктурных затрат, повышение доступности. Российский рынок высоко ценит опыт с отечественными облаками (Yandex Cloud, Selectel) наряду с международными провайдерами. SRE подход с акцентом на observability и культуру постмортемов становится стандартом."
+}

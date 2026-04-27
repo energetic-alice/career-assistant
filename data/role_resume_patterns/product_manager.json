@@ -1,0 +1,188 @@
+{
+  "slug": "product_manager",
+  "displayTitle": "Product Manager",
+  "builtAt": "2026-04-25T10:27:18.249Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Product Manager",
+    "IT Product Manager",
+    "Senior Product Manager",
+    "Product Owner",
+    "Менеджер продукта",
+    "Tech Product Manager",
+    "Senior Tech Product Manager"
+  ],
+  "summaryPatterns": [
+    "I'm a Product Manager with 5+ years in IT, launched 10+ B2B/B2C products with 30% conversion growth",
+    "I'm a Senior Product Manager (6+ years), scaled products to 100K+ users and increased revenue by 25%",
+    "I'm a Tech Product Manager with 8+ years experience, managed cross-functional teams of 10+ people and reduced time-to-market by 50%",
+    "I'm an IT Product Manager (4+ years), built fintech products handling $2M+ monthly GMV and improved retention by 20%"
+  ],
+  "skillCategories": [
+    {
+      "category": "Product Management",
+      "items": [
+        "Product Strategy",
+        "Roadmap Planning",
+        "Backlog Management",
+        "Product Discovery",
+        "MVP Development",
+        "Go-to-Market",
+        "Product-Market Fit",
+        "Unit Economics",
+        "OKR",
+        "KPI Development"
+      ]
+    },
+    {
+      "category": "Research & Analytics",
+      "items": [
+        "CustDev",
+        "User Interviews",
+        "A/B Testing",
+        "JTBD",
+        "Customer Journey Mapping",
+        "Market Research",
+        "Competitive Analysis",
+        "Cohort Analysis",
+        "SQL",
+        "Data Analysis"
+      ]
+    },
+    {
+      "category": "Methodologies & Frameworks",
+      "items": [
+        "Agile",
+        "Scrum",
+        "Kanban",
+        "Design Thinking",
+        "RICE Prioritization",
+        "ICE Framework",
+        "MoSCoW",
+        "HADI Cycles",
+        "Lean Startup",
+        "Jobs-to-be-Done"
+      ]
+    },
+    {
+      "category": "Tools & Platforms",
+      "items": [
+        "Jira",
+        "Confluence",
+        "Miro",
+        "Figma",
+        "Amplitude",
+        "Google Analytics",
+        "Mixpanel",
+        "Firebase",
+        "Tableau",
+        "Power BI",
+        "Slack",
+        "Notion"
+      ]
+    },
+    {
+      "category": "Technical Skills",
+      "items": [
+        "API Design",
+        "REST API",
+        "Webhooks",
+        "SQL",
+        "JSON",
+        "BPMN",
+        "UML",
+        "System Architecture",
+        "Database Design",
+        "Integration Patterns"
+      ]
+    },
+    {
+      "category": "Business Analysis",
+      "items": [
+        "Business Process Modeling",
+        "Requirements Gathering",
+        "Stakeholder Management",
+        "Risk Management",
+        "Financial Modeling",
+        "ROI Analysis",
+        "Cost-Benefit Analysis",
+        "Business Case Development"
+      ]
+    },
+    {
+      "category": "Industry Domains",
+      "items": [
+        "FinTech",
+        "E-commerce",
+        "B2B SaaS",
+        "EdTech",
+        "HealthTech",
+        "CRM Systems",
+        "Payment Systems",
+        "Blockchain",
+        "AI/ML Products",
+        "Enterprise Software"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Increased product revenue by 25% through strategic roadmap implementation",
+    "Reduced time-to-market from 3 months to 2 weeks (6x improvement)",
+    "Scaled user base from 10K to 100K+ users in 12 months",
+    "Improved conversion rate by 30% through UX optimization",
+    "Decreased customer acquisition cost by 40% via product improvements",
+    "Launched 10+ successful B2B/B2C products with 85%+ retention rate",
+    "Managed cross-functional teams of 10+ developers, designers, and analysts",
+    "Reduced operational costs by 91% through process automation",
+    "Increased NPS score from 8% to 22% within 6 months",
+    "Achieved 70% completion rate for user onboarding flows",
+    "Generated $2M+ monthly GMV through product optimization",
+    "Improved system stability reducing incidents by 30%",
+    "Decreased support tickets by 25% through product enhancements",
+    "Increased MAU by 31% reaching 2100+ active users",
+    "Reduced processing time from 30 minutes to 5 minutes",
+    "Achieved 98% user adoption across organization",
+    "Delivered ROI of $15M+ through data-driven product decisions",
+    "Managed product portfolio with $400M+ deal pipeline"
+  ],
+  "keyResponsibilities": [
+    "Develop and execute product strategy and roadmap aligned with business objectives",
+    "Conduct user research, interviews, and market analysis to identify opportunities",
+    "Manage product backlog, prioritize features using RICE/ICE frameworks",
+    "Collaborate with cross-functional teams including engineering, design, and marketing",
+    "Define product requirements, user stories, and acceptance criteria",
+    "Analyze product metrics, conduct A/B tests, and optimize user experience",
+    "Coordinate product launches and go-to-market strategies",
+    "Manage stakeholder relationships and communicate product vision",
+    "Oversee full product lifecycle from discovery to delivery and support"
+  ],
+  "certifications": [
+    "Google Analytics Certified",
+    "Scrum Product Owner Certification",
+    "Certified Product Manager (CPM)",
+    "Amplitude Product Analytics",
+    "AWS Cloud Practitioner"
+  ],
+  "popularIndustries": [
+    "fintech",
+    "e-commerce",
+    "b2b-saas",
+    "retail",
+    "banking",
+    "telecom",
+    "edtech",
+    "healthcare",
+    "enterprise-software",
+    "crypto-blockchain"
+  ],
+  "redFlags": [
+    "Listing generic responsibilities without specific metrics or achievements",
+    "Including more than 30+ technical tools without context of usage",
+    "Focusing only on process management without business impact",
+    "Missing quantifiable results and KPIs in experience descriptions",
+    "Not demonstrating cross-functional team leadership experience",
+    "Lacking evidence of user-centric thinking and research skills",
+    "Overemphasizing technical skills without product strategy focus"
+  ],
+  "notes": "Успешные резюме product manager'ов демонстрируют четкую связь между продуктовыми инициативами и бизнес-результатами. Обязательно указание конкретных метрик роста (конверсия, выручка, пользователи), опыта управления кросс-функциональными командами и владения современными продуктовыми методологиями. Важно показать полный цикл работы с продуктом: от исследований и стратегии до запуска и анализа результатов. Особое внимание к data-driven подходу, пользовательским исследованиям и способности приоритизировать задачи на основе бизнес-ценности. Резюме должно отражать понимание как B2B, так и B2C специфики, если применимо к целевой позиции."
+}

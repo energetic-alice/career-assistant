@@ -229,7 +229,6 @@ export async function loadPrompt03(vars: {
   directionsOutput: string;
   marketData: string;
   scrapedMarketData?: string;
-  roleReports?: string;
   relevantDomains: string[];
 }): Promise<string> {
   let template = await loadFile(join(PROMPTS_DIR, "03-direction-analysis.md"));
@@ -238,9 +237,12 @@ export async function loadPrompt03(vars: {
   const decisionRulesPhase3 = await getReference("decision-rules-phase3");
   const decisionRules = `${decisionRulesCore}\n\n---\n\n${decisionRulesPhase3}`;
 
-  const competitionRu = await getKB("competition-ru");
-  const competitionEu = await getKB("competition-eu");
-  const competitionRef = `${competitionRu}\n\n---\n\n${competitionEu}`;
+  // Только RU-справочник: там расчёт «вакансий/100 спец» опирается на реальные
+  // hh.ru-цифры (вакансии / активные резюме). competition-eu.md содержит только
+  // оценочные ratio (LinkedIn Talent Insights / ITJW estimate) и раньше провоцировал
+  // модель приводить эти числа как факт. Для UK/EU/US Claude теперь опирается на
+  // фактические vacancies/medianSalary/тренды из marketData/scrapedMarketData.
+  const competitionRef = await getKB("competition-ru");
 
   const domainKBs: string[] = [];
   for (const domain of vars.relevantDomains) {
@@ -260,10 +262,6 @@ export async function loadPrompt03(vars: {
   template = template.replace(
     "{{scrapedMarketData}}",
     vars.scrapedMarketData || "Скрейпинг-данные не загружены.",
-  );
-  template = template.replace(
-    "{{roleReports}}",
-    vars.roleReports || "Детальные отчёты по ролям не загружены.",
   );
   template = template.replace("{{competitionReference}}", competitionRef);
   template = template.replace("{{domainKBs}}", domainKBs.join("\n\n---\n\n"));

@@ -1,0 +1,184 @@
+{
+  "slug": "backend_go",
+  "displayTitle": "Backend Developer (Go)",
+  "builtAt": "2026-04-25T10:18:44.607Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Golang Developer",
+    "Backend Developer (Go)",
+    "Go Developer",
+    "Golang-разработчик",
+    "Backend Golang Developer",
+    "Junior Golang Developer",
+    "Middle Golang Developer",
+    "Senior Golang Developer"
+  ],
+  "summaryPatterns": [
+    "I'm a Backend Go developer with 4+ years of experience, built high-load microservices handling 50K+ RPS for fintech and e-commerce platforms",
+    "I'm a Golang developer (5+ years), specialized in distributed systems and microservices architecture, reduced API latency by 40% and optimized database performance",
+    "I'm a Go backend engineer with 3+ years in telecom and logistics, developed event-driven systems processing 10M+ records daily with Kafka and PostgreSQL",
+    "I'm a senior Golang developer (5+ years), built scalable microservices for major companies like Yandex and Ozon, handling millions of requests per day",
+    "I'm a Backend Go developer with 4+ years experience, optimized high-load systems serving 25K RPS and reduced infrastructure costs by 30%"
+  ],
+  "skillCategories": [
+    {
+      "category": "Core Languages & Frameworks",
+      "items": [
+        "Go",
+        "Golang",
+        "gRPC",
+        "REST API",
+        "HTTP",
+        "JSON",
+        "Protobuf",
+        "Chi",
+        "Gin",
+        "Fiber"
+      ]
+    },
+    {
+      "category": "Databases & Storage",
+      "items": [
+        "PostgreSQL",
+        "MySQL",
+        "Redis",
+        "ClickHouse",
+        "MongoDB",
+        "Elasticsearch",
+        "Oracle",
+        "SQL",
+        "NoSQL",
+        "Cassandra"
+      ]
+    },
+    {
+      "category": "Message Queues & Streaming",
+      "items": [
+        "Apache Kafka",
+        "Kafka",
+        "RabbitMQ",
+        "NATS",
+        "Redis Pub/Sub",
+        "Event-driven architecture"
+      ]
+    },
+    {
+      "category": "Infrastructure & Cloud",
+      "items": [
+        "Docker",
+        "Kubernetes",
+        "Linux",
+        "AWS",
+        "S3",
+        "Helm",
+        "Nginx",
+        "Unix"
+      ]
+    },
+    {
+      "category": "Observability & Monitoring",
+      "items": [
+        "Prometheus",
+        "Grafana",
+        "ELK Stack",
+        "Jaeger",
+        "OpenTelemetry",
+        "DataDog",
+        "Sentry",
+        "Kibana",
+        "VictoriaMetrics"
+      ]
+    },
+    {
+      "category": "CI/CD & DevOps",
+      "items": [
+        "GitLab CI/CD",
+        "GitHub Actions",
+        "Docker Compose",
+        "CI/CD",
+        "Git",
+        "GitFlow",
+        "Ansible"
+      ]
+    },
+    {
+      "category": "Testing & Quality",
+      "items": [
+        "Unit Testing",
+        "Integration Testing",
+        "Testify",
+        "Code Review",
+        "pprof",
+        "Benchmarking"
+      ]
+    },
+    {
+      "category": "Architecture & Patterns",
+      "items": [
+        "Microservices",
+        "Clean Architecture",
+        "Event-driven",
+        "Saga Pattern",
+        "Transactional Outbox",
+        "CQRS",
+        "Rate Limiting"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced API latency from 480ms to 230ms",
+    "Optimized system to handle 50K+ RPS",
+    "Decreased CPU consumption by 30% under load",
+    "Reduced infrastructure costs by 40%",
+    "Improved database performance by 6x (from 3 sec to 500ms)",
+    "Built high-load microservices handling 25K RPS",
+    "Reduced database load by 60% during peak hours",
+    "Processed 10M+ records daily",
+    "Decreased error rate from 3% to 0%",
+    "Scaled system to process 30K messages per minute",
+    "Reduced p95 latency by 20%",
+    "Optimized batch processing performance by 30%",
+    "Built event-driven pipeline processing millions of events daily",
+    "Reduced average response time from 450ms to 120ms",
+    "Achieved 65%+ unit test coverage",
+    "Decreased production incidents by 20%",
+    "Optimized memory usage reducing consumption by 17%",
+    "Built distributed rate limiter handling 10K+ requests",
+    "Reduced notification delivery time to under 2 seconds"
+  ],
+  "keyResponsibilities": [
+    "Develop and maintain high-load microservices using Go",
+    "Design and implement REST and gRPC APIs",
+    "Optimize database queries and schema design",
+    "Implement event-driven architecture with Kafka/RabbitMQ",
+    "Setup monitoring, logging and observability",
+    "Perform code reviews and mentor junior developers",
+    "Integrate with external APIs and third-party services",
+    "Optimize system performance and troubleshoot production issues",
+    "Implement caching strategies with Redis",
+    "Design scalable microservices architecture"
+  ],
+  "certifications": [
+    "PT Application Inspector (Positive Technologies)"
+  ],
+  "popularIndustries": [
+    "fintech",
+    "e-commerce",
+    "telecom",
+    "banking",
+    "logistics",
+    "retail",
+    "b2b platforms",
+    "high-load systems"
+  ],
+  "redFlags": [
+    "Listing generic responsibilities without metrics",
+    "Mentioning 30+ technologies without depth",
+    "No specific performance improvements or achievements",
+    "Vague descriptions like 'participated in' instead of 'implemented'",
+    "Missing quantifiable results (RPS, latency, error rates)",
+    "No mention of production experience or scale",
+    "Focusing only on technologies without business impact"
+  ],
+  "notes": "Сильные резюме Go-разработчиков отличаются конкретными метриками производительности (RPS, latency, процент оптимизации), опытом работы с высоконагруженными системами и современным стеком (Kafka, Redis, Kubernetes). Обязательно указание масштаба систем (количество запросов, пользователей, данных). Важен опыт в микросервисной архитектуре, event-driven подходах и наблюдаемости. Популярные домены: финтех, e-commerce, телеком. Ценится опыт оптимизации баз данных, кеширования и troubleshooting production-инцидентов. Резюме должны показывать не просто знание технологий, а решение конкретных бизнес-задач с измеримым результатом."
+}

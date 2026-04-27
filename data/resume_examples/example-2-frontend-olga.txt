@@ -1,0 +1,63 @@
+Source: https://docs.google.com/document/d/1iQZBvYx7RuwiOsXNdEuvS1SvK7M3ZVYGlK8eTiAeZn8/edit
+Target slug: frontend_react
+Use as: stylistic few-shot example for the ideal-resume generator.
+
+---
+
+Olga Kravchenko
+Senior Frontend Engineer
+olga19972010@gmail.com • +5411 5881-5784 • LinkedIn • Mendoza, Argentina
+I am a Frontend Developer with 5+ years of experience. I build fast, user-friendly, and adaptive interfaces. My expertise includes React JS, TypeScript, and Redux with a strong focus on performance, component architecture, and UX/UI. I work in iGaming and FinTech developing scalable web applications.
+
+Skills
+
+Frontend & Architecture: React, JavaScript (ES6+), TypeScript, Redux, React Hooks, Functional Components, Component Architecture, Scalable Web Applications, Performance Optimization
+UI & Styling: HTML, CSS, Sass, BEM, Adaptive Layout, Cross-browser Development, Responsive Email Templates
+Build Tools & Tooling: Webpack, Git, GitHub, GitLab, Jira, Confluence, JSON, CMS Platforms
+Testing & Quality: Jest, Code Review, Code Standards, Workflow Guidelines
+Developer Experience & Processes: Technical Documentation, Onboarding Optimization, Hiring Test Design, Process Improvement, Mentoring, Course Development, Lecture Creation
+Design & UX Collaboration: UX/UI Understanding, Figma, Photoshop, Design-to-Frontend Collaboration
+Domain Expertise: iGaming, FinTech
+Soft Skills: Communication, Public Speaking, Teaching, Cross-team Collaboration
+
+Experience
+
+SOFTSWISS, B2B SaaS iGaming platform powering 1,400+ brands and 6M+ monthly players worldwide    Remote
+Frontend Developer (React JS)    March 2023 – now
+* Worked on 50+ company and partners projects, including major ones such as Lucky Dreams, LetsLucky, and Lucky Ones.
+* Created a technical entry test task that is currently used for evaluating new candidates.
+* Presented at an international company conference, sharing best practices.
+* Wrote and maintained internal team documentation, including code standards, workflow guidelines, and project processes.
+* Conducted code reviews and mentored new team members, supporting their onboarding and improving overall code quality.
+* Developed adaptive and cross-browser layouts across multiple projects. Built user interface functionality using JavaScript and React (functional components, React Hooks, Redux, JSON, Webpack). Worked with various CMS platforms and created responsive email templates.
+Technologies: TypeScript, JavaScript, React, Redux Toolkit, React Hook Form, Axios, Webpack, Jest, Cypress, React Testing Library, Storybook, ESLint, Prettier, SEO, Git, Jira, Confluence, Bash, HTML Semantics, CI/CD (Jenkins/GitLab), Node.js, React Router, Styled components, CSS Modules, Next, Docker, Redis, Webpack Module Federation, Figma, BEM
+
+TeachMeSkills, EdTech platform providing practice-driven IT education with 11,500+ graduates and career support    Remote
+Course Tutor — HTML/CSS/SASS, Adaptive Layout, JavaScript, React JS, Redux    March 2022 – Feb 2023
+Tutored IT courses in the evenings for two online schools: TeachMeSkills and HTML Academy.
+* Covered topics including HTML/CSS, JavaScript, React JS, Redux, Git/GitHub, and key frontend development practices.
+* Conducted over 500 code reviews for four groups of students (8–14 students simultaneously).
+* Created test assignments, project roadmaps, and course lectures for practical frontend training.
+* The majority of my students successfully completed their final projects and demonstrated solid frontend skills.
+* Trained four groups totaling more than 50 students.
+Technologies: TypeScript, JavaScript, React, Redux Toolkit, Axios, Webpack, ESLint, SEO, Git, HTML Semantics, React Router, Figma, BEM
+
+HTML Academy, EdTech platform providing practice-driven frontend education with real projects, mentorship, and 45,000+ graduates    Remote
+Course Author    May 2022 – July 2022
+* Participation in the creation of an author's video course for frontend developers: writing a script, preparing materials, recording video lessons.
+Technologies: Figma, React, HTML Semantics, SASS
+
+RP Solutions, Inc, B2B SaaS platform for payment and receivables processing, enabling organizations to handle high-volume transactions efficiently    Remote
+Frontend Developer (React JS)    Jan 2020 – March 2022
+* Development adaptive and cross-browser layout (HTML/CSS/SASS). Writing JS scripts and React function components for the user interface (React, React Hooks, Redux, JavaScript ES6, JSON, Webpack). Jira, Confluence, Git, GitLab.
+Technologies: JavaScript, React, Redux Toolkit, React Hook Form, Axios, Webpack, Jest, Cypress, React Testing Library, Storybook, ESLint, SEO, Git, Jira, Confluence, Bash, HTML Semantics, React Router, Styled components, Figma, BEM
+
+UX-UI Designer    Feb 2018 – Jan 2020
+* Design of web page layouts in Figma/Photoshop (websites, landing pages). Interaction with frontend development.
+Technologies: JavaScript, Jira, Confluence, HTML Semantics, Figma
+
+Education
+BA in Web Page, Digital/Multimedia and Information Resources Design, Belarusian State University BSU
+
+Languages
+English, B2 Russian, native Spanish, A1

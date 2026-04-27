@@ -1,0 +1,86 @@
+Source: https://docs.google.com/document/d/19y-TmkpL70hDaYQEs48epLzLS9jpnuw4-fwpG6OjDxw/edit
+Target slug: devops
+Use as: stylistic few-shot example for the ideal-resume generator.
+
+---
+
+Alisa Tsvetkova
+Platform DevOps Engineer
+alisatsv.pt@gmail.com • +351916219960 • LinkedIn • Porto, Portugal
+I'm a Platform DevOps Engineer (4+ years) started as a Linux admin in technical support, spent 15+ years as a software developer at Opera, ABB, Tele2 building products for millions across FinTech, Telecom, HealthTech, and Web3, even launched and closed my own startup, and now I build the platforms that help teams ship faster.
+My Platform DevOps results: 5x deployment speed, 2x development speed, 40% cloud cost cuts, 99.5% uptime, and +32% happier developers.
+
+Skills
+
+Infrastructure & Cloud: AWS (EKS, EC2, RDS, S3, CloudFront, CloudWatch, ElastiCache, Secrets Manager, Lambda, Budgets), Azure, IaC (Terraform, Ansible), costs reduction, IDP Backstage
+Containers & Orchestration: Docker, Kubernetes, Helm, security and optimization
+CI/CD: GitLab CI/CD, GitHub Actions, Jenkins
+DevSecOps: Semgrep, Trivy, GitLeaks, AWS Secrets Manager, RBAC, IAM
+Observability & Monitoring: Prometheus, Grafana, CloudWatch, incident management, alerting, performance
+Scripting & Development: Bash, PowerShell, Python, TypeScript/JavaScript, C# .NET
+Databases & Caching: PostgreSQL, Redis, MongoDB, MySQL, MSSQL - performance, backup, high-load
+DevEx: Backstage, Storybook, Swagger, Postman
+
+Experience
+
+Gamify, B2B SaaS EdTech startup, 1400+ active users    Remote
+Platform DevOps Engineer    March 2022 – now
+Project: Gamified education platform for course creators (like Udemy with gamification)
+* Built complete DevOps from scratch: increased deployment speed 5x and frequency (bi-weekly -> daily)
+* Created Internal Developer Platform (IDP) enabling 20+ engineers to develop 2x faster: CI/CD, reusable components, documentation, deployment tools. Reduced new engineer onboarding from 2 weeks to 3 days, improved dev satisfaction +32%
+* Implemented Kubernetes (EKS) for rolling updates and predictable deployments, managed 70+ AWS resources via Terraform
+* Led migration from Firebase to AWS hosted backend (Java/PostgreSQL) with a zero-downtime strategy
+* Reduced infrastructure costs by 40%: right-sizing, Docker image slimming, database tuning, NAT optimization, automated cost monitoring, etc.
+* Built observability stack (Prometheus, Grafana, CloudWatch) and owned incident response: MTTD reduced from hours to <5 minutes, 99.5% uptime maintained
+* Took technical ownership: architecture, troubleshooting, backups, performance tuning & monitoring, mentorship for junior devs, cloud costs responsibility
+Technologies: AWS (EKS, EC2, RDS, S3, CloudFront, CloudWatch, ElastiCache, Secrets Manager, Lambda, Budgets), IaC (Terraform, Ansible), CI/CD (GitHub Actions, GitLab CI), Docker, Kubernetes, Helm, IDP Backstage, DevSecOps, PostgreSQL, Redis, Prometheus, Grafana, Trivy, Linux, Bash, Git
+
+Opera, Top-4 global web browser, 1M+ users    Remote
+Software Engineer    March 2021 – Feb 2022
+Project 1: gx.games - game publishing marketplace and platform
+* Delivered key features for platform serving 1M+ users: user dashboards, authentication, game management
+* Collaborated with design, backend, and DevOps teams to launch MVP under tight deadlines
+* Contributed to internal tooling and CI/CD pipelines, participated in code reviews
+Technologies: JavaScript/TypeScript, React, Apollo + GraphQL, Jenkins, Docker, CI/CD, AWS, Jira, Git
+
+Project 2: Web3 crypto wallet
+* Built a JS/React/Node.js prototype of a crypto wallet integrated into the browser
+* Integrated wallet UI with blockchain APIs and conducted user interaction flows
+* Participated in infrastructure planning: wallet security, backend APIs, deployment strategy
+Technologies: JavaScript, React, Node.js, Web3, Jenkins, Docker, CI/CD, PostgreSQL, Jira, Git
+
+HiQ, Top-2 IT consultancy in Sweden, enterprise & cloud solutions for global clients    Remote
+Platform & Software Engineer    Feb 2014 – Feb 2021
+Project 1: Enterprise SharePoint/Azure platform for ABB engineers (global industrial leader), 5 years
+* Modernized and maintained mission-critical internal tools used by 10K+ employees
+* Led a 1.5-year migration project from legacy on-prem to Azure Cloud (tens of GBs of data), coordinated cross-functional teams in Finland, Poland and India
+* Set up CI/CD pipelines and monitoring for internal services, improving release stability
+* Handled production support: root cause analysis, incident handling, employee training and documentation
+Technologies: Azure, SharePoint 2010/2013/Online, JavaScript, React, C#, .NET, MSSQL, PowerShell, Jira
+
+Real-time monitoring & mobile apps across HealthTech, Telecom, AgTech/IoT and other industries:
+* Built enterprise portal for pharmaceutical distribution (Oriola, 1.5B€ Nordic leader)
+* Developed real-time monitoring dashboards for telecom operations (Tele2), reduced incident detection by 70%
+* Created Uber-like mobile app for Finland (production, available in app stores)
+* Built IoT monitoring dashboard for AgTech, improved rendering of 1000+ map points from 30s to 3s
+* Optimized backend services and SQL queries: 2-5x performance improvement
+Technologies: C# .NET, Node.js, JavaScript, React, React Native, Flutter, MSSQL, PostgreSQL, MongoDB, Windows Server, Bash, Git, Jira
+
+Japanese AC Retail, major climate systems distributor, 1000+ employees    On-site
+Infrastructure Software Engineer    Mar 2011 – Jan 2014
+Project: Internal Sharepoint ERP & corporate portal
+* Automated key IT operations: user provisioning, access rights, system monitoring
+* Reduced user onboarding time 10x via automation scripts (AD, Exchange, ISA)
+* Built internal ERP system and corporate infrastructure (SharePoint, Windows Server, MSSQL)
+* Developed warehouse visibility and warranty tracking systems
+* Handled production infrastructure support and system monitoring
+Technologies: SharePoint 2010, Windows Server (bare metal), C#, MSSQL, PowerShell, Bash, Active Directory, Exchange, ISA, IIS
+
+Certifications
+AWS Cloud Practitioner    Dec 2025
+
+Education
+BA in Computer Science, Moscow Engineering Physics Institute MEPHI
+
+Languages
+English, C1 Russian, native Portuguese, A1

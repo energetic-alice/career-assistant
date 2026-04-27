@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { initBot, getBot } from "./bot-instance.js";
 import { registerAdminReview } from "./admin-review.js";
 import { handleResumeUpdateMessage, registerResumeUpdate } from "./resume-update.js";
+import { registerNotesCommands } from "./notes-commands.js";
 import { STAGE_LABELS } from "../services/review-summary.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
 import { normalizeNick } from "../services/intake-mapper.js";
@@ -255,6 +256,7 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
   });
 
   registerResumeUpdate(bot);
+  registerNotesCommands(bot);
   registerAdminReview(bot);
 
   try {

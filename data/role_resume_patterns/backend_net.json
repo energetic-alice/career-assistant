@@ -1,0 +1,182 @@
+{
+  "slug": "backend_net",
+  "displayTitle": "Backend Developer (C# / .NET)",
+  "builtAt": "2026-04-25T10:19:47.825Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "C#/.NET Backend Developer",
+    "C# Developer",
+    "Backend Developer (.NET)",
+    "C#/.NET Full-Stack Developer",
+    "Senior C#/.NET Developer",
+    ".NET Developer",
+    "C#/.NET-разработчик"
+  ],
+  "summaryPatterns": [
+    "I'm a C#/.NET Backend Developer with 3+ years of experience building high-load systems for e-commerce and fintech. Optimized API response times from 800ms to 150ms serving 50,000+ concurrent users.",
+    "Backend Developer (4+ years) specializing in ASP.NET Core microservices and PostgreSQL optimization. Reduced query execution time from 1.2s to 250ms on 2M+ record datasets.",
+    "I'm a C# developer with 8+ years of experience in enterprise systems. Built CRM modules serving 10+ person teams and automated report generation saving 1,000+ hours monthly.",
+    "Senior .NET Developer (5+ years) focused on distributed systems architecture. Migrated monolith to microservices reducing infrastructure costs by 40% and improving system stability."
+  ],
+  "skillCategories": [
+    {
+      "category": "Core Technologies",
+      "items": [
+        "C#",
+        ".NET Core",
+        ".NET 6",
+        ".NET 8",
+        "ASP.NET Core",
+        "ASP.NET Web API",
+        "ASP.NET MVC",
+        ".NET Framework"
+      ]
+    },
+    {
+      "category": "Databases & Storage",
+      "items": [
+        "PostgreSQL",
+        "MS SQL Server",
+        "Entity Framework Core",
+        "Entity Framework",
+        "T-SQL",
+        "LINQ",
+        "Redis",
+        "MongoDB"
+      ]
+    },
+    {
+      "category": "Message Brokers & Communication",
+      "items": [
+        "RabbitMQ",
+        "Apache Kafka",
+        "SignalR",
+        "REST API",
+        "gRPC",
+        "MediatR",
+        "CQRS"
+      ]
+    },
+    {
+      "category": "Infrastructure & DevOps",
+      "items": [
+        "Docker",
+        "Kubernetes",
+        "Docker Compose",
+        "GitLab CI/CD",
+        "Azure DevOps",
+        "CI/CD",
+        "Linux"
+      ]
+    },
+    {
+      "category": "Testing & Quality",
+      "items": [
+        "xUnit",
+        "NUnit",
+        "Moq",
+        "FluentAssertions",
+        "Unit Testing",
+        "Integration Testing",
+        "Testcontainers"
+      ]
+    },
+    {
+      "category": "Observability & Logging",
+      "items": [
+        "Serilog",
+        "ELK Stack",
+        "Elasticsearch",
+        "Graylog",
+        "Grafana",
+        "Prometheus"
+      ]
+    },
+    {
+      "category": "Architecture Patterns",
+      "items": [
+        "Microservices",
+        "Clean Architecture",
+        "DDD",
+        "SOLID",
+        "Dependency Injection",
+        "CQRS",
+        "Saga Pattern"
+      ]
+    },
+    {
+      "category": "Frontend Technologies",
+      "items": [
+        "JavaScript",
+        "TypeScript",
+        "React",
+        "Vue.js",
+        "HTML",
+        "CSS",
+        "Bootstrap",
+        "jQuery"
+      ]
+    },
+    {
+      "category": "Cloud & Storage",
+      "items": [
+        "AWS",
+        "Azure",
+        "MinIO",
+        "S3"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced API response time from 800ms to 150ms using Redis caching",
+    "Optimized query execution from 1.2s to 250ms on 2M+ record datasets",
+    "Decreased registration time from 5 seconds to 50ms with user optimization",
+    "Reduced infrastructure costs by 40% through microservices migration",
+    "Automated report generation saving 1,000+ hours monthly",
+    "Improved system performance by 33% through route optimization",
+    "Reduced diagnostic time from 2-3 hours to 15 minutes with centralized logging",
+    "Achieved 99.7% SLA by fixing 100+ critical bugs",
+    "Decreased processing time from 45 to 8 minutes for 50,000 records",
+    "Reduced database load by 37% through Redis caching implementation",
+    "Accelerated data analysis 6x faster with spatial partitioning algorithms",
+    "Cut manual operations by 60% with automated placement algorithms",
+    "Improved load balancing efficiency by 18% using dynamic distribution",
+    "Reduced memory consumption by 40% migrating from FastReport to SpreadCheetah",
+    "Processed 500+ MB archives 33% faster (from 60 to 40 minutes)",
+    "Handled 200M+ telemetry records with PostgreSQL partitioning",
+    "Served 50,000+ concurrent Black Friday orders with sub-200ms response",
+    "Increased test coverage from 70% to 83% reducing production bugs to zero"
+  ],
+  "keyResponsibilities": [
+    "Develop and maintain ASP.NET Core Web APIs and microservices",
+    "Design and optimize PostgreSQL/MS SQL database schemas and queries",
+    "Implement message-driven architecture using RabbitMQ/Kafka",
+    "Build real-time communication features with SignalR",
+    "Create automated background services and scheduled tasks",
+    "Write comprehensive unit and integration tests",
+    "Perform code reviews and maintain coding standards",
+    "Integrate with external APIs and third-party services",
+    "Implement caching strategies using Redis",
+    "Deploy applications using Docker and CI/CD pipelines"
+  ],
+  "certifications": [],
+  "popularIndustries": [
+    "fintech",
+    "e-commerce",
+    "healthcare",
+    "manufacturing",
+    "government",
+    "logistics",
+    "real estate",
+    "gaming"
+  ],
+  "redFlags": [
+    "Перечисление более 25 технологий без глубины",
+    "Отсутствие конкретных метрик и цифр в достижениях",
+    "Указание только теоретических знаний без практического опыта",
+    "Размытые формулировки обязанностей без технических деталей",
+    "Отсутствие примеров работы с высокими нагрузками",
+    "Игнорирование современных практик (тестирование, CI/CD, контейнеризация)"
+  ],
+  "notes": "Сильное резюме C#/.NET разработчика должно демонстрировать опыт работы с современным стеком (.NET 6+, ASP.NET Core) и enterprise-подходами. Обязательны конкретные метрики производительности, размеры нагрузок и команд. Важно показать понимание архитектурных паттернов (CQRS, DDD, микросервисы) и опыт оптимизации систем под высокие нагрузки. Резюме должно содержать примеры работы с очередями сообщений, кешированием, мониторингом и современными DevOps-практиками. Ценится опыт миграции legacy-систем, автоматизации бизнес-процессов и работы в кросс-функциональных командах по Agile-методологиям."
+}

@@ -1,0 +1,227 @@
+{
+  "slug": "systems_analyst",
+  "displayTitle": "Systems Analyst",
+  "builtAt": "2026-04-25T10:28:28.611Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Junior System Analyst",
+    "System Analyst",
+    "Middle System Analyst",
+    "Senior System Analyst",
+    "Lead System Analyst",
+    "Business/System Analyst",
+    "System Analyst / Business Analyst",
+    "Technical Product Owner / System Analyst"
+  ],
+  "summaryPatterns": [
+    "I'm a System Analyst with 3+ years of experience in high-load web platforms, delivered 7 interconnected admin modules that automated 90% of daily operations for operators.",
+    "I'm a Senior System Analyst (8+ years) specializing in digital assets and Web3 infrastructure, led team of 6 analysts and designed custody systems processing 500k+ users.",
+    "I'm a System Analyst with 4+ years in e-commerce and microservices, optimized API performance reducing response time by 18% and improved system reliability for 100k+ users.",
+    "I'm an experienced System Analyst (12+ years) in fintech and banking, reduced operational errors by 5x and eliminated interest rate risk losses through process automation.",
+    "I'm a System Analyst with 3+ years in product teams, increased customer loyalty by 2x and accelerated customer processing by 3x through automation projects."
+  ],
+  "skillCategories": [
+    {
+      "category": "Business Analysis & Requirements",
+      "items": [
+        "BRD",
+        "FRD",
+        "NFR",
+        "User Stories",
+        "Use Cases",
+        "Acceptance Criteria",
+        "Requirements Engineering",
+        "Stakeholder Management",
+        "Customer Journey Mapping",
+        "AS-IS/TO-BE Analysis",
+        "GAP Analysis"
+      ]
+    },
+    {
+      "category": "Process Modeling & Documentation",
+      "items": [
+        "BPMN 2.0",
+        "UML",
+        "Sequence Diagrams",
+        "Activity Diagrams",
+        "ERD",
+        "C4 Model",
+        "IDEF0",
+        "Flowchart",
+        "PlantUML",
+        "Draw.io",
+        "Confluence",
+        "Technical Documentation"
+      ]
+    },
+    {
+      "category": "API Design & Integration",
+      "items": [
+        "REST API",
+        "OpenAPI",
+        "Swagger",
+        "Postman",
+        "JSON",
+        "XML",
+        "gRPC",
+        "SOAP",
+        "API Contracts",
+        "System Integration",
+        "Apache Kafka",
+        "Insomnia"
+      ]
+    },
+    {
+      "category": "Database & Data Analysis",
+      "items": [
+        "SQL",
+        "PostgreSQL",
+        "Oracle",
+        "ERD Design",
+        "Data Modeling",
+        "DWH",
+        "ETL",
+        "ClickHouse",
+        "Redis",
+        "Elasticsearch",
+        "DDL"
+      ]
+    },
+    {
+      "category": "Project Management & Agile",
+      "items": [
+        "Jira",
+        "Scrum",
+        "Kanban",
+        "Agile",
+        "Backlog Management",
+        "Sprint Planning",
+        "Task Decomposition",
+        "SDLC",
+        "Project Coordination"
+      ]
+    },
+    {
+      "category": "Prototyping & Design",
+      "items": [
+        "Figma",
+        "Balsamiq",
+        "Pixso",
+        "User Flow",
+        "UI/UX Prototyping",
+        "Miro",
+        "MS Visio",
+        "Bizagi"
+      ]
+    },
+    {
+      "category": "Enterprise Systems",
+      "items": [
+        "MS Dynamics 365",
+        "1C",
+        "CRM",
+        "ERP",
+        "Business Studio",
+        "Camunda",
+        "Bitrix24"
+      ]
+    },
+    {
+      "category": "Development & Architecture",
+      "items": [
+        "Microservices",
+        "Domain-Driven Design",
+        "Docker",
+        "Kubernetes",
+        "Jenkins",
+        "Git",
+        "CI/CD",
+        "Architecture Design"
+      ]
+    },
+    {
+      "category": "Analytics & Monitoring",
+      "items": [
+        "Metabase",
+        "Superset",
+        "Grafana",
+        "Kibana",
+        "Jaeger",
+        "Airflow",
+        "Business Intelligence",
+        "KPI Analysis"
+      ]
+    },
+    {
+      "category": "Specialized Domains",
+      "items": [
+        "Fintech",
+        "Web3",
+        "Blockchain",
+        "E-commerce",
+        "MarTech",
+        "CDP",
+        "Payment Systems",
+        "Banking",
+        "Loyalty Programs"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced Time-to-Market by 15% through MDD approach implementation",
+    "Increased new user growth by 11.3% through CJM optimization",
+    "Automated 90% of daily operator actions with admin panel design",
+    "Accelerated team interaction by 20% with unified documentation",
+    "Reduced requirement returns by 18% through proper use case decomposition",
+    "Improved inventory accuracy by 12.5% via process automation",
+    "Increased annual revenue by 8-13% through assortment optimization",
+    "Reduced staff adaptation time by 30% through CRM/ERP automation",
+    "Decreased API response time by 18% through optimization",
+    "Improved API integration speed by 14% with OpenAPI specifications",
+    "Reduced API bugs by 6% through specification improvements",
+    "Cut information search time in half with documentation optimization",
+    "Reduced post-production defects by 30% with comprehensive test plans",
+    "Eliminated operational errors by 5x through standardization",
+    "Saved 30+ million rubles monthly through mobile app implementation",
+    "Reduced driver turnover by 7% with automated tracking system",
+    "Generated 1.2 billion rubles revenue with new B2B marketplace",
+    "Served 100k+ users with automated auction platform",
+    "Processed 500k+ users in digital asset custody systems",
+    "Led team of 6 analysts in Web3 infrastructure projects"
+  ],
+  "keyResponsibilities": [
+    "Gathering and analyzing business requirements from stakeholders",
+    "Developing functional and non-functional requirements documentation",
+    "Creating technical specifications and user stories",
+    "Designing and documenting REST API integrations",
+    "Modeling business processes using BPMN and UML notations",
+    "Designing database structures and ERD diagrams",
+    "Coordinating with development teams and providing task clarification",
+    "Conducting acceptance testing and validation of delivered functionality",
+    "Maintaining project documentation and knowledge base",
+    "Managing backlog and sprint planning in Agile environments"
+  ],
+  "certifications": [],
+  "popularIndustries": [
+    "fintech",
+    "e-commerce",
+    "banking",
+    "logistics",
+    "retail",
+    "telecom",
+    "martech",
+    "web3",
+    "loyalty programs",
+    "system integration"
+  ],
+  "redFlags": [
+    "Generic phrases without specific metrics or achievements",
+    "Listing over 30 technologies without context",
+    "Vague responsibilities without measurable outcomes",
+    "No mention of stakeholder interaction or business impact",
+    "Missing technical skills in API design or data modeling",
+    "Lack of process modeling experience (BPMN, UML)",
+    "No experience with project management tools like Jira"
+  ],
+  "notes": "Системные аналитики в России работают на стыке бизнеса и IT, обеспечивая перевод бизнес-требований в технические решения. Ключевые особенности роли: обязательное владение нотациями моделирования (BPMN, UML, ERD), опыт проектирования API и интеграций, работа с базами данных и SQL. Важны навыки работы со стейкхолдерами и документирования требований. В современных компаниях системные аналитики часто совмещают роли с продуктовыми функциями, участвуют в agile-процессах и работают с микросервисной архитектурой. Востребованы специалисты с опытом в fintech, e-commerce и высоконагруженных системах. Карьерный рост: от junior до senior/lead позиций, возможен переход в product owner или архитектора. Зарплатные ожидания: 180-220k рублей для middle+ позиций в Москве."
+}

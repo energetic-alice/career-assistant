@@ -1,0 +1,214 @@
+{
+  "slug": "frontend_react",
+  "displayTitle": "Frontend Developer (React)",
+  "builtAt": "2026-04-25T10:23:27.523Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Junior Frontend Developer (React)",
+    "Frontend Developer (React)",
+    "Middle Frontend Developer (React)",
+    "Senior Frontend Developer (React)",
+    "Lead Frontend Developer",
+    "Frontend Developer (React, TypeScript)",
+    "Senior Frontend Developer (TypeScript, React)",
+    "Ведущий Frontend Developer"
+  ],
+  "summaryPatterns": [
+    "I'm a Senior Frontend Developer with 6+ years of experience building high-load B2B/B2C products. Delivered 7 client applications from scratch, optimized performance reducing loading time by 40%, and led frontend teams of 3-6 developers.",
+    "I'm a Frontend Developer with 5+ years developing enterprise-grade React applications. Migrated legacy systems serving 1M+ daily users, reduced bundle size by 30%, and implemented testing coverage increasing from 15% to 85%.",
+    "I'm a Lead Frontend Developer with 7+ years experience in fintech and e-commerce. Built scalable architectures for 50K+ weekly orders, increased conversion by 18% through performance optimization, and mentored 5+ junior developers.",
+    "I'm a Senior Frontend Engineer with 6+ years creating complex SPA applications. Developed systems handling 10K+ virtual machines, implemented micro-frontends for 5+ product teams, and reduced development time by 42% through automation tools."
+  ],
+  "skillCategories": [
+    {
+      "category": "Core Frontend",
+      "items": [
+        "JavaScript",
+        "TypeScript",
+        "ES6+",
+        "HTML5",
+        "CSS3",
+        "SCSS",
+        "SASS",
+        "Less",
+        "CSS Modules",
+        "Styled Components",
+        "Tailwind CSS"
+      ]
+    },
+    {
+      "category": "React Ecosystem",
+      "items": [
+        "React",
+        "React 18",
+        "React Router",
+        "React Hook Form",
+        "React Testing Library",
+        "React Query",
+        "TanStack Query",
+        "Redux",
+        "Redux Toolkit",
+        "Zustand",
+        "MobX"
+      ]
+    },
+    {
+      "category": "Frameworks & SSR",
+      "items": [
+        "Next.js",
+        "Angular",
+        "Vue.js",
+        "Vue3",
+        "Nuxt.js",
+        "SSR",
+        "SSG",
+        "ISR"
+      ]
+    },
+    {
+      "category": "Build Tools & Dev Environment",
+      "items": [
+        "Webpack",
+        "Vite",
+        "Webpack Module Federation",
+        "Babel",
+        "ESLint",
+        "Prettier",
+        "Husky",
+        "NPM",
+        "Yarn",
+        "Bun"
+      ]
+    },
+    {
+      "category": "Testing & Quality",
+      "items": [
+        "Jest",
+        "Cypress",
+        "Playwright",
+        "Vitest",
+        "Unit Testing",
+        "E2E Testing",
+        "Integration Testing",
+        "Storybook",
+        "Loki"
+      ]
+    },
+    {
+      "category": "API & Data Management",
+      "items": [
+        "REST API",
+        "GraphQL",
+        "Apollo",
+        "WebSocket",
+        "Axios",
+        "RTK Query",
+        "gRPC",
+        "Swagger"
+      ]
+    },
+    {
+      "category": "Architecture & Patterns",
+      "items": [
+        "FSD",
+        "Feature-Sliced Design",
+        "Micro-frontends",
+        "SPA",
+        "Clean Architecture",
+        "Domain Driven Design",
+        "SOLID",
+        "DRY",
+        "KISS"
+      ]
+    },
+    {
+      "category": "Visualization & Charts",
+      "items": [
+        "Chart.js",
+        "D3.js",
+        "ECharts",
+        "Recharts",
+        "lightweight-charts"
+      ]
+    },
+    {
+      "category": "DevOps & Deployment",
+      "items": [
+        "Git",
+        "GitLab CI",
+        "GitHub Actions",
+        "CI/CD",
+        "Docker",
+        "Node.js",
+        "nginx"
+      ]
+    },
+    {
+      "category": "Design & Collaboration",
+      "items": [
+        "Figma",
+        "UI/UX",
+        "BEM",
+        "Adaptive Design",
+        "Cross-browser",
+        "WCAG",
+        "Accessibility"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced application loading time by 40% through code splitting and optimization",
+    "Increased test coverage from 15% to 85% implementing comprehensive testing strategy",
+    "Migrated legacy system serving 1M+ daily users with zero downtime",
+    "Reduced bundle size by 30% through webpack optimization and lazy loading",
+    "Built high-load platform handling 50K+ orders per week",
+    "Increased conversion rate by 18% through performance optimization",
+    "Reduced development time by 42% creating internal CLI tools",
+    "Improved organic traffic growth by 15% through SEO optimization",
+    "Decreased false positive rate to <2% implementing real-time object detection",
+    "Optimized page loading reducing time from minutes to 5 seconds",
+    "Handled 10K+ virtual machines in enterprise infrastructure platform",
+    "Managed frontend team of 6+ developers in cross-functional Scrum environment",
+    "Reduced runtime errors by migrating 100K+ LOC from JavaScript to TypeScript",
+    "Achieved 94% recognition accuracy in computer vision implementation",
+    "Supported 300+ business users in DICOM viewer application",
+    "Processed 200+ servers in maintenance scheduling system",
+    "Increased user retention by 12% through cart synchronization features",
+    "Reduced infrastructure costs by implementing micro-frontend architecture for 5+ teams"
+  ],
+  "keyResponsibilities": [
+    "Develop and maintain complex React/TypeScript applications",
+    "Design and implement scalable frontend architectures",
+    "Optimize application performance and bundle size",
+    "Integrate with REST APIs and WebSocket connections",
+    "Implement comprehensive testing strategies (unit, integration, e2e)",
+    "Conduct code reviews and mentor junior developers",
+    "Collaborate with cross-functional teams in Agile environment",
+    "Migrate legacy systems to modern tech stacks",
+    "Create and maintain UI component libraries and design systems",
+    "Ensure cross-browser compatibility and accessibility compliance"
+  ],
+  "certifications": [],
+  "popularIndustries": [
+    "fintech",
+    "e-commerce",
+    "telecom",
+    "banking",
+    "media",
+    "logistics",
+    "healthcare",
+    "enterprise-software",
+    "automotive",
+    "edtech"
+  ],
+  "redFlags": [
+    "Перечисление более 40+ технологий без контекста использования",
+    "Отсутствие конкретных цифр и метрик в достижениях",
+    "Указание только Junior-уровневых задач при опыте 5+ лет",
+    "Использование устаревших технологий как основных (jQuery, AngularJS)",
+    "Отсутствие опыта работы с TypeScript при позиции Senior+",
+    "Указание исключительно верстки без программирования",
+    "Отсутствие опыта тестирования кода"
+  ],
+  "notes": "Frontend React разработчики в России фокусируются на создании высоконагруженных B2B/B2C приложений. Ключевые тренды: обязательный TypeScript для Middle+ позиций, активное использование современного React (hooks, функциональные компоненты), внедрение архитектурных подходов (FSD, микрофронтенды). Важны навыки оптимизации производительности, работы с состоянием (Redux Toolkit, Zustand), тестирования и DevOps практик. Сильные кандидаты демонстрируют опыт миграции legacy-систем, создания UI-библиотек, менторства команды. Популярные домены: финтех, e-commerce, телеком. Обязательно указание конкретных метрик достижений (проценты оптимизации, объемы данных, размеры команд). Знание английского B2+ становится стандартом."
+}

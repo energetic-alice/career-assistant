@@ -72,6 +72,13 @@ const selectedTargetRoleSchema = z.object({
   offIndex: z.boolean().optional(),
   marketEvidence: z.string().optional(),
   direction: z.unknown().optional(),
+  /**
+   * Стабильный slotId из shortlist/deep — нужен, чтобы кнопка «Выбрать для
+   * упаковки» переключалась только для конкретного слота, а не для всех
+   * соседних с тем же roleSlug|bucket. Для записей из resume-flow остаётся
+   * undefined (там идентификатор по slug|bucket).
+   */
+  slotId: z.string().optional(),
 }).superRefine((role, ctx) => {
   const known = knownRolesSet.has(role.roleSlug);
   if (known && role.offIndex) {

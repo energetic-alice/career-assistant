@@ -12,4 +12,9 @@ test-output/
 !src/data/**
 !src/prompts/kb/**
 !/data/market-index.json
+!/data/role_resume_patterns/
+!/data/role_resume_patterns/**
+!/data/resume_examples/
+!/data/resume_examples/**
+!/data/skills_catalog.json
 .env

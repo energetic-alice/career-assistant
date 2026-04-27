@@ -1,0 +1,155 @@
+{
+  "slug": "backend_python",
+  "displayTitle": "Backend Developer (Python)",
+  "builtAt": "2026-04-25T10:21:16.639Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Junior Python Developer",
+    "Middle Python Developer",
+    "Senior Python Developer",
+    "Python Backend Developer",
+    "Backend Engineer",
+    "Python-разработчик",
+    "Backend Developer (Python)"
+  ],
+  "summaryPatterns": [
+    "I'm a Python backend developer with 5+ years of experience, built high-load systems handling 10M+ monthly pageviews and optimized performance by 4.5x",
+    "Backend engineer with 4+ years specializing in microservices architecture, reduced infrastructure costs by 40% and improved system throughput by 2x",
+    "Python developer with 6+ years of experience in fintech, developed A/B testing platform that decreased time-to-result by 43% and achieved 82% test coverage",
+    "Senior backend developer with 5+ years building distributed systems, optimized database performance reducing latency from 15 to 3 seconds and scaled to 1800 RPS",
+    "Experienced Python engineer with 4+ years in e-commerce, automated business processes reducing manual work by 70% and improved team efficiency by 30%"
+  ],
+  "skillCategories": [
+    {
+      "category": "Python Frameworks & Libraries",
+      "items": [
+        "FastAPI",
+        "Django",
+        "Django REST Framework",
+        "Flask",
+        "aiohttp",
+        "SQLAlchemy",
+        "Pydantic",
+        "Celery",
+        "asyncio",
+        "Alembic"
+      ]
+    },
+    {
+      "category": "Databases & Storage",
+      "items": [
+        "PostgreSQL",
+        "Redis",
+        "ClickHouse",
+        "MongoDB",
+        "MySQL",
+        "Elasticsearch",
+        "S3"
+      ]
+    },
+    {
+      "category": "Message Queues & Streaming",
+      "items": [
+        "Apache Kafka",
+        "RabbitMQ",
+        "Faststream"
+      ]
+    },
+    {
+      "category": "Infrastructure & DevOps",
+      "items": [
+        "Docker",
+        "Docker Compose",
+        "Kubernetes",
+        "GitLab CI/CD",
+        "Nginx",
+        "Linux"
+      ]
+    },
+    {
+      "category": "Monitoring & Observability",
+      "items": [
+        "Prometheus",
+        "Grafana",
+        "ELK Stack",
+        "Sentry",
+        "Kibana"
+      ]
+    },
+    {
+      "category": "Testing & Quality",
+      "items": [
+        "pytest",
+        "unittest",
+        "Selenium",
+        "Code Review",
+        "mypy"
+      ]
+    },
+    {
+      "category": "API & Protocols",
+      "items": [
+        "REST API",
+        "GraphQL",
+        "gRPC",
+        "WebSocket",
+        "JWT",
+        "OAuth"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced database load by 40% through Redis caching optimization",
+    "Increased system throughput by 4.5x through algorithm optimization",
+    "Decreased A/B test time-to-result by 43% with MDE calculation tool",
+    "Achieved 82% unit and integration test coverage",
+    "Optimized API latency to p95 < 80ms under high evening traffic",
+    "Reduced infrastructure costs from ₽320K to ₽215K monthly",
+    "Improved team efficiency by 30% through process optimization",
+    "Scaled system to handle 1800+ RPS with high availability",
+    "Reduced deployment time from 35 to 8 minutes with CI/CD",
+    "Automated 70% of routine business processes",
+    "Decreased page load time from 15 to 3 seconds",
+    "Built chat service handling 1500+ concurrent connections with <50ms latency",
+    "Reduced code duplication by 62% with unified file service",
+    "Improved conversion rate by 42% through email system optimization",
+    "Achieved 94% critical bug detection in CI/CD pipeline",
+    "Reduced onboarding time from 3 days to 4 hours",
+    "Handled 10M+ monthly pageviews with optimized backend services",
+    "Reduced ticket resolution time by 26% through HelpDesk automation"
+  ],
+  "keyResponsibilities": [
+    "Design and develop high-load backend services and APIs",
+    "Implement microservices architecture and distributed systems",
+    "Optimize database queries and system performance",
+    "Build asynchronous processing pipelines with message queues",
+    "Integrate with external APIs and third-party services",
+    "Implement monitoring, logging and observability solutions",
+    "Conduct code reviews and mentor junior developers",
+    "Participate in on-call duties and incident resolution",
+    "Design and maintain CI/CD pipelines",
+    "Collaborate with cross-functional teams on technical requirements"
+  ],
+  "certifications": [],
+  "popularIndustries": [
+    "fintech",
+    "e-commerce",
+    "edtech",
+    "travel-tech",
+    "hr-tech",
+    "insurance",
+    "media-entertainment",
+    "logistics",
+    "real-estate"
+  ],
+  "redFlags": [
+    "Listing 30+ technologies without context or depth",
+    "Generic phrases without specific metrics or achievements",
+    "No mention of testing practices or code quality",
+    "Focusing only on junior-level tasks without system design experience",
+    "Missing performance optimization or scalability experience",
+    "No evidence of working with high-load or distributed systems",
+    "Lack of collaboration or mentoring experience for senior roles"
+  ],
+  "notes": "Python Backend Developer — это специалист, который строит серверную часть приложений с упором на производительность, масштабируемость и надежность. Ключевые особенности сильных резюме: обязательное указание конкретных метрик производительности (RPS, latency, throughput), опыт работы с высоконагруженными системами и микросервисной архитектурой. Важно показать не только технические навыки, но и влияние на бизнес — оптимизация затрат, автоматизация процессов, улучшение пользовательского опыта. Для middle+ позиций критично наличие опыта ментринга, участия в архитектурных решениях и работы с production-системами. Популярны стеки FastAPI/Django + PostgreSQL/Redis + Docker/K8s + мониторинг. Обязательно упоминание работы с асинхронностью, очередями сообщений и оптимизацией БД."
+}

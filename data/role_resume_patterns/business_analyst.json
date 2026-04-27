@@ -1,0 +1,191 @@
+{
+  "slug": "business_analyst",
+  "displayTitle": "Business Analyst",
+  "builtAt": "2026-04-25T10:21:47.761Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Junior Business Analyst",
+    "Business Analyst",
+    "Senior Business Analyst",
+    "Lead Business Analyst",
+    "System Analyst",
+    "Business Process Manager",
+    "Senior System Analyst"
+  ],
+  "summaryPatterns": [
+    "I'm a Business Analyst (5+ years), optimized 30+ business processes and reduced approval times by 50%, leading cross-functional teams of 6+ members",
+    "I'm a Senior Business Analyst (7+ years), built requirements documentation for 4 key modules impacting 3000+ users and automated processes reducing costs by 60%",
+    "I'm a System Analyst (3+ years), designed technical solutions for fintech products, created API specifications and saved companies 500M+ RUB through process optimization",
+    "I'm a Business Process Manager (10+ years), implemented AI monitoring systems and reduced process execution time by 60% across multiple business functions"
+  ],
+  "skillCategories": [
+    {
+      "category": "Process Modeling & Analysis",
+      "items": [
+        "BPMN 2.0",
+        "EPC",
+        "IDEF0",
+        "UML",
+        "ArchiMate",
+        "AS-IS/TO-BE modeling",
+        "Business process optimization",
+        "Process reengineering",
+        "SIPOC",
+        "Value stream mapping"
+      ]
+    },
+    {
+      "category": "Requirements Management",
+      "items": [
+        "Functional requirements",
+        "Non-functional requirements",
+        "User Stories",
+        "Use Cases",
+        "BRD",
+        "SRS",
+        "Technical specifications",
+        "BABOK",
+        "Requirements traceability"
+      ]
+    },
+    {
+      "category": "Documentation & Modeling Tools",
+      "items": [
+        "MS Visio",
+        "Business Studio",
+        "Draw.io",
+        "Confluence",
+        "ARIS Express",
+        "PlantUML",
+        "Miro",
+        "Figma",
+        "Swagger/OpenAPI"
+      ]
+    },
+    {
+      "category": "Data Analysis & Reporting",
+      "items": [
+        "SQL",
+        "Power BI",
+        "QlikView",
+        "QlikSense",
+        "Excel",
+        "Python",
+        "DBeaver",
+        "PostgreSQL",
+        "Big Data",
+        "ETL",
+        "DWH"
+      ]
+    },
+    {
+      "category": "Project Management & Agile",
+      "items": [
+        "Scrum",
+        "Kanban",
+        "Agile",
+        "Jira",
+        "Project coordination",
+        "Stakeholder management",
+        "UAT coordination",
+        "Sprint planning"
+      ]
+    },
+    {
+      "category": "Integration & APIs",
+      "items": [
+        "REST API",
+        "SOAP",
+        "JSON",
+        "XML",
+        "Kafka",
+        "Microservices",
+        "API documentation",
+        "System integration",
+        "Postman"
+      ]
+    },
+    {
+      "category": "Testing & Quality Assurance",
+      "items": [
+        "Acceptance testing",
+        "UAT",
+        "Test case development",
+        "Functional testing",
+        "System testing",
+        "Bug tracking",
+        "Quality control"
+      ]
+    },
+    {
+      "category": "Business Intelligence & Analytics",
+      "items": [
+        "KPI development",
+        "Dashboard creation",
+        "Business metrics",
+        "Performance analysis",
+        "Financial modeling",
+        "Process mining",
+        "Root cause analysis"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced approval time by 50% for 3000+ users",
+    "Optimized processes reducing costs by 60%",
+    "Saved company 500M+ RUB through process optimization",
+    "Automated 230+ business processes",
+    "Managed team of 6+ members serving 3000+ users",
+    "Reduced requirement ambiguity by 20%",
+    "Increased sprint predictability by 35%",
+    "Reduced legal errors by 85%",
+    "Decreased process execution time by 60%",
+    "Created 100+ user instructions and documentation",
+    "Opened 30+ retail locations based on documented processes",
+    "Implemented solutions for 150+ person conferences",
+    "Reduced problem resolution time to 1 business day",
+    "Identified 260+ process improvement opportunities",
+    "Managed pipeline of 50-80 companies simultaneously"
+  ],
+  "keyResponsibilities": [
+    "Gather and formalize business requirements from stakeholders",
+    "Analyze and optimize existing business processes",
+    "Create AS-IS and TO-BE process models and documentation",
+    "Coordinate user acceptance testing and system rollouts",
+    "Facilitate communication between business and IT teams",
+    "Design system integrations and API specifications",
+    "Conduct stakeholder interviews and requirements workshops",
+    "Prepare functional and technical documentation",
+    "Support agile development processes and sprint planning",
+    "Develop KPIs and performance measurement frameworks"
+  ],
+  "certifications": [
+    "BABOK certification",
+    "Certified Business Analysis Professional (CBAP)",
+    "Agile Analysis Certification",
+    "BPMN certification",
+    "Six Sigma certification"
+  ],
+  "popularIndustries": [
+    "fintech",
+    "banking",
+    "pharmaceuticals",
+    "telecommunications",
+    "retail",
+    "manufacturing",
+    "government",
+    "e-commerce",
+    "energy",
+    "consulting"
+  ],
+  "redFlags": [
+    "Listing 50+ technologies without demonstrating depth",
+    "No quantifiable achievements or impact metrics",
+    "Focusing only on task lists without business outcomes",
+    "Missing stakeholder interaction and communication skills",
+    "No evidence of process improvement or optimization results",
+    "Lack of methodology knowledge (BPMN, UML, BABOK)",
+    "No cross-functional collaboration examples"
+  ],
+  "notes": "Бизнес-аналитик в России — это роль на стыке бизнеса и IT, требующая глубоких навыков процессного анализа, работы с требованиями и координации между подразделениями. Сильные кандидаты демонстрируют опыт оптимизации процессов с конкретными метриками (сокращение времени на 50-60%, экономия сотен миллионов рублей, автоматизация сотен процессов). Ключевые компетенции: владение BPMN/UML/IDEF0, работа с API и интеграциями, координация UAT, создание технических заданий. Востребованы навыки работы с данными (SQL, BI-инструменты) и Agile-методологиями. Особенность российского рынка — необходимость работать с ГОСТ 34 для госпроектов и понимание специфики регулируемых отраслей (банки, фарма). Карьерный рост: Junior BA → BA → Senior BA → Lead BA/Product Owner."
+}

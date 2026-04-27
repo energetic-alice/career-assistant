@@ -9,10 +9,14 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test:e2e": "tsx src/scripts/test-e2e.ts",
-    "build:market-index": "tsx src/scripts/build-market-index.ts"
+    "build:market-index": "tsx src/scripts/build-market-index.ts",
+    "build:resume-helpers-raw": "tsx src/scripts/build-resume-helpers-raw.ts",
+    "build:role-patterns": "tsx src/scripts/build-role-patterns.ts",
+    "build:skills-catalog": "tsx src/scripts/build-skills-catalog.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@types/yauzl": "^2.10.3",
     "cheerio": "^1.2.0",
     "dotenv": "^16.5.0",
     "fastify": "^5.3.3",
@@ -22,6 +26,7 @@
     "pdf-parse": "^1.1.1",
     "telegraf": "^4.16.3",
     "xlsx": "^0.18.5",
+    "yauzl": "^3.3.0",
     "zod": "^3.24.0",
     "zod-to-json-schema": "^3.25.2"
   },

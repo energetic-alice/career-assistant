@@ -136,6 +136,15 @@ export async function sendClientCard(
       ? (outputs.selectedTargetRoles as Parameters<typeof formatClientCardForTelegram>[0]["selectedTargetRoles"])
       : undefined);
 
+  const clientNotes = (await import("../pipeline/client-notes.js")).listClientNotes(
+    participantId,
+  );
+
+  const finalAnalysis = outputs.finalAnalysis as
+    | { docUrl?: string; generatedAt?: string }
+    | undefined;
+  const finalAnalysisError = outputs.finalAnalysisError as string | undefined;
+
   const cardHtml = formatClientCardForTelegram({
     telegramNick: state.telegramNick,
     stage: state.stage,
@@ -146,6 +155,10 @@ export async function sendClientCard(
     legacyDocUrl,
     legacyTariff,
     selectedTargetRoles,
+    clientNotes,
+    analysisDocUrl: finalAnalysis?.docUrl,
+    analysisGeneratedAt: finalAnalysis?.generatedAt,
+    analysisError: finalAnalysisError,
   });
 
   const replyMarkup =

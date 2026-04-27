@@ -1,0 +1,173 @@
+{
+  "slug": "data_engineer",
+  "displayTitle": "Data Engineer",
+  "builtAt": "2026-04-25T10:22:51.077Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Data Engineer",
+    "Junior Data Engineer",
+    "Middle Data Engineer",
+    "Senior Data Engineer",
+    "Lead Data Engineer",
+    "DataOPS Engineer",
+    "DWH Engineer"
+  ],
+  "summaryPatterns": [
+    "I'm a Data Engineer (4+ years) who built ETL pipelines processing petabytes of data and reduced infrastructure costs by 40%",
+    "I'm a Data Engineer (3+ years) specialized in DWH and Big Data solutions, optimized reporting processes reducing time by 50%",
+    "I'm a Data Engineer (5+ years) experienced in fintech, automated critical business processes and improved data accuracy by 30%",
+    "I'm a Data Engineer (3+ years) who developed 50+ data integrations and reduced manual work by 40%"
+  ],
+  "skillCategories": [
+    {
+      "category": "Programming Languages",
+      "items": [
+        "Python",
+        "SQL",
+        "Scala",
+        "Bash",
+        "Java"
+      ]
+    },
+    {
+      "category": "Data Processing & Analytics",
+      "items": [
+        "Apache Spark",
+        "PySpark",
+        "Apache Kafka",
+        "Apache Hive",
+        "dbt",
+        "Hadoop",
+        "Flink",
+        "Apache NiFi"
+      ]
+    },
+    {
+      "category": "Databases & Data Warehouses",
+      "items": [
+        "PostgreSQL",
+        "Greenplum",
+        "ClickHouse",
+        "Oracle",
+        "MS SQL Server",
+        "MongoDB",
+        "Cassandra",
+        "MySQL",
+        "MariaDB"
+      ]
+    },
+    {
+      "category": "Cloud & Storage",
+      "items": [
+        "AWS",
+        "Azure",
+        "S3",
+        "MinIO",
+        "Apache Iceberg",
+        "Parquet",
+        "Data Lake",
+        "Object Storage"
+      ]
+    },
+    {
+      "category": "Orchestration & Workflow",
+      "items": [
+        "Apache Airflow",
+        "Prefect",
+        "GitLab CI",
+        "CI/CD",
+        "Docker",
+        "Kubernetes"
+      ]
+    },
+    {
+      "category": "Data Integration & ETL",
+      "items": [
+        "ETL",
+        "ELT",
+        "API Integration",
+        "SSIS",
+        "Informatica PowerCenter",
+        "Data Vault 2.0",
+        "CDC"
+      ]
+    },
+    {
+      "category": "Analytics & BI",
+      "items": [
+        "Tableau",
+        "Power BI",
+        "Superset",
+        "Jupyter Notebook",
+        "Machine Learning",
+        "Statistical Analysis"
+      ]
+    },
+    {
+      "category": "Monitoring & Quality",
+      "items": [
+        "ELK Stack",
+        "Grafana",
+        "Prometheus",
+        "Data Quality",
+        "Great Expectations",
+        "Monitoring",
+        "Alerting"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced infrastructure costs by 40%",
+    "Accelerated incident response by 3x",
+    "Reduced data errors by 30%",
+    "Improved forecast accuracy by 20%",
+    "Cut report generation time by 50%",
+    "Optimized ETL processes reducing CPU consumption by 4x",
+    "Decreased night billing calculations from 6h to 3.5h",
+    "Automated processes serving 50+ users",
+    "Built data platform processing petabytes of data",
+    "Migrated 50+ scripts and dbt models",
+    "Reduced manual analyst work by 20%",
+    "Decreased cluster operation latency by 20%",
+    "Developed 15+ API integration scripts",
+    "Improved data warehouse stability with blocking DQ checks",
+    "Cut storage costs by 65% after Parquet migration",
+    "Reduced OOM failures from 15% to 5%",
+    "Sped up analytical queries by 70%",
+    "Avoided $100 million in fines through financial reporting showcases",
+    "Conducted 60+ Data Engineer interviews",
+    "Reduced time to data by 40%"
+  ],
+  "keyResponsibilities": [
+    "Develop and maintain ETL/ELT pipelines using Python, SQL, and Apache Spark",
+    "Design and optimize data warehouse architectures and schemas",
+    "Integrate data from multiple sources including APIs, databases, and file systems",
+    "Build and maintain data quality monitoring and validation systems",
+    "Orchestrate data workflows using Apache Airflow",
+    "Optimize SQL queries and database performance",
+    "Collaborate with analysts and business stakeholders on data requirements",
+    "Implement CI/CD practices for data pipeline deployment",
+    "Monitor and troubleshoot data processing issues"
+  ],
+  "certifications": [],
+  "popularIndustries": [
+    "fintech",
+    "banking",
+    "retail",
+    "telecom",
+    "e-commerce",
+    "media",
+    "logistics",
+    "government"
+  ],
+  "redFlags": [
+    "Listing generic responsibilities without specific metrics",
+    "Mentioning 30+ technologies without demonstrating depth",
+    "Lack of quantifiable achievements or business impact",
+    "No mention of data volumes or system scale",
+    "Using buzzwords without technical substance",
+    "Not specifying programming languages or tools used",
+    "Missing collaboration with business stakeholders"
+  ],
+  "notes": "Data Engineer — это роль, требующая сильных технических навыков в области обработки данных и понимания бизнес-потребностей. Ключевые особенности сильных резюме: обязательное указание масштабов данных (петабайты, терабайты), конкретные метрики улучшений (сокращение времени обработки, снижение ошибок), опыт с современными инструментами (Spark, Airflow, облачные решения). Важно показать полный цикл работы с данными — от сбора до предоставления бизнесу. Востребованы навыки оптимизации производительности, работы с большими объемами данных, построения отказоустойчивых систем. Финтех и банковская сфера особенно ценят опыт с регуляторной отчетностью и высокими требованиями к качеству данных."
+}

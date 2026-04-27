@@ -1,0 +1,188 @@
+{
+  "slug": "qa_engineer",
+  "displayTitle": "QA Automation Engineer",
+  "builtAt": "2026-04-25T10:27:50.461Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "QA Automation Engineer",
+    "AQA Engineer",
+    "Automation QA Engineer",
+    "Middle QA Automation Engineer",
+    "Senior AQA Engineer",
+    "Fullstack QA Engineer",
+    "QA Automation Engineer (Python/Java)"
+  ],
+  "summaryPatterns": [
+    "I'm a QA Automation Engineer (3+ years) with expertise in Python/Java test frameworks, built 70% automated test coverage reducing regression testing from days to hours.",
+    "I'm an experienced AQA Engineer (4+ years) specializing in API and UI automation, created test frameworks from scratch that reduced flaky tests by 20-30%.",
+    "I'm a Fullstack QA Engineer (5+ years) with deep expertise in microservices testing, developed comprehensive automation solutions covering 1000+ test cases.",
+    "I'm a skilled Automation QA (3+ years) focused on CI/CD integration, optimized test execution reducing pipeline runtime by 20% and improved release stability."
+  ],
+  "skillCategories": [
+    {
+      "category": "Programming Languages",
+      "items": [
+        "Java",
+        "Python",
+        "SQL",
+        "JavaScript",
+        "Bash"
+      ]
+    },
+    {
+      "category": "Test Frameworks & Libraries",
+      "items": [
+        "Pytest",
+        "JUnit",
+        "TestNG",
+        "Selenium",
+        "Selenide",
+        "Playwright",
+        "Rest Assured",
+        "Requests"
+      ]
+    },
+    {
+      "category": "API Testing & Tools",
+      "items": [
+        "Postman",
+        "Swagger",
+        "Insomnia",
+        "REST API",
+        "GraphQL",
+        "SOAP UI",
+        "JSON",
+        "HTTP/HTTPS"
+      ]
+    },
+    {
+      "category": "Databases & Data",
+      "items": [
+        "PostgreSQL",
+        "MySQL",
+        "MongoDB",
+        "SQL",
+        "DBeaver",
+        "Redis",
+        "ClickHouse"
+      ]
+    },
+    {
+      "category": "CI/CD & DevOps",
+      "items": [
+        "Jenkins",
+        "GitLab CI",
+        "Docker",
+        "Kubernetes",
+        "Git",
+        "GitHub",
+        "BitBucket",
+        "Helm"
+      ]
+    },
+    {
+      "category": "Message Queues & Integration",
+      "items": [
+        "Apache Kafka",
+        "RabbitMQ",
+        "gRPC",
+        "NFS",
+        "SMB",
+        "WebSocket"
+      ]
+    },
+    {
+      "category": "Reporting & Test Management",
+      "items": [
+        "Allure",
+        "Allure TestOps",
+        "Jira",
+        "Confluence",
+        "TestRail",
+        "Zephyr Scale",
+        "Qase"
+      ]
+    },
+    {
+      "category": "Monitoring & Observability",
+      "items": [
+        "Kibana",
+        "Grafana",
+        "ElasticSearch",
+        "Sentry",
+        "OpenSearch",
+        "Lens"
+      ]
+    },
+    {
+      "category": "Infrastructure & Cloud",
+      "items": [
+        "Linux",
+        "Docker",
+        "Kubernetes",
+        "OpenShift",
+        "Selenoid",
+        "VM"
+      ]
+    },
+    {
+      "category": "Development Tools",
+      "items": [
+        "DevTools",
+        "Maven",
+        "Gradle",
+        "IntelliJ IDEA",
+        "Figma",
+        "Charles Proxy"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced regression testing time from 6 hours to 1 hour through automation",
+    "Built comprehensive test framework covering 1000+ automated test cases",
+    "Decreased flaky test rate from 6% to 2% through stability improvements",
+    "Reduced CI/CD pipeline execution time by 20% via pytest optimizations",
+    "Automated 70% of regression test coverage for critical functionality",
+    "Cut manual testing effort by 40-50% through e2e automation",
+    "Improved UI test stability from 70% to 90% success rate",
+    "Reduced mock integration testing time by 30% through framework optimization",
+    "Accelerated test development by 12x through automation framework",
+    "Decreased regression cycle from months to 1 week via comprehensive automation",
+    "Prevented financial losses of ~400,000 rubles per year through critical defect detection",
+    "Increased releases without critical bugs by 20% through systematic testing",
+    "Reduced onboarding time from 2 weeks to 3-4 days via documentation improvements",
+    "Achieved 90% coverage of critical business scenarios through automated testing",
+    "Decreased defect leakage to production by 40% through enhanced automation"
+  ],
+  "keyResponsibilities": [
+    "Develop and maintain automated test frameworks for API and UI testing",
+    "Design and implement test automation strategies for microservices architecture",
+    "Integrate automated tests into CI/CD pipelines and maintain test stability",
+    "Collaborate with development teams on test planning and defect resolution",
+    "Analyze test results, investigate failures and optimize test performance",
+    "Create and maintain comprehensive test documentation and reporting",
+    "Perform functional, regression, integration and e2e testing",
+    "Work with databases for test data management and validation",
+    "Support test environments and troubleshoot automation infrastructure",
+    "Conduct code reviews and mentor team members on automation practices"
+  ],
+  "certifications": [],
+  "popularIndustries": [
+    "fintech",
+    "banking",
+    "e-commerce",
+    "telecom",
+    "retail",
+    "it-services"
+  ],
+  "redFlags": [
+    "Listing over 30 technologies without depth",
+    "Using generic phrases without specific metrics or achievements",
+    "Missing CI/CD integration experience for automation roles",
+    "No mention of test framework architecture or design patterns",
+    "Lack of database interaction skills for data validation",
+    "No experience with microservices testing approaches",
+    "Missing collaboration examples with development teams"
+  ],
+  "notes": "QA Automation Engineer роль требует сильных технических навыков в программировании (Python/Java), глубокого понимания тестовых фреймворков и архитектуры автотестов. Ключевые компетенции включают разработку фреймворков с нуля, интеграцию с CI/CD, работу с микросервисной архитектурой и базами данных. Важны метрики стабильности (flaky rate <5%), покрытия (60-90% критичного функционала) и эффективности (сокращение времени регрессии в разы). Специалисты работают в крупных финтех и IT компаниях, часто на проектах Сбера, банков, ритейла. Обязательны навыки работы с REST API, базами данных, контейнеризацией и системами мониторинга. Ценится опыт менторства и построения процессов автоматизации с нуля."
+}

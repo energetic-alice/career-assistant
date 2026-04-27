@@ -53,6 +53,13 @@ export interface SelectedTargetRole {
   bucket: Direction["bucket"];
   offIndex?: boolean;
   marketEvidence?: string;
+  /**
+   * Стабильный slotId из shortlist/deep — нужен, чтобы клик по «Выбрать
+   * для упаковки» переключал ровно один слот, даже если в shortlist
+   * несколько разных направлений с одинаковым `roleSlug|bucket`.
+   * Для записей из resume-flow остаётся undefined.
+   */
+  slotId?: string;
   direction?: unknown;
 }
 
@@ -129,13 +136,47 @@ export function saveResumeVersion(input: SaveResumeVersionInput): ResumeVersion 
   return version;
 }
 
-function selectedTargetId(direction: Pick<Direction, "roleSlug" | "bucket">): string {
+function legacyTargetId(direction: Pick<Direction, "roleSlug" | "bucket">): string {
   return `${direction.roleSlug}|${direction.bucket}`;
+}
+
+/**
+ * Идентификатор записи в `selectedTargetRoles`. Если выбор пришёл из
+ * shortlist/deep — привязываемся к стабильному `slotId` (он переживает
+ * регенерации). Иначе остаётся legacy-ключ `roleSlug|bucket` (например,
+ * resume-flow в `addSelectedTargetRole`).
+ *
+ * Без `slotId` все слоты с одинаковым `roleSlug|bucket` (когда Phase 1
+ * сгенерил несколько вариаций под одну роль) считались бы одной кнопкой,
+ * и клик по одной перекрашивал кнопки на ВСЕХ соседних — это и был баг
+ * «выбираются все профессии, а не одна».
+ */
+function selectedRecordId(
+  direction: Pick<Direction, "roleSlug" | "bucket">,
+  slotId?: string,
+): string {
+  return slotId ? `slot:${slotId}` : legacyTargetId(direction);
+}
+
+function recordMatchesSlot(
+  record: SelectedTargetRole,
+  direction: Pick<Direction, "roleSlug" | "bucket">,
+  slotId?: string,
+): boolean {
+  if (slotId) {
+    if (record.slotId === slotId) return true;
+    // legacy: до миграции в записи мог отсутствовать slotId — тогда сравниваем
+    // по slug|bucket, чтобы старые «выбранные» можно было снять той же кнопкой.
+    if (!record.slotId && record.id === legacyTargetId(direction)) return true;
+    return false;
+  }
+  return record.id === legacyTargetId(direction);
 }
 
 export function isSelectedTargetRole(
   participantId: string,
   direction: Pick<Direction, "roleSlug" | "bucket">,
+  slotId?: string,
 ): boolean {
   const state = pipelineStates.get(participantId);
   const outputs = (state?.stageOutputs ?? {}) as Record<string, unknown>;
@@ -145,13 +186,14 @@ export function isSelectedTargetRole(
     : Array.isArray(outputs.selectedTargetRoles)
       ? (outputs.selectedTargetRoles as SelectedTargetRole[])
     : [];
-  return selected.some((r) => r.id === selectedTargetId(direction));
+  return selected.some((r) => recordMatchesSlot(r, direction, slotId));
 }
 
 export function toggleSelectedTargetRole(
   participantId: string,
   direction: Direction,
   source: SelectedTargetRole["source"],
+  slotId?: string,
 ): { selected: boolean; roles: SelectedTargetRole[] } | null {
   const state = pipelineStates.get(participantId);
   if (!state) return null;
@@ -163,8 +205,7 @@ export function toggleSelectedTargetRole(
     : Array.isArray(outputs.selectedTargetRoles)
       ? (outputs.selectedTargetRoles as SelectedTargetRole[])
     : [];
-  const id = selectedTargetId(direction);
-  const exists = previous.some((r) => r.id === id);
+  const exists = previous.some((r) => recordMatchesSlot(r, direction, slotId));
   const known = KNOWN_ROLE_SET.has(direction.roleSlug);
   if (!exists && !known && (!direction.offIndex || !direction.marketEvidence?.trim())) {
     throw new Error(
@@ -172,16 +213,17 @@ export function toggleSelectedTargetRole(
     );
   }
   const roles = exists
-    ? previous.filter((r) => r.id !== id)
+    ? previous.filter((r) => !recordMatchesSlot(r, direction, slotId))
     : [
         ...previous,
         {
-          id,
+          id: selectedRecordId(direction, slotId),
           selectedAt: new Date().toISOString(),
           source,
           roleSlug: direction.roleSlug,
           title: direction.title,
           bucket: direction.bucket,
+          ...(slotId ? { slotId } : {}),
           ...(!known || direction.offIndex ? { offIndex: true } : {}),
           ...(direction.marketEvidence ? { marketEvidence: direction.marketEvidence } : {}),
           direction,
@@ -258,6 +300,116 @@ export function addSelectedTargetRole(input: {
   persistPipelineStates();
 
   return { added: true, roles };
+}
+
+/* ── Ideal-resume artifacts ───────────────────────────────────────────── */
+
+export interface IdealResumeArtifactRef {
+  id: string;
+  url: string;
+  docId: string;
+  generatedAt: string;
+  version: number;
+  targetRoleSlug: string;
+  targetRoleTitle: string;
+  sourceResumeVersionId: string | null;
+  usedLinkedinProfile: boolean;
+  usedRolePattern: boolean;
+  model: string;
+  data?: unknown;
+}
+
+interface IdealResumeStorage {
+  active: Record<string, IdealResumeArtifactRef>;
+  history: Record<string, IdealResumeArtifactRef[]>;
+}
+
+function loadIdealResumeStorage(state: PipelineState): IdealResumeStorage {
+  const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
+  const stored = (outputs.idealResumes as IdealResumeStorage | undefined) ?? {
+    active: {},
+    history: {},
+  };
+  if (!stored.active) stored.active = {};
+  if (!stored.history) stored.history = {};
+  return stored;
+}
+
+export function getIdealResumeArtifact(
+  participantId: string,
+  roleSlug: string,
+): IdealResumeArtifactRef | null {
+  const state = pipelineStates.get(participantId);
+  if (!state) return null;
+  const storage = loadIdealResumeStorage(state);
+  return storage.active[roleSlug] ?? null;
+}
+
+export function getAllIdealResumeArtifacts(
+  participantId: string,
+): Record<string, IdealResumeArtifactRef> {
+  const state = pipelineStates.get(participantId);
+  if (!state) return {};
+  return loadIdealResumeStorage(state).active;
+}
+
+export function saveIdealResumeArtifact(
+  participantId: string,
+  artifact: IdealResumeArtifactRef,
+): void {
+  const state = pipelineStates.get(participantId);
+  if (!state) return;
+  const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
+  const storage = loadIdealResumeStorage(state);
+  const slug = artifact.targetRoleSlug;
+
+  const previous = storage.active[slug];
+  if (previous) {
+    if (!storage.history[slug]) storage.history[slug] = [];
+    storage.history[slug].push(previous);
+    // keep last 10 history entries
+    if (storage.history[slug].length > 10) {
+      storage.history[slug] = storage.history[slug].slice(-10);
+    }
+  }
+  storage.active[slug] = artifact;
+  outputs.idealResumes = storage;
+  state.stageOutputs = outputs;
+  state.updatedAt = artifact.generatedAt;
+  persistPipelineStates();
+}
+
+/* ── Cached LinkedIn profile (~once per client) ───────────────────────── */
+
+export interface CachedLinkedinProfile {
+  url: string;
+  fetchedAt: string;
+  source: "direct_cookie" | "perplexity";
+  text: string;
+  headline: string;
+  location: string;
+}
+
+export function getCachedLinkedinProfile(
+  participantId: string,
+): CachedLinkedinProfile | null {
+  const state = pipelineStates.get(participantId);
+  const outputs = (state?.stageOutputs ?? {}) as Record<string, unknown>;
+  const cached = outputs.linkedinProfile as CachedLinkedinProfile | undefined;
+  return cached ?? null;
+}
+
+export function saveCachedLinkedinProfile(
+  participantId: string,
+  profile: CachedLinkedinProfile,
+): void {
+  const state = pipelineStates.get(participantId);
+  if (!state) return;
+  const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
+  outputs.linkedinProfile = profile;
+  state.stageOutputs = outputs;
+  state.updatedAt = new Date().toISOString();
+  persistPipelineStates();
 }
 
 /**
@@ -499,6 +651,175 @@ export function registerIntakeRoutes(app: FastifyInstance) {
           details: err instanceof Error ? err.message : String(err),
         });
       }
+    },
+  );
+
+  /**
+   * Pilot-runner: generate ideal resume for a client + role.
+   *
+   *   POST /api/admin/ideal-resume/generate
+   *   Header: x-webhook-secret
+   *   Body: { nick?: string, participantId?: string, slug?: string, slugs?: string[] }
+   *
+   * - Если slug/slugs не указан, берём ВСЕ из selectedTargetRoles.
+   * - Возвращает массив { slug, url, version, generatedAt } по каждой роли.
+   */
+  app.post(
+    "/api/admin/ideal-resume/generate",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const secret = request.headers["x-webhook-secret"];
+      if (secret !== process.env.WEBHOOK_SECRET) {
+        return reply.status(401).send({ error: "Invalid webhook secret" });
+      }
+
+      const body = (request.body ?? {}) as {
+        nick?: string;
+        participantId?: string;
+        slug?: string;
+        slugs?: string[];
+      };
+
+      let state: PipelineState | undefined;
+      if (body.participantId) {
+        state = pipelineStates.get(body.participantId);
+      } else if (body.nick) {
+        const wantedNick = normalizeNick(body.nick);
+        state = Array.from(pipelineStates.values()).find(
+          (s) => normalizeNick(s.telegramNick) === wantedNick,
+        );
+      }
+      if (!state) {
+        return reply.status(404).send({ error: "Client not found" });
+      }
+
+      const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
+      const clientSummary = outputs.clientSummary as ClientSummary | undefined;
+      if (!clientSummary) {
+        return reply.status(400).send({
+          error: "Client summary not generated yet — run intake pipeline first",
+        });
+      }
+
+      const allTargets =
+        (clientSummary.selectedTargetRoles as SelectedTargetRole[] | undefined) ??
+        (outputs.selectedTargetRoles as SelectedTargetRole[] | undefined) ??
+        [];
+      if (allTargets.length === 0) {
+        return reply.status(400).send({
+          error: "No selectedTargetRoles — pick at least one target role first",
+        });
+      }
+
+      const wantedSlugs = body.slugs?.length
+        ? body.slugs
+        : body.slug
+          ? [body.slug]
+          : allTargets.map((t) => t.roleSlug);
+
+      const targets = wantedSlugs
+        .map((slug) => allTargets.find((t) => t.roleSlug === slug))
+        .filter((t): t is SelectedTargetRole => !!t);
+
+      if (targets.length === 0) {
+        return reply.status(400).send({
+          error: `None of requested slugs are in selectedTargetRoles. Available: ${allTargets
+            .map((t) => t.roleSlug)
+            .join(", ")}`,
+        });
+      }
+
+      const resumeVersions = Array.isArray(outputs.resumeVersions)
+        ? (outputs.resumeVersions as ResumeVersion[])
+        : [];
+      const activeResumeVersionId = outputs.activeResumeVersionId as
+        | string
+        | undefined;
+      const linkedinUrl = clientSummary.linkedinUrl;
+
+      const { generateIdealResume } = await import(
+        "../services/ideal-resume-generator.js"
+      );
+
+      const results: Array<{
+        slug: string;
+        ok: boolean;
+        url?: string;
+        version?: number;
+        generatedAt?: string;
+        error?: string;
+      }> = [];
+
+      for (const target of targets) {
+        try {
+          const previous = getIdealResumeArtifact(
+            state.participantId,
+            target.roleSlug,
+          );
+
+          const { artifact, linkedin } = await generateIdealResume({
+            participantId: state.participantId,
+            nick: state.telegramNick,
+            target,
+            clientSummary,
+            resumeVersions,
+            activeResumeVersionId,
+            linkedinUrl,
+            previous,
+          });
+
+          if (linkedin && linkedinUrl) {
+            saveCachedLinkedinProfile(state.participantId, {
+              url: linkedinUrl,
+              fetchedAt: artifact.generatedAt,
+              source: linkedin.source,
+              text: linkedin.text,
+              headline: linkedin.headline,
+              location: linkedin.location,
+            });
+          }
+
+          const ref: IdealResumeArtifactRef = {
+            id: artifact.id,
+            url: artifact.url,
+            docId: artifact.docId,
+            generatedAt: artifact.generatedAt,
+            version: artifact.version,
+            targetRoleSlug: artifact.targetRoleSlug,
+            targetRoleTitle: artifact.targetRoleTitle,
+            sourceResumeVersionId: artifact.sourceResumeVersionId,
+            usedLinkedinProfile: artifact.usedLinkedinProfile,
+            usedRolePattern: artifact.usedRolePattern,
+            model: artifact.model,
+            data: artifact.data,
+          };
+          saveIdealResumeArtifact(state.participantId, ref);
+
+          results.push({
+            slug: target.roleSlug,
+            ok: true,
+            url: artifact.url,
+            version: artifact.version,
+            generatedAt: artifact.generatedAt,
+          });
+        } catch (err) {
+          request.log.error(
+            { err, slug: target.roleSlug },
+            "Ideal resume generation failed",
+          );
+          results.push({
+            slug: target.roleSlug,
+            ok: false,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+
+      return reply.status(200).send({
+        success: true,
+        nick: state.telegramNick,
+        participantId: state.participantId,
+        results,
+      });
     },
   );
 }

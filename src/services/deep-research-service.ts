@@ -46,6 +46,34 @@ const RU_PROXY_REGIONS: ReadonlySet<Region> = new Set<Region>(["ru", "cis"]);
 
 const KNOWN_SLUGS_SET: ReadonlySet<string> = new Set(KNOWN_ROLES);
 
+// ─── Per-direction key ───────────────────────────────────────────────────────
+
+/**
+ * Уникальный ключ для одного направления (a row in shortlist/deep).
+ *
+ * Phase 2 enrichment когда-то ключевался по `roleSlug`, но это ломалось для
+ * `WIDE_FAMILY_SLUGS` (`infosecspec`, `devops`, ...): три разных
+ * direction'а под одним slug получали один и тот же fill (Daria — AppSec /
+ * DevSecOps / SOC все получали 2371 вакансий и $5k/мес).
+ *
+ * Теперь ключ — нормализованный title + bucket. Title уникален в пределах
+ * shortlist (postValidate это контролирует). Если title пуст (старые/legacy
+ * записи) — fallback на `slug|bucket`.
+ */
+export function directionKey(d: {
+  title?: string | null;
+  roleSlug?: string | null;
+  bucket?: string | null;
+}): string {
+  const title = (d.title ?? "").trim().toLowerCase();
+  // bucket: "ru" → "ru", всё остальное (abroad/usa/null) → "abroad". Так
+  // EnrichedDirection (`"ru" | "abroad" | null`) и Direction (`"ru" | "abroad"
+  // | "usa"`) сходятся в один ключ.
+  const bucket = d.bucket === "ru" ? "ru" : "abroad";
+  if (title.length > 0) return `${title}|${bucket}`;
+  return `${d.roleSlug || "unknown"}|${bucket}`;
+}
+
 // ─── Cache ───────────────────────────────────────────────────────────────────
 
 interface CacheEntry {
@@ -155,6 +183,14 @@ function detectGaps(
 // ─── Perplexity request/response types ───────────────────────────────────────
 
 interface PerplexityFill {
+  /**
+   * Unique per-direction key (см. `directionKey`). Перешли с `slug` на key,
+   * чтобы три направления под одним slug (Daria: AppSec/DevSecOps/SOC под
+   * `infosecspec`) получали разные fills, а не один общий.
+   *
+   * Сохраняем `slug` как доп. поле для логов/обратной совместимости.
+   */
+  key: string;
   slug: string;
   bucket: "ru" | "abroad";
   vacancies: number | null;
@@ -179,6 +215,7 @@ const FILL_JSON_SCHEMA = {
       items: {
         type: "object" as const,
         properties: {
+          key: { type: "string" as const, description: "Direction key from the gap list (lowercased title|bucket)" },
           slug: { type: "string" as const },
           bucket: { type: "string" as const, enum: ["ru", "abroad"] },
           vacancies: { type: ["number", "null"] as const },
@@ -190,7 +227,7 @@ const FILL_JSON_SCHEMA = {
           citations: { type: "array" as const, items: { type: "string" as const } },
           reasoning: { type: "string" as const },
         },
-        required: ["slug", "bucket", "vacancies", "medianSalaryMid", "competitionPer100", "aiRisk", "citations"],
+        required: ["key", "slug", "bucket", "vacancies", "medianSalaryMid", "competitionPer100", "aiRisk", "citations"],
       },
     },
   },
@@ -205,22 +242,32 @@ function regionLabel(summary: ClientSummary): string {
   return regions.join(", ");
 }
 
-function fmtBaselineRow(e: EnrichedDirection): string {
+function fmtBaselineRow(d: Direction, e: EnrichedDirection): string {
   const vac = e.vacancies !== null ? String(e.vacancies) : "NULL";
   const med = e.medianSalaryMid !== null ? String(e.medianSalaryMid) : "NULL";
   const comp = e.competitionPer100 !== null ? e.competitionPer100.toFixed(1) : "NULL";
   const ai = e.aiRisk ?? "NULL";
   const trend = e.trendRatio !== null ? `${((e.trendRatio - 1) * 100).toFixed(0)}%` : "NULL";
   const bucket = e.bucket ?? "abroad";
-  return `| ${e.roleSlug} | ${bucket} | ${vac} | ${med} | ${comp} | ${ai} | ${trend} |`;
+  const key = directionKey(d);
+  const title = (d.title ?? "").replace(/\|/g, "\\|");
+  return `| ${key} | ${e.roleSlug} | ${title} | ${bucket} | ${vac} | ${med} | ${comp} | ${ai} | ${trend} |`;
 }
 
 function buildBatchPrompt(
   gaps: GapDescriptor[],
   baselineAll: EnrichedDirection[],
+  baselineDirections: Direction[],
   summary: ClientSummary,
 ): string {
-  const baselineTable = baselineAll.map(fmtBaselineRow).join("\n");
+  const baselineTable = baselineAll
+    .map((e, i) => {
+      const d = baselineDirections[i];
+      if (!d) return "";
+      return fmtBaselineRow(d, e);
+    })
+    .filter((s) => s.length > 0)
+    .join("\n");
 
   const gapList = gaps.map((g) => {
     const fields = g.missingFields.join(", ");
@@ -228,7 +275,8 @@ function buildBatchPrompt(
     const evidence = g.direction.marketEvidence
       ? `\n  - market hint from prior step: ${g.direction.marketEvidence}`
       : "";
-    return `- slug: \`${g.direction.roleSlug}\` (title: "${g.direction.title}", bucket: ${g.direction.bucket})${offIdxFlag}${evidence}\n  - missing fields: ${fields}`;
+    const key = directionKey(g.direction);
+    return `- key: \`${key}\` (slug: \`${g.direction.roleSlug}\`, title: "${g.direction.title}", bucket: ${g.direction.bucket})${offIdxFlag}${evidence}\n  - missing fields: ${fields}`;
   }).join("\n");
 
   return `You are a labor market analyst for IT/digital jobs. Your task is to fill MISSING numbers for specific roles.
@@ -236,12 +284,20 @@ function buildBatchPrompt(
 ## Client target region
 ${regionLabel(summary)}
 
+## CRITICAL: each row is a SEPARATE niche
+
+The same \`slug\` can appear multiple times in the table below — that is INTENTIONAL.
+For example, slug \`infosecspec\` may appear three times for "Security Engineer, AppSec",
+"DevSecOps Engineer", "Security Analyst, SOC". These are DIFFERENT niches with
+DIFFERENT vacancies / salaries / competition. You MUST treat them independently
+and return ONE fill per \`key\`, not per \`slug\`.
+
 ## Baseline (already known data, DO NOT recalculate)
 
-These directions are being considered. Trust the values that are NOT NULL:
+Trust the values that are NOT NULL. The \`key\` column uniquely identifies each row.
 
-| slug | bucket | vacancies | median (local) | comp/100 | aiRisk | trend |
-|---|---|---|---|---|---|---|
+| key | slug | title | bucket | vacancies | median (local) | comp/100 | aiRisk | trend |
+|---|---|---|---|---|---|---|---|---|
 ${baselineTable}
 
 ## What needs to be filled
@@ -275,22 +331,26 @@ In all other cases — give an ESTIMATE with reasoning. The downstream UI shows 
 
 ## Output
 
-Return strict JSON per the provided schema:
+Return strict JSON per the provided schema. **One fill per \`key\`** from the
+gap list above. Copy the \`key\` value EXACTLY as given (lowercase, with the
+\`|bucket\` suffix). Do NOT collapse multiple gap-list entries that share a
+\`slug\` into one fill.
 
 \`\`\`json
 {
   "fills": [
     {
-      "slug": "ai_automation_engineer",
+      "key": "security engineer, appsec (senior)|abroad",
+      "slug": "infosecspec",
       "bucket": "abroad",
       "vacancies": 850,
       "medianSalaryMid": 7500,
-      "medianSalaryCurrency": "GBP",
+      "medianSalaryCurrency": "USD",
       "competitionPer100": 6.0,
       "aiRisk": "low",
       "trendRatio": 1.18,
-      "citations": ["https://itjobswatch.co.uk/...", "https://trueup.io/..."],
-      "reasoning": "estimate by analogy with devops + ai-platform-engineer; trueup data 2025-12"
+      "citations": ["https://itjobswatch.co.uk/...", "https://levels.fyi/..."],
+      "reasoning": "AppSec/application security niche, distinct from SOC"
     }
   ]
 }
@@ -355,6 +415,7 @@ async function callPerplexityBatch(
 const ANALOGY_MARKERS = /\b(estimate|estimat|analogy|approximate|approximately|midpoint|order[- ]of[- ]magnitude|rounded|indirect|по аналогии|оценка|примерно|приблизительно)\b/i;
 
 interface ValidatedFill {
+  key: string;
   slug: string;
   bucket: "ru" | "abroad";
   vacancies: number | null;
@@ -419,6 +480,7 @@ function validateFill(
     : "perplexity";
 
   return {
+    key: (fill.key ?? "").trim().toLowerCase(),
     slug: fill.slug,
     bucket: fill.bucket,
     vacancies,
@@ -514,8 +576,8 @@ export async function enrichGapsForClient(
   // Промпт + cache key. CACHE_VERSION ломаем когда меняется логика
   // парсинга ответа Perplexity (validateFill, и т.п.), чтобы старые
   // (потенциально пустые) fills не цеплялись.
-  const CACHE_VERSION = "v3-broader-sources-estimate-encouraged";
-  const prompt = buildBatchPrompt(gaps, baseline, summary);
+  const CACHE_VERSION = "v4-direction-key";
+  const prompt = buildBatchPrompt(gaps, baseline, directions, summary);
   const cacheKey = createHash("sha256")
     .update(`${CACHE_VERSION}|${prompt}`)
     .digest("hex")
@@ -544,28 +606,53 @@ export async function enrichGapsForClient(
 
   // Validate + merge. rawCitations передаём как fallback — Perplexity часто
   // не копирует URL'ы внутрь structured JSON, а оставляет на корне ответа.
-  const fillBySlug = new Map<string, ValidatedFill>();
+  //
+  // Per-direction key: ранее использовали slug как ключ, что давало баг для
+  // WIDE_FAMILY_SLUGS (3 направления под одним slug → один и тот же fill).
+  // Теперь матчим по `directionKey` (lowercase title|bucket).
+  const fillByKey = new Map<string, ValidatedFill>();
+  const fillBySlugFallback = new Map<string, ValidatedFill>();
   for (const raw of fills) {
     const validated = validateFill(raw, rawCitations);
     if (validated.droppedFields.length > 0) {
       console.warn(
-        `[DeepResearch] ${validated.slug}: dropped ${validated.droppedFields.join("/")} (no citations even with raw)`,
+        `[DeepResearch] ${validated.key || validated.slug}: dropped ${validated.droppedFields.join("/")} (no citations even with raw)`,
       );
     }
-    // Если для одного slug пришло несколько fills (странно, но возможно) — берём последний.
-    fillBySlug.set(validated.slug, validated);
+    // Если для одного key пришло несколько fills — берём последний.
+    if (validated.key) fillByKey.set(validated.key, validated);
+    // Slug-fallback на случай если Sonar не вернул key (старая версия промпта,
+    // legacy direction без title и т.п.). Не перезатираем уже найденный slug —
+    // первая запись остаётся «представителем».
+    if (!fillBySlugFallback.has(validated.slug)) {
+      fillBySlugFallback.set(validated.slug, validated);
+    }
   }
   console.log(
-    `[DeepResearch] Validated fills: ` +
-    Array.from(fillBySlug.entries())
-      .map(([slug, v]) => `${slug}={vac:${v.vacancies},sal:${v.medianSalaryMid},comp:${v.competitionPer100},cit:${v.citations.length}}`)
+    `[DeepResearch] Validated fills (by key): ` +
+    Array.from(fillByKey.entries())
+      .map(([key, v]) => `${key}={vac:${v.vacancies},sal:${v.medianSalaryMid},comp:${v.competitionPer100},cit:${v.citations.length}}`)
       .join(", "),
   );
 
   const result = baseline.map((b, i) => {
     const direction = directions[i];
     if (!direction) return { ...b };
-    const fill = fillBySlug.get(b.roleSlug);
+    const key = directionKey(direction);
+    let fill = fillByKey.get(key);
+    if (!fill) {
+      // Sonar не вернул key — fallback на slug. Применяем только один раз,
+      // чтобы три направления с одним slug не получили один и тот же fill.
+      const fallback = fillBySlugFallback.get(b.roleSlug);
+      if (fallback) {
+        console.warn(
+          `[DeepResearch] direction "${direction.title}" (${b.roleSlug}|${b.bucket}): ` +
+          `no key match, fallback to slug fill (one-shot)`,
+        );
+        fill = fallback;
+        fillBySlugFallback.delete(b.roleSlug);
+      }
+    }
     if (!fill) return { ...b };
     return mergeFillIntoEnriched(b, fill);
   });

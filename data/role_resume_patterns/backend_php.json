@@ -1,0 +1,169 @@
+{
+  "slug": "backend_php",
+  "displayTitle": "Backend Developer (PHP)",
+  "builtAt": "2026-04-25T10:20:46.525Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "PHP Developer",
+    "PHP-разработчик",
+    "Senior PHP Developer",
+    "Backend Developer (PHP)",
+    "Middle PHP Developer",
+    "Lead PHP Developer",
+    "PHP/GO Developer",
+    "Backend-разработчик"
+  ],
+  "summaryPatterns": [
+    "I'm a PHP Developer with 6+ years of experience, built and maintained high-load web applications serving 500+ RPS and led teams of 5-6 backend engineers.",
+    "I'm a Senior PHP Developer (8+ years), architected scalable e-commerce platforms processing millions of entities daily with 95%+ delivery accuracy.",
+    "I'm a PHP Backend Engineer with 4+ years experience, designed microservices architecture reducing system downtime by 30% and improved performance 60x through database optimization.",
+    "I'm a Full-stack PHP Developer (7+ years), developed 130+ products from small plugins to enterprise applications, reduced API failure rates from 20% to <1%."
+  ],
+  "skillCategories": [
+    {
+      "category": "Backend Frameworks",
+      "items": [
+        "Laravel",
+        "Symfony",
+        "Yii2",
+        "Slim",
+        "Phalcon"
+      ]
+    },
+    {
+      "category": "Databases & Storage",
+      "items": [
+        "MySQL",
+        "PostgreSQL",
+        "Redis",
+        "MongoDB",
+        "ClickHouse",
+        "Elasticsearch",
+        "MariaDB",
+        "DynamoDB"
+      ]
+    },
+    {
+      "category": "Message Queues & Streaming",
+      "items": [
+        "RabbitMQ",
+        "Apache Kafka",
+        "Amazon SQS",
+        "Redis Queues"
+      ]
+    },
+    {
+      "category": "Cloud & Infrastructure",
+      "items": [
+        "AWS",
+        "Docker",
+        "Kubernetes",
+        "S3",
+        "API Gateway",
+        "CloudWatch",
+        "SNS",
+        "ECR",
+        "Lambda"
+      ]
+    },
+    {
+      "category": "API & Integration",
+      "items": [
+        "REST API",
+        "GraphQL",
+        "JSON API",
+        "OpenAPI",
+        "Swagger",
+        "OAuth",
+        "JWT",
+        "XML-RPC",
+        "SOAP"
+      ]
+    },
+    {
+      "category": "Observability & Monitoring",
+      "items": [
+        "OpenTelemetry",
+        "Jaeger",
+        "ELK Stack",
+        "Grafana",
+        "Prometheus",
+        "Sentry",
+        "Clockwork",
+        "Zabbix"
+      ]
+    },
+    {
+      "category": "DevOps & CI/CD",
+      "items": [
+        "GitLab CI",
+        "GitHub Actions",
+        "Jenkins",
+        "Docker Compose",
+        "Helm",
+        "Vagrant"
+      ]
+    },
+    {
+      "category": "Testing & Quality",
+      "items": [
+        "PHPUnit",
+        "Codeception",
+        "Pest",
+        "Unit Testing",
+        "Integration Testing",
+        "Code Review"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced API failure rates from 20% to <1% through queue implementation",
+    "Built e-commerce platform serving 500+ RPS with 95%+ delivery accuracy",
+    "Improved system performance 60x through algorithmic database optimization",
+    "Led backend team of 5-6 engineers across microservices architecture",
+    "Reduced system downtime by 30% through comprehensive monitoring setup",
+    "Migrated 400+ classes to PSR-4 improving development efficiency",
+    "Decreased MTTR by 30% with OpenTelemetry and Grafana monitoring",
+    "Processed millions of entities daily in master data system",
+    "Increased active SDK users by 15% through polling solution implementation",
+    "Reduced infrastructure incidents by 50% with payment system monitoring",
+    "Built AI agent reducing developer routine tasks by 30-40%",
+    "Achieved 98% cache hit rate on high-load projects",
+    "Supported 130+ products from plugins to enterprise applications",
+    "Optimized search performance improving response time by 15%"
+  ],
+  "keyResponsibilities": [
+    "Design and develop scalable backend services and REST APIs",
+    "Optimize database queries and implement caching strategies",
+    "Integrate with external payment systems and third-party services",
+    "Implement message queues and asynchronous processing",
+    "Conduct code reviews and mentor junior developers",
+    "Design microservices architecture and domain-driven design",
+    "Set up monitoring, logging and observability solutions",
+    "Migrate legacy systems and upgrade framework versions",
+    "Implement security measures and vulnerability fixes",
+    "Collaborate with frontend, mobile and DevOps teams"
+  ],
+  "certifications": [],
+  "popularIndustries": [
+    "e-commerce",
+    "fintech",
+    "telecom",
+    "media",
+    "travel",
+    "education",
+    "cryptocurrency",
+    "automotive",
+    "retail"
+  ],
+  "redFlags": [
+    "Перечислять более 25 технологий без указания уровня владения",
+    "Использовать общие фразы без конкретных цифр и метрик",
+    "Не указывать версии PHP и основных фреймворков",
+    "Писать про 'участвовал' вместо конкретных достижений",
+    "Не упоминать опыт с высокими нагрузками для Senior позиций",
+    "Указывать только устаревшие технологии (PHP 5.x, MySQL без современных подходов)",
+    "Не показывать прогрессию от Junior к Middle/Senior уровню"
+  ],
+  "notes": "Backend PHP разработчики в России работают преимущественно с Laravel и Symfony, часто в e-commerce и fintech проектах. Ключевые требования: опыт с высокими нагрузками (500+ RPS), знание современных версий PHP (8.1+), умение проектировать API и работать с очередями. Сильные кандидаты показывают конкретные метрики улучшений (снижение времени отклика, увеличение производительности в разы), опыт миграций и рефакторинга, навыки архитектурного проектирования. Важен опыт интеграций с внешними системами, платежными сервисами, облачными решениями. Senior+ уровень подразумевает лидерство команд, менторинг, принятие архитектурных решений. Популярны Docker, микросервисы, DDD подходы. Мониторинг и observability становятся обязательными навыками."
+}

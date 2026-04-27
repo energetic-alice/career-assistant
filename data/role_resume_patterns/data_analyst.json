@@ -1,0 +1,185 @@
+{
+  "slug": "data_analyst",
+  "displayTitle": "Data Analyst",
+  "builtAt": "2026-04-25T10:22:23.190Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Junior Data Analyst",
+    "Data Analyst",
+    "Middle Data Analyst",
+    "Senior Data Analyst",
+    "Lead Data Analyst",
+    "BI-аналитик",
+    "DWH Analyst",
+    "Data Engineer"
+  ],
+  "summaryPatterns": [
+    "I'm a Data Analyst with 3+ years of experience, built 15+ data marts serving 500+ users and optimized SQL queries reducing execution time from 1.5 hours to 15 minutes",
+    "I'm a Senior Data Analyst with 4+ years specializing in end-to-end analytics, developed ML models achieving 96% accuracy and automated reporting processes reducing manual work by 45%",
+    "I'm a Lead Data Analyst with 7+ years in DWH development, migrated 15+ data sources to production and resolved 100+ data pipeline incidents while managing teams of 3 analysts",
+    "I'm a BI Analyst with 6+ years building ETL pipelines, integrated 10+ heterogeneous data sources and created dashboards used by 30+ team members for daily operations"
+  ],
+  "skillCategories": [
+    {
+      "category": "Databases & Data Warehouses",
+      "items": [
+        "PostgreSQL",
+        "ClickHouse",
+        "Oracle",
+        "MySQL",
+        "Greenplum",
+        "Hadoop",
+        "Hive",
+        "Teradata",
+        "MS SQL",
+        "Vertica"
+      ]
+    },
+    {
+      "category": "Programming & Analytics",
+      "items": [
+        "Python",
+        "SQL",
+        "Pandas",
+        "NumPy",
+        "Scikit-learn",
+        "Matplotlib",
+        "Seaborn",
+        "Plotly",
+        "Statsmodels",
+        "SciPy"
+      ]
+    },
+    {
+      "category": "ETL & Data Engineering",
+      "items": [
+        "Apache Airflow",
+        "dbt",
+        "ETL",
+        "Data pipelines",
+        "SSIS",
+        "Apache Spark",
+        "PySpark",
+        "Data Quality",
+        "Trino",
+        "Iceberg"
+      ]
+    },
+    {
+      "category": "Business Intelligence & Visualization",
+      "items": [
+        "Tableau",
+        "Power BI",
+        "Yandex DataLens",
+        "Superset",
+        "QlikView",
+        "Grafana",
+        "SAP BusinessObjects",
+        "Excel",
+        "Redash"
+      ]
+    },
+    {
+      "category": "Cloud & Big Data",
+      "items": [
+        "S3",
+        "Kafka",
+        "Big Data",
+        "Data modeling",
+        "DWH",
+        "OLAP",
+        "MPP systems",
+        "Snowflake",
+        "Redshift"
+      ]
+    },
+    {
+      "category": "Development Tools",
+      "items": [
+        "Git",
+        "Jira",
+        "Confluence",
+        "Docker",
+        "Linux",
+        "GitLab",
+        "Jupyter Notebook",
+        "API",
+        "Bash"
+      ]
+    },
+    {
+      "category": "Analytics Methods",
+      "items": [
+        "A/B testing",
+        "Statistical analysis",
+        "Machine Learning",
+        "Predictive modeling",
+        "Cohort analysis",
+        "Feature engineering",
+        "Data mining",
+        "KPI development"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced query execution time from 1.5 hours to 15 minutes through SQL optimization",
+    "Built 15+ data marts serving 500+ employees for performance calculations and recruitment optimization",
+    "Automated reporting processes reducing manual work by 45% and accelerating report delivery by 1.15x",
+    "Increased ML model accuracy from 87% to 96% F1-score through NLP implementation",
+    "Optimized ETL processes reducing execution time by 62.5% from 40 to 15 minutes",
+    "Resolved 100+ data pipeline incidents ensuring system stability",
+    "Decreased report preparation time from 3 weeks to 2 weeks through semantic layer reorganization",
+    "Achieved 99.65% ETL pipeline success rate improving from 96%",
+    "Reduced data collection time from 40 hours to 50 minutes through automation",
+    "Increased sales conversion by 6% through A/B testing optimization",
+    "Improved campaign ROI by 20% through budget reallocation analysis",
+    "Enhanced data processing speed by 30-60% via partitioning and indexing optimization",
+    "Integrated 10+ heterogeneous data sources into unified DWH",
+    "Reduced customer churn by 10% and increased purchase conversion by 3%",
+    "Managed team of 3+ analysts and conducted onboarding for new team members",
+    "Decreased operational escalations by 25% through KPI transparency improvement",
+    "Built near-real-time data marts with 99.9% accuracy in client identification",
+    "Automated daily and weekly reporting saving several hours of manual work",
+    "Processed 10+ million transactions per month in mortgage analysis system",
+    "Coordinated cross-functional teams of 30+ members through operational dashboards"
+  ],
+  "keyResponsibilities": [
+    "Develop and maintain ETL pipelines and data marts",
+    "Write complex SQL queries for data extraction and transformation",
+    "Create interactive dashboards and reports for business users",
+    "Perform ad-hoc analysis and statistical research",
+    "Optimize database performance and query execution",
+    "Integrate data from multiple sources into DWH",
+    "Collaborate with business stakeholders to gather requirements",
+    "Conduct A/B testing and statistical analysis",
+    "Automate reporting processes and data quality checks",
+    "Support regulatory reporting and compliance requirements"
+  ],
+  "certifications": [
+    "Google Data Analytics Certificate",
+    "Apache Spark for Data Engineering",
+    "Oracle Database SQL Optimization",
+    "Tableau Desktop Specialist",
+    "Python for Data Analysis"
+  ],
+  "popularIndustries": [
+    "fintech",
+    "e-commerce",
+    "retail",
+    "telecom",
+    "pharma",
+    "media",
+    "logistics",
+    "consulting"
+  ],
+  "redFlags": [
+    "Listing generic responsibilities without specific metrics or achievements",
+    "Including too many technologies (30+) without depth",
+    "Missing quantifiable business impact in accomplishments",
+    "Focusing only on technical skills without business context",
+    "Not demonstrating progression or growth in responsibilities",
+    "Lacking specific database sizes or data volumes worked with",
+    "No mention of stakeholder collaboration or business requirements gathering"
+  ],
+  "notes": "Роль Data Analyst в российских компаниях сильно варьируется от классической бизнес-аналитики до инженерии данных. Ключевые особенности:\n\n- Обязательные навыки: продвинутый SQL, Python (pandas/numpy), опыт с DWH\n- Важен опыт работы с российскими реалиями: регуляторная отчетность ЦБ, импортозамещение технологий\n- Высоко ценится опыт построения витрин данных 'с нуля' и миграции между платформами\n- Частое совмещение ролей аналитика и дата-инженера в одной позиции\n- Акцент на бизнес-метриках и влиянии на результаты компании\n- Популярные стеки: PostgreSQL/ClickHouse + Python + Airflow + Tableau/DataLens\n- Важность работы в кросс-функциональных командах и взаимодействия с бизнесом\n- Растущая важность ML-навыков для senior-позиций\n- Опыт с большими объемами данных (миллионы записей) как конкурентное преимущество"
+}

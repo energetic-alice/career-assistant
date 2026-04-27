@@ -926,153 +926,16 @@ export async function loadMarketOverview(regions: string[]): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
-// Load role reports for directions (Step 4: KB check)
+// Note: `loadRoleReports` (Step 4) и `optimizeTitles` (Step 3) удалены.
+//   - `loadRoleReports` неявно дёргал Perplexity (`ensureRoleReport`) и писал
+//     `role-<slug>-<region>.md` прямо в repo, при этом возвращая UK-данные
+//     для US-региона. `ensureRoleReport` остаётся доступным через CLI
+//     `fetch-market-reports.ts` для ручного обновления KB.
+//   - `optimizeTitles` возвращал сырой markdown с цитатами Perplexity
+//     ("**: **Senior X** gives MOST vacancies (604 vs 66)[2][8].") и не
+//     парсился; `bestTitle` в prompt-03 не передавался. Outdoor scraping
+//     противоречил числам из `niche-resolver` / `uk_<slug>.md`.
+// Точные цифры по approved направлениям теперь приходят из Phase 2 enrichment
+// (`marketData` — `formatEnrichedAsMarketData(enriched)`); широкий рынок —
+// из Step 5.5 `buildFullMarketSummary`.
 // ---------------------------------------------------------------------------
-
-export async function loadRoleReports(
-  directions: Direction[],
-  regions: string[],
-): Promise<string> {
-  const parts: string[] = [];
-  const loaded = new Set<string>();
-
-  for (const dir of directions) {
-    const roleKey = extractRoleKey(dir.title);
-    for (const regionId of regions) {
-      const key = `${roleKey}:${regionId}`;
-      if (loaded.has(key)) continue;
-      loaded.add(key);
-
-      const filePath = await ensureRoleReport(roleKey, regionId);
-      if (filePath) {
-        try {
-          const content = await readFile(filePath, "utf-8");
-          parts.push(content);
-        } catch {
-          console.warn(`[MarketData] Could not read ${filePath}`);
-        }
-      }
-    }
-  }
-
-  return parts.length > 0
-    ? parts.join("\n\n---\n\n")
-    : "Детальные отчёты по ролям не загружены.";
-}
-
-function extractRoleKey(directionTitle: string): string {
-  return directionTitle
-    .toLowerCase()
-    .replace(/[^a-z0-9\s/.#+-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 4)
-    .join(" ");
-}
-
-// ---------------------------------------------------------------------------
-// Title optimization (Step 3)
-// ---------------------------------------------------------------------------
-
-export interface TitleOptimizationResult {
-  directionTitle: string;
-  bestTitle: string;
-  titleVariations: string;
-  totalMarketSize: string;
-}
-
-export async function optimizeTitles(
-  directions: Direction[],
-  regions: string[],
-): Promise<TitleOptimizationResult[]> {
-  if (!process.env.PERPLEXITY_API_KEY) {
-    return directions.map((d) => ({
-      directionTitle: d.title,
-      bestTitle: d.title,
-      titleVariations: "API key not set",
-      totalMarketSize: "unknown",
-    }));
-  }
-
-  const results: TitleOptimizationResult[] = [];
-  const seen = new Set<string>();
-
-  for (const dir of directions) {
-    const roleKey = extractRoleKey(dir.title);
-    if (seen.has(roleKey)) continue;
-    seen.add(roleKey);
-
-    const primaryRegion = regions[0] || "uk";
-    const isRu = primaryRegion === "ru";
-
-    const prompt = isRu
-      ? buildTitleOptimizationPromptRu(dir.title, roleKey)
-      : buildTitleOptimizationPromptIntl(dir.title, roleKey);
-
-    try {
-      console.log(`[TitleOpt] Searching best title for "${roleKey}"...`);
-      const { content } = await querySonarPro(prompt);
-      const parsed = parseTitleOptResult(content, dir.title);
-      results.push(parsed);
-      console.log(`[TitleOpt] Best title: "${parsed.bestTitle}" (market: ${parsed.totalMarketSize})`);
-    } catch (err) {
-      console.error(`[TitleOpt] Failed for "${roleKey}":`, err);
-      results.push({
-        directionTitle: dir.title,
-        bestTitle: dir.title,
-        titleVariations: "fetch failed",
-        totalMarketSize: "unknown",
-      });
-    }
-  }
-
-  return results;
-}
-
-function buildTitleOptimizationPromptIntl(dirTitle: string, roleKey: string): string {
-  return `Search itjobswatch.co.uk for "${roleKey}" and list ALL related job title variations.
-
-For each title variation found, report:
-| Title | Live Vacancies | Median Salary | Rank |
-
-Then answer:
-1. BEST_TITLE: Which title/keyword gives the MOST vacancies? (e.g., "DevOps" gives 1,380 vs "DevOps Engineer" gives 224)
-2. TOTAL_MARKET: Total number of live vacancies across the broadest relevant keyword
-3. RECOMMENDED: Which specific title should a job seeker use?
-
-IMPORTANT: Use the BROAD keyword (skill/role name) for total market size, not the narrow exact title.
-Only report data you can verify from itjobswatch.co.uk. Format as markdown.`;
-}
-
-function buildTitleOptimizationPromptRu(dirTitle: string, roleKey: string): string {
-  const ruTitles = RU_TITLE_VARIANTS[roleKey];
-  const variants = ruTitles
-    ? ruTitles.map((t) => `"${t}"`).join(", ")
-    : `"${roleKey}"`;
-
-  return `Зайди на hh.ru и найди число вакансий по следующим вариантам названий:
-${variants}
-
-Для каждого варианта укажи:
-| Тайтл | Число вакансий | Регион |
-
-Ответь:
-1. ЛУЧШИЙ_ТАЙТЛ: какой вариант даёт БОЛЬШЕ ВСЕГО вакансий?
-2. РАЗМЕР_РЫНКА: общее число вакансий по самому широкому тайтлу
-3. РЕКОМЕНДАЦИЯ: какой тайтл использовать для поиска работы?
-
-Указывай ТОЛЬКО реальные данные с hh.ru. Формат: markdown.`;
-}
-
-function parseTitleOptResult(content: string, fallbackTitle: string): TitleOptimizationResult {
-  const bestMatch = content.match(/(?:BEST_TITLE|ЛУЧШИЙ_ТАЙТЛ)[:\s]*[""]?([^"""\n]+)/i);
-  const totalMatch = content.match(/(?:TOTAL_MARKET|РАЗМЕР_РЫНКА)[:\s]*([^\n]+)/i);
-
-  return {
-    directionTitle: fallbackTitle,
-    bestTitle: bestMatch?.[1]?.trim() || fallbackTitle,
-    titleVariations: content,
-    totalMarketSize: totalMatch?.[1]?.trim() || "unknown",
-  };
-}

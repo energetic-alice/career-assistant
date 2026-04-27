@@ -18,6 +18,7 @@ import {
   type AnalysisPipelineInput,
 } from "../pipeline/run-analysis.js";
 import { enrichDirections, type EnrichedDirection } from "../services/direction-enricher.js";
+import { directionKey } from "../services/deep-research-service.js";
 import type {
   CandidateProfile,
   Direction,
@@ -135,18 +136,17 @@ function migrateLegacy(raw: ShortlistState & LegacyShortlistState): ShortlistSta
   if (Array.isArray(raw.slots)) return raw;
   const legacyDirections = raw.directions ?? [];
   const legacyEnriched = raw.enriched ?? [];
+  // Ключ — `directionKey()` (title|bucket), не `slug|bucket`. Иначе direction'ы
+  // с одинаковым slug+bucket (`infosecspec|usa` × 3) схлопываются в один.
   const enrichedByKey = new Map<string, EnrichedDirection>();
   for (const row of legacyEnriched) {
-    enrichedByKey.set(`${row.roleSlug}|${row.bucket}`, row);
+    enrichedByKey.set(directionKey(row), row);
   }
-  const slots: DirectionSlot[] = legacyDirections.map((d) => {
-    const bucketKey = d.bucket === "ru" ? "ru" : "abroad";
-    return {
-      slotId: newSlotId(),
-      direction: d,
-      enriched: enrichedByKey.get(`${d.roleSlug}|${bucketKey}`),
-    };
-  });
+  const slots: DirectionSlot[] = legacyDirections.map((d) => ({
+    slotId: newSlotId(),
+    direction: d,
+    enriched: enrichedByKey.get(directionKey(d)),
+  }));
   return {
     profile: raw.profile,
     clientSummary: raw.clientSummary,
@@ -160,23 +160,21 @@ function migrateLegacy(raw: ShortlistState & LegacyShortlistState): ShortlistSta
 }
 
 function fromShortlistResult(result: ShortlistResult): ShortlistState {
+  // Ключ — `directionKey()` (title|bucket), не `slug|bucket`.
   const enrichedByKey = new Map<string, EnrichedDirection>();
   for (const row of result.enriched) {
-    enrichedByKey.set(`${row.roleSlug}|${row.bucket}`, row);
+    enrichedByKey.set(directionKey(row), row);
   }
   // Directions уже отсортированы runShortlist по score DESC, но на всякий —
   // сортируем здесь ещё раз, чтобы reserve/active были устойчивы к legacy данным.
   const sorted = [...result.directions.directions].sort(
     (a, b) => (b.score ?? 0) - (a.score ?? 0),
   );
-  const allSlots: DirectionSlot[] = sorted.map((d) => {
-    const bucketKey = d.bucket === "ru" ? "ru" : "abroad";
-    return {
-      slotId: newSlotId(),
-      direction: d,
-      enriched: enrichedByKey.get(`${d.roleSlug}|${bucketKey}`),
-    };
-  });
+  const allSlots: DirectionSlot[] = sorted.map((d) => ({
+    slotId: newSlotId(),
+    direction: d,
+    enriched: enrichedByKey.get(directionKey(d)),
+  }));
   return {
     profile: result.profile,
     clientSummary: result.clientSummary,
@@ -190,7 +188,7 @@ function fromShortlistResult(result: ShortlistResult): ShortlistState {
   };
 }
 
-function toShortlistResult(state: ShortlistState): ShortlistResult {
+export function toShortlistResult(state: ShortlistState): ShortlistResult {
   const directions: Direction[] = state.slots.map((s) => s.direction);
   const enriched: EnrichedDirection[] = state.slots
     .map((s) => s.enriched)
@@ -236,7 +234,7 @@ function directionKeyboard(
 ): InlineKeyboardMarkup {
   const slotId = slot.slotId;
   const recommended = isRecommended(slot.direction);
-  const selected = isSelectedTargetRole(participantId, slot.direction);
+  const selected = isSelectedTargetRole(participantId, slot.direction, slotId);
   const rejectBtn = recommended
     ? Markup.button.callback("🚫 Отклонить", `shortlist:reject:${participantId}:${slotId}`)
     : Markup.button.callback("✅ Вернуть", `shortlist:unreject:${participantId}:${slotId}`);
@@ -900,7 +898,7 @@ async function handleTarget(
   const slot = shortlist.slots[idx];
   let result: ReturnType<typeof toggleSelectedTargetRole>;
   try {
-    result = toggleSelectedTargetRole(participantId, slot.direction, "shortlist");
+    result = toggleSelectedTargetRole(participantId, slot.direction, "shortlist", slot.slotId);
   } catch (err) {
     await ctx.answerCbQuery("Нельзя выбрать slug без marketEvidence.");
     await ctx.reply(
@@ -1009,6 +1007,16 @@ export function registerShortlistCallbacks(_bot: Telegraf): void {
 }
 
 // Debug utility (для тестов).
+/**
+ * Public read-only accessor for shortlist state (for code outside this file).
+ * Returns undefined if shortlist hasn't been generated for the participant.
+ */
+export function getShortlistState(
+  participantId: string,
+): ShortlistState | undefined {
+  return loadShortlist(participantId);
+}
+
 export function _debugShortlistState(participantId: string): ShortlistState | undefined {
   return loadShortlist(participantId);
 }

@@ -1,0 +1,211 @@
+{
+  "slug": "mobileapp_swift",
+  "displayTitle": "iOS Developer (Swift)",
+  "builtAt": "2026-04-25T10:26:13.051Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Junior iOS Developer",
+    "iOS Developer",
+    "Middle iOS Developer",
+    "Senior iOS Developer",
+    "iOS Team Lead",
+    "Lead iOS Developer"
+  ],
+  "summaryPatterns": [
+    "I'm a Senior iOS Developer (5+ years) specializing in Swift/UIKit, built high-load apps serving 1M+ users with 98% crash-free rate",
+    "I'm an experienced iOS Developer (4+ years) focused on e-commerce and fintech, delivered features that increased conversion by 18% and reduced crashes by 25%",
+    "I'm a iOS Team Lead (7+ years) with expertise in real-time systems, led development of Top 100 App Store apps serving 10k+ concurrent users",
+    "I'm a Mobile Developer (3+ years) proficient in SwiftUI/UIKit, optimized app performance reducing load times from 1.6s to 0.8s and memory usage by 40%",
+    "I'm a iOS Developer (5+ years) experienced in full development cycle, built CI/CD pipelines reducing deployment time from hours to 15 minutes"
+  ],
+  "skillCategories": [
+    {
+      "category": "Programming Languages & Frameworks",
+      "items": [
+        "Swift",
+        "Objective-C",
+        "UIKit",
+        "SwiftUI",
+        "Foundation",
+        "Combine",
+        "RxSwift",
+        "GCD",
+        "Swift Concurrency"
+      ]
+    },
+    {
+      "category": "Architecture & Design Patterns",
+      "items": [
+        "MVVM",
+        "VIPER",
+        "MVC",
+        "MVP",
+        "Clean Architecture",
+        "Coordinator",
+        "SOLID",
+        "Dependency Injection",
+        "Factory"
+      ]
+    },
+    {
+      "category": "Data & Persistence",
+      "items": [
+        "Core Data",
+        "Realm",
+        "SQLite",
+        "UserDefaults",
+        "Keychain",
+        "NSCache",
+        "YapDatabase"
+      ]
+    },
+    {
+      "category": "Networking & API",
+      "items": [
+        "URLSession",
+        "Alamofire",
+        "Moya",
+        "REST API",
+        "WebSocket",
+        "GraphQL",
+        "JSON",
+        "Postman"
+      ]
+    },
+    {
+      "category": "UI & Layout",
+      "items": [
+        "Auto Layout",
+        "SnapKit",
+        "Storyboard",
+        "XIB",
+        "UICollectionView",
+        "UITableView",
+        "DiffableDataSource",
+        "CompositionalLayout"
+      ]
+    },
+    {
+      "category": "Media & Hardware",
+      "items": [
+        "AVFoundation",
+        "AVKit",
+        "MediaPlayer",
+        "CoreLocation",
+        "Vision",
+        "Photos",
+        "CryptoKit",
+        "CoreGraphics",
+        "CoreAnimation"
+      ]
+    },
+    {
+      "category": "Development Tools & CI/CD",
+      "items": [
+        "Xcode",
+        "Git",
+        "Fastlane",
+        "CocoaPods",
+        "SPM",
+        "SwiftLint",
+        "SwiftGen",
+        "Tuist",
+        "GitLab CI",
+        "TeamCity"
+      ]
+    },
+    {
+      "category": "Testing & Quality",
+      "items": [
+        "XCTest",
+        "XCUITest",
+        "Unit Testing",
+        "UI Testing",
+        "Instruments",
+        "Firebase Crashlytics",
+        "Sentry"
+      ]
+    },
+    {
+      "category": "Third-party Services",
+      "items": [
+        "Firebase",
+        "Google Maps SDK",
+        "Intercom SDK",
+        "Amplitude",
+        "Mixpanel",
+        "Apphud",
+        "Adapty",
+        "OneSignal"
+      ]
+    },
+    {
+      "category": "Integration & Platform",
+      "items": [
+        "App Store Connect",
+        "TestFlight",
+        "Push Notifications",
+        "Universal Links",
+        "WebKit",
+        "WKWebView",
+        "StoreKit",
+        "PassKit"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced app crash rate from 93% to 98% using Firebase Crashlytics",
+    "Decreased average load time from 1.6s to 0.8s through caching optimization",
+    "Cut deployment time from 30-40 minutes to 5-7 minutes with CI/CD pipeline",
+    "Increased daily order delivery capacity by 13% with multi-order service",
+    "Improved conversion from cart to order by 18% with delivery calculation feature",
+    "Reduced scroll lag by 35% in product catalog optimization",
+    "Achieved 60 FPS performance with 10k+ concurrent users",
+    "Decreased onboarding time from 2 weeks to 1 week with technical documentation",
+    "Increased non-cash payment percentage by 4% with payment flow optimization",
+    "Reduced network requests by 62% with payment provider triggers",
+    "Fixed 15 memory leaks by migrating from Router to Coordinator pattern",
+    "Achieved 5% conversion rate in recommendations block implementation",
+    "Accelerated development by 3 months with reusable component factories",
+    "Reached Top 100 App Store ranking for food delivery app",
+    "Reduced render time from 1.8s to 0.9s with image loading optimization",
+    "Served 50k+ daily transactions in e-commerce modules development",
+    "Cut repeat order flow from 6 to 2 taps in water delivery app",
+    "Achieved weekly 10-15% sprint velocity growth with design system",
+    "Reduced memory usage by 25% through performance optimization"
+  ],
+  "keyResponsibilities": [
+    "Develop and maintain iOS applications using Swift and UIKit/SwiftUI",
+    "Implement complex business logic and user interfaces",
+    "Integrate REST APIs and handle network layer architecture",
+    "Optimize app performance, memory usage, and loading times",
+    "Set up CI/CD pipelines and automation processes",
+    "Conduct code reviews and mentor junior developers",
+    "Collaborate with design teams to implement pixel-perfect UI",
+    "Handle App Store deployment and release management",
+    "Write unit and UI tests to ensure code quality",
+    "Refactor legacy code and improve application architecture"
+  ],
+  "certifications": [],
+  "popularIndustries": [
+    "fintech",
+    "e-commerce",
+    "food-delivery",
+    "logistics",
+    "telecommunications",
+    "healthcare",
+    "retail",
+    "media-streaming",
+    "social-networking"
+  ],
+  "redFlags": [
+    "Listing 30+ technologies without demonstrating depth",
+    "Using generic phrases without specific metrics or achievements",
+    "Focusing only on technical tasks without business impact",
+    "Not mentioning App Store deployment experience",
+    "Lacking team collaboration or code review experience",
+    "Missing CI/CD or testing experience for senior positions",
+    "Not showing progression in responsibility levels"
+  ],
+  "notes": "Сильные iOS-разработчики демонстрируют глубокое знание Swift и экосистемы Apple, опыт работы с полным циклом разработки от архитектуры до публикации в App Store. Важно показывать измеримые достижения: снижение времени загрузки, увеличение конверсии, оптимизацию производительности. Ценится опыт настройки CI/CD, работы в командах, менторинга. Для Middle+ позиций критичен опыт архитектурных решений (MVVM, VIPER, Clean Architecture), работы с реальными нагрузками и сложной бизнес-логикой. Senior-разработчики должны показывать лидерские качества, опыт оптимизации процессов разработки, влияние на продуктовые метрики. Особенно ценится опыт в высоконагруженных системах (финтех, e-commerce, доставка) с большим количеством пользователей."
+}

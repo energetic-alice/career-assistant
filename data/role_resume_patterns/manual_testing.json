@@ -1,0 +1,227 @@
+{
+  "slug": "manual_testing",
+  "displayTitle": "QA Manual Tester",
+  "builtAt": "2026-04-25T10:24:01.533Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "QA Engineer",
+    "Тестировщик ПО",
+    "Manual QA Engineer",
+    "Junior QA Engineer",
+    "Middle QA Engineer",
+    "Senior QA Engineer",
+    "QA Tester",
+    "Инженер по тестированию"
+  ],
+  "summaryPatterns": [
+    "I'm a Manual QA Engineer with 4+ years of experience in testing web applications, REST API, and microservices architecture. Covered 600+ test cases and reduced critical defects by 20%.",
+    "I'm a QA professional with 3+ years in fintech and e-commerce testing. Prevented 200+ critical bugs from reaching production and accelerated regression testing by 30%.",
+    "I'm a Senior QA Engineer with 7+ years of experience in high-load systems testing. Built comprehensive testing processes from scratch and reduced bug localization time by 25%.",
+    "I'm a QA Tester with 4 years in microservices testing. Established testing documentation standards and decreased onboarding time for new QA specialists by 50%."
+  ],
+  "skillCategories": [
+    {
+      "category": "Testing Types & Methodologies",
+      "items": [
+        "Functional Testing",
+        "Regression Testing",
+        "Integration Testing",
+        "E2E Testing",
+        "Smoke Testing",
+        "API Testing",
+        "Cross-browser Testing",
+        "Mobile Testing",
+        "User Interface Testing",
+        "System Testing",
+        "Sanity Testing",
+        "Boundary Testing",
+        "Negative Testing"
+      ]
+    },
+    {
+      "category": "API & Backend Testing",
+      "items": [
+        "REST API",
+        "SOAP",
+        "Postman",
+        "Swagger",
+        "OpenAPI",
+        "JSON",
+        "XML",
+        "HTTP Methods",
+        "Status Codes",
+        "gRPC",
+        "cURL",
+        "WebSocket"
+      ]
+    },
+    {
+      "category": "Databases & Query Languages",
+      "items": [
+        "SQL",
+        "PostgreSQL",
+        "MongoDB",
+        "MySQL",
+        "DBeaver",
+        "Oracle",
+        "Redis",
+        "Cassandra",
+        "ClickHouse",
+        "DB Browser for SQLite"
+      ]
+    },
+    {
+      "category": "Test Management & Documentation",
+      "items": [
+        "Jira",
+        "Confluence",
+        "TestRail",
+        "Zephyr",
+        "Test IT",
+        "TestLink",
+        "Miro",
+        "Excel",
+        "Test Cases",
+        "Test Plans",
+        "Bug Reports",
+        "Checklists"
+      ]
+    },
+    {
+      "category": "DevOps & Infrastructure",
+      "items": [
+        "Docker",
+        "Kubernetes",
+        "Jenkins",
+        "GitLab CI",
+        "Git",
+        "Linux",
+        "Bash",
+        "CI/CD",
+        "Helm",
+        "TeamCity",
+        "OpenShift"
+      ]
+    },
+    {
+      "category": "Monitoring & Logging",
+      "items": [
+        "Kibana",
+        "Grafana",
+        "Sentry",
+        "Kafka",
+        "RabbitMQ",
+        "Apache Kafka",
+        "Logcat",
+        "Event Viewer",
+        "Lens",
+        "Elasticsearch"
+      ]
+    },
+    {
+      "category": "Mobile & Browser Tools",
+      "items": [
+        "Android Studio",
+        "Xcode",
+        "TestFlight",
+        "Appcenter",
+        "ADB",
+        "Charles Proxy",
+        "Fiddler",
+        "Chrome DevTools",
+        "BrowserStack",
+        "Proxyman",
+        "iMazing"
+      ]
+    },
+    {
+      "category": "Design & Prototyping",
+      "items": [
+        "Figma",
+        "Pixso",
+        "Sketch",
+        "Adobe XD",
+        "InVision",
+        "Zeplin"
+      ]
+    },
+    {
+      "category": "Business Process Management",
+      "items": [
+        "Camunda",
+        "Zeebe",
+        "BPMN",
+        "Workflow Testing",
+        "Business Logic Validation"
+      ]
+    },
+    {
+      "category": "Programming & Automation",
+      "items": [
+        "JavaScript",
+        "Python",
+        "Java",
+        "HTML",
+        "CSS",
+        "Selenium",
+        "Allure",
+        "pytest",
+        "JMeter"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Prevented 200+ critical bugs from reaching production",
+    "Reduced regression testing time by 30%",
+    "Accelerated onboarding process by 50% for new QA specialists",
+    "Covered 600+ test cases for core product functionality",
+    "Decreased bug localization time by 25%",
+    "Optimized testing processes and reduced regression time by 20%",
+    "Structured 350+ test cases and improved navigation in test base",
+    "Built comprehensive testing documentation from scratch",
+    "Reduced critical defects in financial calculations by 15%",
+    "Established testing standards that decreased onboarding from 2 to 1 month",
+    "Created automated Postman collections serving 7+ team members",
+    "Improved release stability through structured regression sets",
+    "Reduced production incidents by implementing shift-left testing approach"
+  ],
+  "keyResponsibilities": [
+    "Conduct functional, integration, and regression testing of web applications",
+    "Test REST API endpoints using Postman and Swagger documentation",
+    "Validate data consistency between UI, API, and database layers",
+    "Create and maintain comprehensive test documentation and test cases",
+    "Analyze application logs and troubleshoot issues using monitoring tools",
+    "Collaborate with development teams to reproduce and resolve defects",
+    "Participate in requirements analysis and test planning activities",
+    "Execute cross-browser and mobile application testing",
+    "Perform database validation using SQL queries",
+    "Support release cycles and conduct smoke testing on different environments"
+  ],
+  "certifications": [
+    "ISTQB Foundation Level",
+    "ISTQB Advanced Level Test Analyst",
+    "Agile Testing Certification"
+  ],
+  "popularIndustries": [
+    "fintech",
+    "banking",
+    "e-commerce",
+    "telecom",
+    "healthcare",
+    "government",
+    "media",
+    "retail",
+    "automotive",
+    "logistics"
+  ],
+  "redFlags": [
+    "Listing generic phrases without specific metrics or achievements",
+    "Mentioning more than 40 technologies without context",
+    "Focusing only on tools without describing testing methodologies",
+    "Not mentioning collaboration with development teams",
+    "Lack of specific examples of testing types performed",
+    "Missing database testing experience for backend-heavy roles",
+    "No mention of API testing experience in modern applications"
+  ],
+  "notes": "Manual QA тестировщик — это специалист, который обеспечивает качество программных продуктов через ручное тестирование. Ключевые особенности роли: обязательное знание API-тестирования (Postman, Swagger), работа с базами данных через SQL, понимание микросервисной архитектуры и интеграций. Современный QA должен уметь работать с логами (Kibana, Grafana), очередями сообщений (Kafka), контейнеризацией (Docker, Kubernetes). Важны навыки кроссфункционального взаимодействия с разработчиками, аналитиками, DevOps. Типичные проекты: банковские системы, e-commerce платформы, финтех продукты. Карьерный рост: Junior → Middle → Senior → Lead QA или переход в автоматизацию тестирования. Зарплатные ожидания растут с опытом и глубиной технических знаний. Важные soft skills: внимание к деталям, системное мышление, коммуникабельность."
+}

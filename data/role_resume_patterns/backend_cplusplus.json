@@ -1,0 +1,186 @@
+{
+  "slug": "backend_cplusplus",
+  "displayTitle": "Backend Developer (C / C++)",
+  "builtAt": "2026-04-25T10:18:15.383Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "C++ Developer",
+    "C++ Junior Developer",
+    "C++ Middle Developer",
+    "C++ Senior Developer",
+    "Backend C++ Developer",
+    "Embedded C/C++ Developer",
+    "C/C++ Developer"
+  ],
+  "summaryPatterns": [
+    "I'm a C++ developer with 3+ years of experience in high-performance systems, built microservices handling 10K+ RPS and improved system performance by 30%",
+    "I'm a Senior C++ engineer (5+ years) specializing in financial systems and blockchain, optimized transaction processing to support 200K+ RPS with 38% latency reduction",
+    "I'm a C++ backend developer (3+ years) focused on distributed systems, migrated monolith to microservices and reduced critical scenario execution time from 9 to 3 seconds",
+    "I'm an experienced C++ developer (10+ years) in fintech and gaming, built high-frequency trading systems and game engines serving millions of users"
+  ],
+  "skillCategories": [
+    {
+      "category": "Core C++ & Languages",
+      "items": [
+        "C++17",
+        "C++20",
+        "C++23",
+        "C",
+        "STL",
+        "Boost",
+        "Go",
+        "Python"
+      ]
+    },
+    {
+      "category": "Databases & Storage",
+      "items": [
+        "PostgreSQL",
+        "Redis",
+        "MongoDB",
+        "SQLite",
+        "RocksDB",
+        "TimescaleDB",
+        "Oracle",
+        "SQL"
+      ]
+    },
+    {
+      "category": "Networking & Protocols",
+      "items": [
+        "gRPC",
+        "REST API",
+        "HTTP",
+        "TCP/IP",
+        "WebSocket",
+        "QUIC",
+        "Protobuf",
+        "JSON API"
+      ]
+    },
+    {
+      "category": "Infrastructure & DevOps",
+      "items": [
+        "Docker",
+        "Kubernetes",
+        "Linux",
+        "Git",
+        "CMake",
+        "CI/CD",
+        "GitLab CI",
+        "Jenkins"
+      ]
+    },
+    {
+      "category": "Message Queues & Streaming",
+      "items": [
+        "Apache Kafka",
+        "RabbitMQ",
+        "MassTransit",
+        "Redis Pub/Sub"
+      ]
+    },
+    {
+      "category": "Testing & Quality",
+      "items": [
+        "GTest",
+        "Unit Testing",
+        "Valgrind",
+        "Sanitizers",
+        "Performance Testing",
+        "Code Review"
+      ]
+    },
+    {
+      "category": "GUI & Desktop",
+      "items": [
+        "Qt",
+        "QML",
+        "WinAPI",
+        "ImGui",
+        "Cross-platform Development"
+      ]
+    },
+    {
+      "category": "Specialized Domains",
+      "items": [
+        "Embedded Systems",
+        "ARM",
+        "RTOS",
+        "CUDA",
+        "OpenCV",
+        "Blockchain",
+        "High-Frequency Trading",
+        "Game Development"
+      ]
+    },
+    {
+      "category": "Security & Cryptography",
+      "items": [
+        "OpenSSL",
+        "JWT",
+        "OAuth",
+        "TLS/SSL",
+        "Ed25519",
+        "ECDSA",
+        "WAF",
+        "IDS/IPS"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Improved system performance by 30% through architecture optimization",
+    "Built services handling 10K+ requests per second",
+    "Reduced critical scenario execution time from 9 to 3 seconds",
+    "Optimized transaction processing to support 200K+ RPS",
+    "Decreased latency by 38% using zero-copy and lock-free structures",
+    "Reduced interface response time by 25% for filtering and sorting",
+    "Cut application startup time from 8 to 3 seconds",
+    "Decreased memory consumption by 35% through container optimization",
+    "Reduced server requests by 40% via client-side caching",
+    "Accelerated JSON parsing by 3x through library migration",
+    "Improved security by 85% by eliminating critical authorization vulnerability",
+    "Increased development speed by 30% through ORM implementation",
+    "Reduced incident response time by 40% with monitoring setup",
+    "Accelerated deployment by 20% through CI/CD implementation",
+    "Built P2P layer supporting 100K+ concurrent connections",
+    "Optimized cryptographic operations reducing latency by 45%",
+    "Increased FPS by 20-30% through rendering optimization",
+    "Reduced configuration size by 30% through ACL cleanup"
+  ],
+  "keyResponsibilities": [
+    "Developing and maintaining high-performance C++ applications and services",
+    "Designing and implementing microservices architecture",
+    "Optimizing system performance and reducing latency",
+    "Integrating with databases and message queues",
+    "Implementing networking protocols and APIs",
+    "Setting up CI/CD pipelines and containerization",
+    "Conducting code reviews and maintaining code quality",
+    "Troubleshooting production issues and performance tuning",
+    "Writing unit tests and ensuring system reliability"
+  ],
+  "certifications": [
+    "C++ Developer Certification"
+  ],
+  "popularIndustries": [
+    "fintech",
+    "banking",
+    "cybersecurity",
+    "telecom",
+    "gaming",
+    "blockchain",
+    "medical equipment",
+    "automotive",
+    "trading systems"
+  ],
+  "redFlags": [
+    "Listing generic achievements without specific metrics",
+    "Mentioning over 30 technologies without context",
+    "Providing vague experience descriptions without quantifiable results",
+    "Missing concrete examples of performance improvements",
+    "Not specifying C++ standards used (C++17, C++20, etc)",
+    "Lack of system design or architecture experience for senior roles",
+    "No mention of testing, debugging, or code quality practices"
+  ],
+  "notes": "C++ Backend разработчики в России работают преимущественно в финтех, кибербезопасности, телекоме и игровой индустрии. Ключевые требования: глубокое знание современных стандартов C++ (17/20/23), опыт с высоконагруженными системами, микросервисной архитектурой, базами данных (PostgreSQL, Redis), контейнеризацией и CI/CD. Важны конкретные метрики производительности (RPS, latency, memory usage). Многие работают с криптографией, сетевыми протоколами, embedded системами. Senior разработчики часто имеют опыт архитектурного проектирования, оптимизации производительности и работы с legacy кодом. Популярны навыки Go, Python как дополнительные языки. Обязательно указание конкретных достижений с цифрами - снижение latency, увеличение throughput, оптимизация памяти."
+}

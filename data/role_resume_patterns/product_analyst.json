@@ -1,0 +1,184 @@
+{
+  "slug": "product_analyst",
+  "displayTitle": "Product Analyst",
+  "builtAt": "2026-04-25T10:26:46.679Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Product Analyst",
+    "Junior Product Analyst",
+    "Middle Product Analyst",
+    "Senior Product Analyst",
+    "Product Data Analyst",
+    "Data Analyst (Product Analytics)",
+    "BI-аналитик продукта"
+  ],
+  "summaryPatterns": [
+    "I'm a Product Analyst with 3+ years of experience specializing in user behavior analysis, A/B testing, and product metrics optimization. Built ETL processes and dashboards serving 50+ stakeholders, reduced reporting time by 70%.",
+    "I'm a Senior Product Analyst (5+ years) focused on conversion funnel optimization and cohort analysis. Designed and analyzed 15+ A/B tests, increased product conversion rates by 15% and user retention by 25%.",
+    "I'm a Product Data Analyst with 4+ years experience in fintech and e-commerce. Built comprehensive BI dashboards reducing manual analytics time from 3 hours to 40 minutes, managed product metrics for MAU of 100K+ users.",
+    "I'm a Middle Product Analyst (3+ years) specializing in CJM analysis and product experimentation. Automated 80% of operational reports, reduced reaction time to metric anomalies from 24 to 6 hours through SQL alerting."
+  ],
+  "skillCategories": [
+    {
+      "category": "Data Analysis & Statistics",
+      "items": [
+        "SQL",
+        "PostgreSQL",
+        "ClickHouse",
+        "MySQL",
+        "Greenplum",
+        "BigQuery",
+        "Mathematical Statistics",
+        "Statistical Hypothesis Testing",
+        "CUPED",
+        "t-test",
+        "Chi-square"
+      ]
+    },
+    {
+      "category": "Programming & Automation",
+      "items": [
+        "Python",
+        "pandas",
+        "numpy",
+        "scipy",
+        "scikit-learn",
+        "matplotlib",
+        "seaborn",
+        "plotly",
+        "Jupyter Notebook",
+        "Apache Airflow",
+        "dbt",
+        "ETL",
+        "API"
+      ]
+    },
+    {
+      "category": "BI & Visualization",
+      "items": [
+        "Tableau",
+        "Power BI",
+        "Superset",
+        "DataLens",
+        "Qlik Sense",
+        "Redash",
+        "Grafana",
+        "Dashboard Development",
+        "Data Visualization"
+      ]
+    },
+    {
+      "category": "Product Analytics",
+      "items": [
+        "A/B Testing",
+        "Cohort Analysis",
+        "Funnel Analysis",
+        "Retention Analysis",
+        "Conversion Optimization",
+        "LTV",
+        "Unit Economics",
+        "Customer Journey Mapping",
+        "Product Metrics"
+      ]
+    },
+    {
+      "category": "Marketing Analytics",
+      "items": [
+        "Google Analytics",
+        "Amplitude",
+        "CPA",
+        "CPL",
+        "CPC",
+        "ROI",
+        "CAC",
+        "Marketing Attribution",
+        "Campaign Analysis"
+      ]
+    },
+    {
+      "category": "Tools & Platforms",
+      "items": [
+        "Jira",
+        "Confluence",
+        "Git",
+        "Docker",
+        "Miro",
+        "Figma",
+        "Excel",
+        "Google Workspace",
+        "YouTrack",
+        "Brand Analytics"
+      ]
+    },
+    {
+      "category": "Methodologies",
+      "items": [
+        "Agile",
+        "Scrum",
+        "Kanban",
+        "BPMN",
+        "Business Analysis",
+        "Requirements Analysis",
+        "User Stories",
+        "Roadmap Planning"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced reporting time by 70% from 3 hours to 40 minutes through automation",
+    "Increased product conversion by 15% through funnel optimization",
+    "Built 30+ BI dashboards reducing ad-hoc requests by 70%",
+    "Improved user retention by 25% via cohort analysis insights",
+    "Reduced CAC by 20% through channel optimization analysis",
+    "Increased CTR by 25% and lead generation by 17% via user segmentation",
+    "Automated 80% of operational reports improving decision-making speed",
+    "Reduced metric anomaly reaction time from 24 to 6 hours with SQL alerts",
+    "Decreased manual operations by 40% through CRM automation",
+    "Improved onboarding efficiency reducing time-to-productivity by 40%",
+    "Optimized SQL queries reducing database load by 15%",
+    "Increased service coverage by 7 cities generating +15% revenue",
+    "Reduced cart abandonment by 23% through UX improvements",
+    "Conducted 15+ A/B tests with full cycle implementation",
+    "Managed product analytics for 100K+ MAU",
+    "Built end-to-end marketing analytics dashboard consolidating 5+ data sources",
+    "Reduced customer support ticket volume by 20% through issue analysis"
+  ],
+  "keyResponsibilities": [
+    "Design and analyze A/B tests with statistical significance validation",
+    "Build and maintain product metrics dashboards and regular reporting",
+    "Conduct cohort analysis and customer journey mapping",
+    "Perform funnel analysis and conversion rate optimization",
+    "Develop ETL processes and data pipelines for product analytics",
+    "Collaborate with product teams on hypothesis generation and validation",
+    "Monitor key product metrics and set up alerting systems",
+    "Conduct ad-hoc analytical research to support product decisions",
+    "Analyze user behavior patterns and segmentation",
+    "Present analytical findings and recommendations to stakeholders"
+  ],
+  "certifications": [
+    "Яндекс.Практикум Data Analyst",
+    "Карпов.Курсы Product Analyst",
+    "Google Analytics Certified",
+    "Coursera Machine Learning"
+  ],
+  "popularIndustries": [
+    "fintech",
+    "e-commerce",
+    "marketplace",
+    "delivery",
+    "telecom",
+    "edtech",
+    "proptech",
+    "b2b-platforms"
+  ],
+  "redFlags": [
+    "Listing generic achievements without specific metrics or percentages",
+    "Claiming expertise in 30+ tools without depth in core analytics stack",
+    "No mention of A/B testing or statistical analysis experience",
+    "Focusing only on tool usage without business impact examples",
+    "Missing collaboration with product teams or stakeholder management",
+    "No experience with SQL or data manipulation",
+    "Vague descriptions like 'analyzed data' without specific methodologies"
+  ],
+  "notes": "Продуктовый аналитик — это специалист, который работает на стыке данных и продукта. Ключевые компетенции: глубокие знания SQL и Python для работы с данными, опыт A/B-тестирования с корректной статистической оценкой, умение строить дашборды и автоматизировать отчетность. Важно показать влияние на бизнес-метрики (конверсия, retention, LTV), опыт работы с продуктовыми командами и способность переводить данные в actionable insights. В резюме должны быть конкретные цифры достижений: сколько процентов улучшили конверсию, на сколько сократили время подготовки отчетов, сколько провели экспериментов. Популярные индустрии: финтех, e-commerce, маркетплейсы, delivery. Технический стек обычно включает SQL (ClickHouse/PostgreSQL), Python (pandas, scipy), BI-инструменты (Tableau, Superset), системы аналитики (Amplitude, Google Analytics). Важно упомянуть опыт работы с воронками, когортным анализом, юнит-экономикой и CJM."
+}

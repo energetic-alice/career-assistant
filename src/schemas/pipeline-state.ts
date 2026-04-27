@@ -24,6 +24,10 @@ export const pipelineStageEnum = z.enum([
   "deep_ready",
   "deep_failed",
   "deep_approved",
+  // ── Final analysis (Phase 3 + Phase 4 + Google Doc, после Approve Gate 2) ──
+  "final_generating",
+  "final_ready",
+  "final_failed",
 ]);
 
 export type PipelineStage = z.infer<typeof pipelineStageEnum>;

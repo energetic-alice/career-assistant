@@ -25,11 +25,8 @@ import { buildReviewSummary, formatReviewForTelegram } from "../services/review-
 import { fetchMarketDataForDirections } from "../services/perplexity-service.js";
 import {
   loadMarketOverview,
-  optimizeTitles,
-  loadRoleReports,
   computeMarketAccess,
   buildFullMarketSummary,
-  type TitleOptimizationResult,
 } from "../services/market-data-service.js";
 import { rankRoles, formatScorerTop20ForPrompt } from "../services/role-scorer.js";
 import { resolveClientGrade } from "../services/client-grade.js";
@@ -40,7 +37,8 @@ import {
   postValidateDirections,
   type EnrichedDirection,
 } from "../services/direction-enricher.js";
-import { enrichGapsForClient } from "../services/deep-research-service.js";
+import { directionKey } from "../services/deep-research-service.js";
+import { getMarketResearchProvider } from "../services/market-research/index.js";
 import type { Region } from "../schemas/analysis-outputs.js";
 
 const client = new Anthropic();
@@ -128,7 +126,6 @@ export interface Phase1Result {
   analysis: AnalysisOutput;
   reviewSummaryText: string;
   perplexityMarketData?: unknown;
-  titleOptimization?: TitleOptimizationResult[];
   timings: Record<string, number>;
 }
 
@@ -666,41 +663,68 @@ export async function runDeepResearch(
 
   // Step 1: получаем baseline EnrichedDirection (либо из shortlist.enriched,
   // либо пересчитываем для approved).
+  //
+  // ВАЖНО: ключ — `directionKey()` (title|bucket), а не `slug|bucket`.
+  // Иначе для wide-family slug-ов (`infosecspec`, `devops`, ...) три разных
+  // approved direction'а с одинаковым slug+bucket (Daria — AppSec / DevSecOps /
+  // SOC, все `infosecspec|usa`) схлопываются в один и берут одну и ту же enriched
+  // запись из shortlist. См. `directionKey` в deep-research-service.
   let t0 = Date.now();
-  const enrichedMap = new Map<string, EnrichedDirection>();
+  const enrichedByDirKey = new Map<string, EnrichedDirection>();
   for (const e of shortlist.enriched) {
-    enrichedMap.set(`${e.roleSlug}|${e.bucket ?? "abroad"}`, e);
+    enrichedByDirKey.set(directionKey(e), e);
   }
-  const baseline: EnrichedDirection[] = [];
-  const missingFromShortlist: Direction[] = [];
-  for (const d of approvedDirections) {
-    const key = `${d.roleSlug}|${d.bucket === "ru" ? "ru" : "abroad"}`;
-    const found = enrichedMap.get(key);
-    if (found) {
-      baseline.push(found);
-    } else {
-      missingFromShortlist.push(d);
+  // baseline идёт строго в порядке approvedDirections — так Phase 2 enrichment
+  // (`enrichGaps`) и downstream (`formatEnrichedAsMarketData`) видят данные
+  // ровно в том же порядке, что и approved направления.
+  const baseline: (EnrichedDirection | null)[] = approvedDirections.map((d) =>
+    enrichedByDirKey.get(directionKey(d)) ?? null,
+  );
+  const missingFromShortlist: { direction: Direction; index: number }[] = [];
+  for (let i = 0; i < approvedDirections.length; i++) {
+    if (baseline[i] === null) {
+      missingFromShortlist.push({ direction: approvedDirections[i], index: i });
     }
   }
   if (missingFromShortlist.length > 0) {
-    const fresh = await enrichDirections(missingFromShortlist, clientSummary);
-    baseline.push(...fresh);
+    const fresh = await enrichDirections(
+      missingFromShortlist.map((m) => m.direction),
+      clientSummary,
+    );
+    for (let i = 0; i < missingFromShortlist.length; i++) {
+      baseline[missingFromShortlist[i].index] = fresh[i];
+    }
   }
+  const baselineFilled: EnrichedDirection[] = baseline.filter(
+    (e): e is EnrichedDirection => e !== null,
+  );
   timings["baseline"] = Date.now() - t0;
 
-  // Step 2: дозаполняем дыры через Perplexity (only где нужно)
+  // Step 2: дозаполняем дыры через выбранный provider (only где нужно)
   t0 = Date.now();
-  const enriched = await enrichGapsForClient(approvedDirections, baseline, clientSummary);
-  timings["perplexity_enrich"] = Date.now() - t0;
+  const provider = getMarketResearchProvider();
+  const enriched = await provider.enrichGaps({
+    directions: approvedDirections,
+    baseline: baselineFilled,
+    summary: clientSummary,
+  });
+  timings["market_research_enrich"] = Date.now() - t0;
 
-  const perplexityFills = enriched.filter(
-    (e) => e.dataSource === "perplexity" || e.dataSource === "perplexity-estimate",
+  // Kept legacy name `perplexityFills` for state/UI compatibility, but it's
+  // actually a generic enrichment-fills counter (any external provider).
+  const perplexityFills = enriched.filter((e) =>
+    [
+      "perplexity",
+      "perplexity-estimate",
+      "claude",
+      "claude-estimate",
+    ].includes(e.dataSource),
   ).length;
 
   const totalTime = Object.values(timings).reduce((a, b) => a + b, 0);
   console.log(
     `[DeepResearch Total] ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s) · ` +
-    `perplexity fills: ${perplexityFills}/${enriched.length}`,
+    `provider=${provider.name} fills: ${perplexityFills}/${enriched.length}`,
   );
 
   return {
@@ -723,51 +747,45 @@ export async function runDeepResearch(
 export async function runDeepFromShortlist(
   shortlist: ShortlistResult,
   approvedDirections: Direction[],
-  opts: { marketData?: string } = {},
+  opts: {
+    marketData?: string;
+    /**
+     * Если true — Step 5 (Perplexity `fetchMarketDataForDirections`) пропускается.
+     * Используется когда вызывающий код уже передал в `marketData` агрегированные
+     * данные Phase 2 enrichment (через `formatEnrichedAsMarketData`), чтобы не
+     * дёргать Perplexity повторно ради тех же чисел.
+     */
+    skipPerplexityStep5?: boolean;
+  } = {},
 ): Promise<Phase1Result> {
   const timings: Record<string, number> = { ...shortlist.timings };
-  const { profile, regions } = shortlist;
+  const { profile } = shortlist;
   const directions: DirectionsOutput = { directions: approvedDirections };
   const currentDirections = approvedDirections;
-  let titleOptResults: TitleOptimizationResult[] = [];
   let perplexityRawData: unknown = null;
 
+  // Step 3 (Perplexity title optimization) и Step 4 (loadRoleReports
+  // через Perplexity-скрап в `prompts/market-data/role-*.md`) убраны:
+  //   - Step 3 возвращал мусорный markdown с цитатами ("**: **Senior X**
+  //     gives MOST vacancies (604 vs 66)[2][8].") и противоречил данным
+  //     itjobswatch — `bestTitle` не парсился и в prompt-03 не попадал.
+  //   - Step 4 без спроса дёргал Perplexity и писал .md-файлы в repo
+  //     (`role-<slug>-<region>.md`), при этом для US-региона возвращал UK-
+  //     данные. KB о ролях теперь живёт в `uk_<slug>.md` + `niche-aliases.json`.
+  // Точные цифры по approved направлениям приходят из Phase 2 enrichment
+  // (`marketData` — `formatEnrichedAsMarketData(enriched)`), широкий рынок —
+  // из Step 5.5 `buildFullMarketSummary`.
+
   let t0 = Date.now();
-  if (process.env.PERPLEXITY_API_KEY) {
-    console.log("[Deep/Step 3] Optimizing titles...");
-    try {
-      titleOptResults = await optimizeTitles(currentDirections, regions);
-      timings["step3_titles"] = Date.now() - t0;
-      for (const r of titleOptResults) {
-        console.log(
-          `[Deep/Step 3] "${r.directionTitle}" → best: "${r.bestTitle}" (market: ${r.totalMarketSize})`,
-        );
-      }
-    } catch (err) {
-      timings["step3_titles"] = Date.now() - t0;
-      console.error("[Deep/Step 3] Title optimization failed:", err);
-    }
-  } else {
-    console.log("[Deep/Step 3] PERPLEXITY_API_KEY not set, skipping title optimization");
-  }
-
-  console.log("[Deep/Step 4] Checking/fetching role reports...");
-  t0 = Date.now();
-  let roleReports: string;
-  try {
-    roleReports = await loadRoleReports(currentDirections, regions);
-    timings["step4_kb"] = Date.now() - t0;
-    console.log(`[Deep/Step 4] Done in ${timings["step4_kb"]}ms (${roleReports.length} chars)`);
-  } catch (err) {
-    timings["step4_kb"] = Date.now() - t0;
-    console.error("[Deep/Step 4] Role reports failed:", err);
-    roleReports = "Детальные отчёты по ролям не загружены.";
-  }
-
   let marketData =
     opts.marketData ?? "Данные рынка не предоставлены, используй справочник конкуренции.";
 
-  if (process.env.PERPLEXITY_API_KEY) {
+  if (opts.skipPerplexityStep5) {
+    console.log(
+      "[Deep/Step 5] Skipped (caller passed market data from Phase 2 enrichment)",
+    );
+    timings["step5_market"] = 0;
+  } else if (process.env.PERPLEXITY_API_KEY) {
     console.log("[Deep/Step 5] Fetching market data from Perplexity (source-aware)...");
     t0 = Date.now();
     try {
@@ -804,7 +822,6 @@ export async function runDeepFromShortlist(
     directionsOutput: JSON.stringify(directions, null, 2),
     marketData,
     scrapedMarketData,
-    roleReports,
     relevantDomains,
   });
   const analysis = await callClaudeStructured(
@@ -818,9 +835,9 @@ export async function runDeepFromShortlist(
     `[Deep/Step 6] Done in ${timings["step6_analysis"]}ms. Top-3: ${analysis.directions.map((d) => d.title).join(" | ")}`,
   );
 
-  if (analysis.replacedDirections?.length) {
-    console.log(`[Deep/Step 6] Отклонено ${analysis.replacedDirections.length} направлений:`);
-    for (const r of analysis.replacedDirections) {
+  if (analysis.rejectedDirections?.length) {
+    console.log(`[Deep/Step 6] Отклонено ${analysis.rejectedDirections.length} направлений:`);
+    for (const r of analysis.rejectedDirections) {
       console.log(`  ✗ "${r.originalTitle}": ${r.reason}`);
     }
   }
@@ -839,7 +856,6 @@ export async function runDeepFromShortlist(
     analysis,
     reviewSummaryText,
     perplexityMarketData: perplexityRawData,
-    titleOptimization: titleOptResults,
     timings,
   };
 }

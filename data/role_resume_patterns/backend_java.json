@@ -1,0 +1,194 @@
+{
+  "slug": "backend_java",
+  "displayTitle": "Backend Developer (Java)",
+  "builtAt": "2026-04-25T10:19:16.516Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Java Developer",
+    "Java-разработчик",
+    "Senior Java Developer",
+    "Middle Java Developer",
+    "Java Backend Developer",
+    "Java Spring Developer",
+    "Backend Java Developer"
+  ],
+  "summaryPatterns": [
+    "I'm a Senior Java Developer (5+ years) specializing in microservices architecture and high-load systems. Built distributed platforms processing 50M+ users with 40% performance improvements through SQL optimization and caching strategies.",
+    "I'm a Java Backend Developer (4+ years) with expertise in Spring Boot and event-driven architecture. Designed microservices handling 600M+ records and reduced processing time by 13% through distributed computing optimization.",
+    "I'm a Java Developer (6+ years) experienced in fintech and e-commerce platforms. Led migration projects from monolith to microservices, achieving 70% reduction in deployment incidents and 2x faster time-to-market.",
+    "I'm a Senior Java Developer (8+ years) focused on enterprise solutions and system integrations. Built banking platforms serving millions of users with 25% route optimization improvements and 100% event delivery consistency."
+  ],
+  "skillCategories": [
+    {
+      "category": "Core Java & Frameworks",
+      "items": [
+        "Java 8",
+        "Java 11",
+        "Java 17",
+        "Java 21",
+        "Spring Boot",
+        "Spring Framework",
+        "Spring MVC",
+        "Spring Data",
+        "Spring Security",
+        "Spring Cloud",
+        "Spring WebFlux",
+        "Hibernate",
+        "JPA"
+      ]
+    },
+    {
+      "category": "Databases & Storage",
+      "items": [
+        "PostgreSQL",
+        "Oracle DB",
+        "MongoDB",
+        "Redis",
+        "ClickHouse",
+        "MySQL",
+        "Cassandra",
+        "Elasticsearch"
+      ]
+    },
+    {
+      "category": "Message Brokers & Streaming",
+      "items": [
+        "Apache Kafka",
+        "RabbitMQ",
+        "IBM MQ",
+        "SonicMQ"
+      ]
+    },
+    {
+      "category": "Microservices & API",
+      "items": [
+        "REST API",
+        "GraphQL",
+        "gRPC",
+        "OpenAPI",
+        "Swagger",
+        "Microservices",
+        "OpenFeign",
+        "Feign Client"
+      ]
+    },
+    {
+      "category": "Testing & Quality",
+      "items": [
+        "JUnit",
+        "JUnit 5",
+        "Mockito",
+        "Testcontainers",
+        "Unit Testing",
+        "Integration Testing",
+        "Contract Testing"
+      ]
+    },
+    {
+      "category": "Build Tools & CI/CD",
+      "items": [
+        "Maven",
+        "Gradle",
+        "Jenkins",
+        "GitLab CI",
+        "Git",
+        "Bitbucket",
+        "CI/CD"
+      ]
+    },
+    {
+      "category": "Infrastructure & Deployment",
+      "items": [
+        "Docker",
+        "Kubernetes",
+        "OpenShift",
+        "AWS",
+        "Amazon S3"
+      ]
+    },
+    {
+      "category": "Database Migration & Versioning",
+      "items": [
+        "Liquibase",
+        "Flyway",
+        "Database Migration",
+        "Schema Management"
+      ]
+    },
+    {
+      "category": "Monitoring & Observability",
+      "items": [
+        "Grafana",
+        "Prometheus",
+        "ELK Stack",
+        "Kibana",
+        "Micrometer",
+        "Zipkin",
+        "Loki",
+        "Graylog"
+      ]
+    },
+    {
+      "category": "Business Process & Integration",
+      "items": [
+        "Camunda",
+        "Apache Camel",
+        "Drools",
+        "BPM",
+        "BPMN"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced processing time from 20 to 2 seconds through query optimization",
+    "Improved API latency by 50% via SQL optimization",
+    "Accelerated time-to-market by 2x for insurance products",
+    "Cut deployment time from 25 to 4 minutes with Docker migration",
+    "Decreased network overhead by 40% replacing REST with gRPC",
+    "Increased test coverage from 45% to 80% reducing production bugs by 30%",
+    "Optimized route calculation achieving 25% performance improvement at 500 RPS",
+    "Reduced database query execution from 2 seconds to 0.05 seconds",
+    "Processed 600M+ records with 13% performance improvement",
+    "Built platform serving 50M+ users with high availability",
+    "Increased system throughput by 60% through Redis sharding",
+    "Reduced incident detection time from 2 hours to 8 minutes",
+    "Accelerated main endpoints by 75% through SQL optimization",
+    "Cut CSV generation time by 60% with async processing",
+    "Decreased deployment incidents by 70% with infrastructure migration"
+  ],
+  "keyResponsibilities": [
+    "Design and develop microservices architecture from monolith decomposition",
+    "Optimize database queries and implement caching strategies",
+    "Integrate with external systems and third-party APIs",
+    "Implement event-driven architecture using message brokers",
+    "Conduct code reviews and mentor junior developers",
+    "Write comprehensive unit and integration tests",
+    "Configure CI/CD pipelines and deployment automation",
+    "Monitor system performance and resolve production incidents",
+    "Participate in architectural decisions and technical planning"
+  ],
+  "certifications": [
+    "Oracle Certified Associate Java SE 8 Programmer",
+    "UiPath RPA Developer Foundation Diploma"
+  ],
+  "popularIndustries": [
+    "fintech",
+    "banking",
+    "e-commerce",
+    "telecom",
+    "insurance",
+    "retail",
+    "logistics",
+    "healthcare"
+  ],
+  "redFlags": [
+    "Listing generic responsibilities without specific achievements",
+    "Missing quantifiable metrics and business impact",
+    "Overloading with 30+ technologies without depth",
+    "Focusing only on technical tasks without business context",
+    "Using outdated technology stack (Java 7 and below)",
+    "Lack of testing experience or coverage metrics",
+    "No mention of performance optimization or scalability"
+  ],
+  "notes": "Backend Java разработчики в России специализируются на микросервисной архитектуре и высоконагруженных системах. Ключевые требования включают опыт с Spring Boot 2-3, современными версиями Java (11+), работу с Kafka/RabbitMQ для event-driven архитектуры. Важны метрики производительности: время отклика API, throughput, покрытие тестами. Востребованы навыки оптимизации SQL, кеширования (Redis), мониторинга (Grafana/Prometheus). Финтех и банковская сферы требуют опыта с высокой нагрузкой (миллионы пользователей) и строгими SLA. Обязательны контейнеризация (Docker/K8s), CI/CD практики, умение работать в Agile командах. Сильные резюме демонстрируют конкретные достижения: сокращение времени обработки в X раз, увеличение throughput на Y%, миграции без простоев."
+}

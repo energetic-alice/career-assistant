@@ -1,0 +1,162 @@
+{
+  "slug": "backend_nodejs",
+  "displayTitle": "Backend Developer (Node.js)",
+  "builtAt": "2026-04-25T10:20:16.081Z",
+  "sourceCount": 10,
+  "typicalTitles": [
+    "Backend Developer (Node.js)",
+    "Node.js Developer",
+    "Senior Node.js Developer",
+    "Middle Node.js Developer",
+    "Junior Node.js Developer",
+    "Fullstack Developer (Node.js)",
+    "Backend Разработчик (Node.js)"
+  ],
+  "summaryPatterns": [
+    "I'm a Senior Node.js Developer with 5+ years of experience, built high-load APIs serving 6M+ users monthly and reduced query response time by 40%",
+    "I'm a Backend Developer (4+ years) specializing in microservices architecture, optimized SQL queries by 70% and scaled systems to 250K+ users",
+    "I'm a Node.js Developer with 6+ years of experience, designed REST APIs processing 5000+ daily sessions and increased system performance by 10x",
+    "I'm a Fullstack Developer (3+ years) focused on Node.js backend, developed platforms handling 1M+ requests and reduced infrastructure costs by 20%",
+    "I'm a Senior Backend Engineer with 10+ years of experience, migrated monoliths to microservices and improved response times from 1.5s to 0.7s"
+  ],
+  "skillCategories": [
+    {
+      "category": "Core Technologies",
+      "items": [
+        "Node.js",
+        "TypeScript",
+        "JavaScript",
+        "Express.js",
+        "NestJS",
+        "Fastify"
+      ]
+    },
+    {
+      "category": "Databases & Storage",
+      "items": [
+        "PostgreSQL",
+        "MongoDB",
+        "Redis",
+        "MySQL",
+        "Oracle Database",
+        "SQLite",
+        "ClickHouse"
+      ]
+    },
+    {
+      "category": "Message Brokers & Queues",
+      "items": [
+        "RabbitMQ",
+        "Apache Kafka",
+        "BullMQ",
+        "Redis Streams"
+      ]
+    },
+    {
+      "category": "API & Communication",
+      "items": [
+        "REST API",
+        "GraphQL",
+        "WebSocket",
+        "gRPC",
+        "SOAP",
+        "JWT",
+        "OAuth2"
+      ]
+    },
+    {
+      "category": "DevOps & Infrastructure",
+      "items": [
+        "Docker",
+        "Kubernetes",
+        "CI/CD",
+        "GitLab CI",
+        "Helm",
+        "ArgoCD"
+      ]
+    },
+    {
+      "category": "Monitoring & Observability",
+      "items": [
+        "Grafana",
+        "Prometheus",
+        "ELK Stack",
+        "Datadog",
+        "Sentry",
+        "Loki"
+      ]
+    },
+    {
+      "category": "Testing & Quality",
+      "items": [
+        "Jest",
+        "Mocha",
+        "Supertest",
+        "Unit Testing",
+        "E2E Testing",
+        "Playwright"
+      ]
+    },
+    {
+      "category": "ORM & Query Builders",
+      "items": [
+        "TypeORM",
+        "Prisma",
+        "Sequelize",
+        "Knex.js"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Reduced query response time by 40% through SQL optimization",
+    "Scaled system to handle 250K+ concurrent users",
+    "Improved API performance by 10x using caching strategies",
+    "Decreased page load time from 1.5s to 0.7s",
+    "Built platform processing 6M+ monthly visitors",
+    "Optimized database queries resulting in 70-80% faster execution",
+    "Reduced infrastructure costs by 37% through API optimization",
+    "Increased system throughput by 43% after refactoring",
+    "Achieved 85%+ unit test coverage across critical modules",
+    "Processed 1M+ data rows with 100+ daily exports using Kafka",
+    "Improved ML prediction accuracy by 40%",
+    "Handled 5000+ user sessions daily on e-commerce platform",
+    "Reduced deployment time from 5 days to 2 hours",
+    "Increased staff engagement by 15% through internal platform features",
+    "Decreased support tickets by 25% via automated solutions",
+    "Built system serving 15000+ internal employees",
+    "Achieved 6.5x performance improvement with low-level database solutions",
+    "Managed teams of 10+ developers across multiple projects"
+  ],
+  "keyResponsibilities": [
+    "Design and develop REST/GraphQL APIs using Node.js and TypeScript",
+    "Optimize database queries and implement caching strategies",
+    "Architect microservices and distributed systems",
+    "Integrate with external APIs and third-party services",
+    "Implement authentication and authorization systems",
+    "Write comprehensive unit and integration tests",
+    "Conduct code reviews and mentor junior developers",
+    "Deploy applications using Docker and Kubernetes",
+    "Monitor application performance and troubleshoot issues",
+    "Collaborate with frontend teams and stakeholders"
+  ],
+  "certifications": [],
+  "popularIndustries": [
+    "fintech",
+    "e-commerce",
+    "telecom",
+    "healthtech",
+    "gaming",
+    "logistics",
+    "enterprise-software"
+  ],
+  "redFlags": [
+    "Listing more than 25 technologies without depth",
+    "Using vague phrases like 'developed applications' without metrics",
+    "No mention of testing practices or code quality",
+    "Missing database optimization or performance improvements",
+    "No experience with modern deployment practices",
+    "Lack of collaboration or team leadership experience",
+    "Only focusing on frontend technologies for backend role"
+  ],
+  "notes": "Backend разработчики Node.js должны демонстрировать глубокие знания серверных технологий, оптимизации баз данных и архитектуры высоконагруженных систем. Ключевые требования: опыт работы с TypeScript, знание паттернов микросервисов, умение оптимизировать производительность API и базы данных. Важно показать опыт работы с различными СУБД (PostgreSQL, MongoDB, Redis), брокерами сообщений (Kafka, RabbitMQ) и современными DevOps практиками. Сильные кандидаты указывают конкретные метрики улучшения производительности, опыт масштабирования систем и работы в команде. Обязательно наличие опыта тестирования и code review. Финтех и e-commerce проекты особенно ценятся из-за требований к надежности и производительности."
+}

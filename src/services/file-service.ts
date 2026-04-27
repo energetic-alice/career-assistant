@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
+import yauzl from "yauzl";
 
 const RESUME_EXTRACTION_PROMPT = `Извлеки полный текст из этого документа (резюме/CV).
 Сохрани структуру: заголовки, должности, даты, списки навыков, достижения с цифрами.
@@ -12,6 +13,134 @@ const IMAGE_MIME_TYPES = new Set([
   "image/gif",
   "image/webp",
 ]);
+
+const DOCX_MIME =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const ODT_MIME = "application/vnd.oasis.opendocument.text";
+const RTF_MIMES = new Set(["application/rtf", "text/rtf"]);
+const DOC_MIMES = new Set(["application/msword", "application/x-msword"]);
+
+/**
+ * Map a `application/vnd.google-apps.*` mimeType to the best
+ * binary export format for resume text extraction.
+ */
+function chooseGoogleExportMime(googleMime: string): {
+  exportMime: string;
+  asMime: string;
+} {
+  switch (googleMime) {
+    case "application/vnd.google-apps.document":
+      return { exportMime: DOCX_MIME, asMime: DOCX_MIME };
+    case "application/vnd.google-apps.spreadsheet":
+      return { exportMime: "text/csv", asMime: "text/plain" };
+    case "application/vnd.google-apps.presentation":
+      return { exportMime: "application/pdf", asMime: "application/pdf" };
+    default:
+      return { exportMime: "application/pdf", asMime: "application/pdf" };
+  }
+}
+
+/** Sniff binary buffer signature to detect mime when content-type is missing. */
+export function sniffMimeType(buffer: Buffer): string | null {
+  if (buffer.length < 4) return null;
+  if (buffer.slice(0, 4).toString("ascii") === "%PDF") {
+    return "application/pdf";
+  }
+  if (
+    buffer[0] === 0x50 &&
+    buffer[1] === 0x4b &&
+    (buffer[2] === 0x03 || buffer[2] === 0x05 || buffer[2] === 0x07)
+  ) {
+    return DOCX_MIME;
+  }
+  if (
+    buffer[0] === 0xd0 &&
+    buffer[1] === 0xcf &&
+    buffer[2] === 0x11 &&
+    buffer[3] === 0xe0
+  ) {
+    return "application/msword";
+  }
+  if (buffer.slice(0, 5).toString("ascii") === "{\\rtf") {
+    return "application/rtf";
+  }
+  if (buffer.slice(0, 8).toString("ascii").startsWith("\xffd8\xff")) {
+    return "image/jpeg";
+  }
+  if (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47
+  ) {
+    return "image/png";
+  }
+  return null;
+}
+
+function stripRtf(raw: string): string {
+  return raw
+    .replace(/\\par[d]?/g, "\n")
+    .replace(/\\'(?:[0-9a-fA-F]{2})/g, " ")
+    .replace(/\\[a-zA-Z]+-?\d* ?/g, "")
+    .replace(/[{}]/g, "")
+    .replace(/\r/g, "")
+    .replace(/\n{2,}/g, "\n\n")
+    .trim();
+}
+
+function readZipEntry(buffer: Buffer, name: string): Promise<string | null> {
+  return new Promise((resolve, reject) => {
+    yauzl.fromBuffer(buffer, { lazyEntries: true }, (err, zipfile) => {
+      if (err || !zipfile) {
+        reject(err ?? new Error("zip open failed"));
+        return;
+      }
+      let resolved = false;
+      zipfile.on("entry", (entry) => {
+        if (entry.fileName === name) {
+          zipfile.openReadStream(entry, (sErr, stream) => {
+            if (sErr || !stream) {
+              resolve(null);
+              return;
+            }
+            const chunks: Buffer[] = [];
+            stream.on("data", (c: Buffer) => chunks.push(c));
+            stream.on("end", () => {
+              resolved = true;
+              resolve(Buffer.concat(chunks).toString("utf-8"));
+              zipfile.close();
+            });
+            stream.on("error", () => resolve(null));
+          });
+          return;
+        }
+        zipfile.readEntry();
+      });
+      zipfile.on("end", () => {
+        if (!resolved) resolve(null);
+      });
+      zipfile.readEntry();
+    });
+  });
+}
+
+async function extractOdtText(buffer: Buffer): Promise<string> {
+  const xml = await readZipEntry(buffer, "content.xml");
+  if (!xml) throw new Error("ODT: no content.xml inside archive");
+  return xml
+    .replace(/<text:p[^>]*>/g, "\n")
+    .replace(/<text:tab\/>/g, "\t")
+    .replace(/<text:line-break\/>/g, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
 
 /**
  * Extract text from a PDF using Claude's native document understanding.
@@ -89,30 +218,63 @@ async function extractImageWithClaude(buffer: Buffer, mimeType: string): Promise
 
 /**
  * Extract text from a resume buffer based on MIME type.
- * Supports PDF, DOCX, plain text, and images (PNG, JPEG, GIF, WEBP).
+ *
+ * Supports:
+ *   - application/pdf
+ *   - DOCX (OOXML)
+ *   - DOC (legacy MS Word) — best-effort via mammoth, fallback error
+ *   - RTF (text/rtf, application/rtf) — strip control words
+ *   - ODT (OpenDocument) — read content.xml
+ *   - text/plain, text/markdown, text/csv
+ *   - image/* (PNG/JPEG/GIF/WEBP) — Claude Vision
+ *   - application/octet-stream — magic-bytes sniff and re-dispatch
  */
 export async function extractResumeText(
   buffer: Buffer,
   mimeType: string,
 ): Promise<string> {
-  if (mimeType === "application/pdf") {
+  let mt = (mimeType || "").toLowerCase().split(";")[0].trim();
+
+  if (mt === "application/octet-stream" || mt === "" || mt === "binary/octet-stream") {
+    const sniffed = sniffMimeType(buffer);
+    if (sniffed) mt = sniffed;
+  }
+
+  if (mt === "application/pdf") {
     return extractPdfWithClaude(buffer);
   }
 
-  if (
-    mimeType ===
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-  ) {
+  if (mt === DOCX_MIME) {
     const result = await mammoth.extractRawText({ buffer });
     return result.value;
   }
 
-  if (mimeType === "text/plain") {
+  if (DOC_MIMES.has(mt)) {
+    try {
+      const result = await mammoth.extractRawText({ buffer });
+      if (result.value && result.value.trim().length > 0) return result.value;
+    } catch {
+      // fall through
+    }
+    throw new Error(
+      "Старый формат .doc плохо распознаётся. Пришли пожалуйста в .docx или .pdf.",
+    );
+  }
+
+  if (RTF_MIMES.has(mt)) {
+    return stripRtf(buffer.toString("utf-8"));
+  }
+
+  if (mt === ODT_MIME) {
+    return extractOdtText(buffer);
+  }
+
+  if (mt === "text/plain" || mt === "text/markdown" || mt === "text/csv") {
     return buffer.toString("utf-8");
   }
 
-  if (IMAGE_MIME_TYPES.has(mimeType)) {
-    return extractImageWithClaude(buffer, mimeType);
+  if (IMAGE_MIME_TYPES.has(mt)) {
+    return extractImageWithClaude(buffer, mt);
   }
 
   throw new Error(`Unsupported resume format: ${mimeType}`);
@@ -120,8 +282,11 @@ export async function extractResumeText(
 
 /**
  * Download a file from Google Drive by its file URL.
- * Expects a service account with access to the Drive folder.
- * Returns buffer + mimeType.
+ *
+ * For binary files (PDF/DOCX/etc) uses `alt:"media"`.
+ * For native Google formats (`application/vnd.google-apps.*`) uses
+ * `files.export` with the appropriate export mimeType — otherwise Drive
+ * returns "Only files with binary content can be downloaded."
  */
 export async function downloadFromGoogleDrive(
   fileUrl: string,
@@ -138,7 +303,19 @@ export async function downloadFromGoogleDrive(
   const drive = google.drive({ version: "v3", auth });
 
   const meta = await drive.files.get({ fileId, fields: "mimeType,name" });
-  const mimeType = meta.data.mimeType ?? "application/octet-stream";
+  const driveMime = meta.data.mimeType ?? "application/octet-stream";
+
+  if (driveMime.startsWith("application/vnd.google-apps.")) {
+    const { exportMime, asMime } = chooseGoogleExportMime(driveMime);
+    const response = await drive.files.export(
+      { fileId, mimeType: exportMime },
+      { responseType: "arraybuffer" },
+    );
+    return {
+      buffer: Buffer.from(response.data as ArrayBuffer),
+      mimeType: asMime,
+    };
+  }
 
   const response = await drive.files.get(
     { fileId, alt: "media" },
@@ -147,11 +324,11 @@ export async function downloadFromGoogleDrive(
 
   return {
     buffer: Buffer.from(response.data as ArrayBuffer),
-    mimeType,
+    mimeType: driveMime,
   };
 }
 
-function extractDriveFileId(url: string): string | null {
+export function extractDriveFileId(url: string): string | null {
   const patterns = [
     /\/d\/([a-zA-Z0-9_-]+)/,
     /[?&]id=([a-zA-Z0-9_-]+)/,
@@ -162,4 +339,8 @@ function extractDriveFileId(url: string): string | null {
     if (m) return m[1];
   }
   return null;
+}
+
+export function isGoogleDriveUrl(url: string): boolean {
+  return /(^|\/)(drive|docs)\.google\.com\//i.test(url);
 }

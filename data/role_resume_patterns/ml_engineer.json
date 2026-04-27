@@ -1,0 +1,186 @@
+{
+  "slug": "ml_engineer",
+  "displayTitle": "ML Engineer / Data Scientist",
+  "builtAt": "2026-04-25T10:24:33.933Z",
+  "sourceCount": 20,
+  "typicalTitles": [
+    "Junior Data Scientist",
+    "Data Scientist",
+    "Senior Data Scientist",
+    "Lead Data Scientist",
+    "ML Engineer",
+    "Senior ML Engineer",
+    "AI/LLM Engineer",
+    "ML Engineer/Data Scientist"
+  ],
+  "summaryPatterns": [
+    "I'm a Data Scientist (4+ years) who built ML models that increased conversion by 22% and reduced MAE by 15%, with experience in end-to-end pipelines and A/B testing",
+    "I'm an ML Engineer (5+ years) specializing in NLP and LLM systems, developed RAG solutions that improved search speed 4x and reduced manual work by 65%",
+    "I'm a Senior Data Scientist (3+ years) who led team of 8 engineers, built production models serving 10M+ users daily with 86% accuracy on computer vision tasks",
+    "I'm an ML Engineer (6+ years) focused on CV and 3D medical data analysis, deployed models processing hundreds of thousands of scans with distributed training",
+    "I'm a Data Scientist (4+ years) who developed pricing models improving forecast accuracy by 22% and recommendation systems increasing campaign launches 5x"
+  ],
+  "skillCategories": [
+    {
+      "category": "Programming & Core",
+      "items": [
+        "Python",
+        "SQL",
+        "C/C++",
+        "Git",
+        "Linux",
+        "Bash",
+        "Docker",
+        "Kubernetes"
+      ]
+    },
+    {
+      "category": "Machine Learning",
+      "items": [
+        "Scikit-learn",
+        "CatBoost",
+        "XGBoost",
+        "LightGBM",
+        "PyTorch",
+        "TensorFlow",
+        "Optuna",
+        "MLflow"
+      ]
+    },
+    {
+      "category": "NLP & LLM",
+      "items": [
+        "BERT",
+        "Transformers",
+        "Hugging Face",
+        "LangChain",
+        "LangGraph",
+        "RAG",
+        "NER",
+        "LLM",
+        "OpenAI",
+        "Qwen",
+        "LLaMA"
+      ]
+    },
+    {
+      "category": "Computer Vision",
+      "items": [
+        "OpenCV",
+        "YOLO",
+        "Detectron2",
+        "CVAT",
+        "OCR",
+        "Computer Vision",
+        "Image Processing",
+        "3D Analysis"
+      ]
+    },
+    {
+      "category": "Data Engineering",
+      "items": [
+        "Apache Airflow",
+        "Spark",
+        "PySpark",
+        "Hadoop",
+        "PostgreSQL",
+        "ClickHouse",
+        "Greenplum",
+        "ETL"
+      ]
+    },
+    {
+      "category": "Analytics & Visualization",
+      "items": [
+        "pandas",
+        "NumPy",
+        "Matplotlib",
+        "Seaborn",
+        "Tableau",
+        "Power BI",
+        "Jupyter",
+        "A/B Testing"
+      ]
+    },
+    {
+      "category": "MLOps & Infrastructure",
+      "items": [
+        "Docker",
+        "Kubernetes",
+        "CI/CD",
+        "FastAPI",
+        "AWS",
+        "Azure",
+        "Prometheus",
+        "Grafana",
+        "ClearML"
+      ]
+    },
+    {
+      "category": "Specialized Domains",
+      "items": [
+        "Recommendation Systems",
+        "Time Series",
+        "Reinforcement Learning",
+        "Speech Recognition",
+        "ASR",
+        "Anomaly Detection"
+      ]
+    }
+  ],
+  "achievementPhrases": [
+    "Increased prediction accuracy by 22% and reduced MAE by 15%",
+    "Improved conversion rate by 8% through A/B testing",
+    "Reduced manual processing time by 85% with automated pipelines",
+    "Achieved 86% mAP@0.5 on object detection tasks",
+    "Increased campaign launches from 36 to 140+ per month (5x growth)",
+    "Reduced ad-hoc analytics requests by 80% through self-service platform",
+    "Improved search speed 4x with hybrid retrieval system",
+    "Achieved 95% recall on safety-critical detection models",
+    "Reduced response time by 65% with AI agent implementation",
+    "Decreased customer complaints by 12% with sentiment analysis",
+    "Improved retention by 0.6 percentage points generating 12-15M RUB profit",
+    "Achieved macro-F1 0.86-0.94 on classification tasks",
+    "Reduced infrastructure costs by 30-40% with model optimization",
+    "Increased throughput by 30% with mathematical optimization",
+    "Achieved ROUGE-L 0.72 on text summarization tasks",
+    "Reduced processing time from hours to minutes",
+    "Improved model quality metrics by 10-18% through feature engineering",
+    "Scaled to serve 10-11M active users daily",
+    "Achieved 97% Top-1 accuracy on request classification with 1000+ classes"
+  ],
+  "keyResponsibilities": [
+    "Design and implement end-to-end ML pipelines from data collection to production deployment",
+    "Develop and fine-tune deep learning models for NLP, CV, and tabular data tasks",
+    "Build RAG systems and LLM-powered applications for business automation",
+    "Conduct A/B testing and statistical analysis to validate model performance",
+    "Create feature engineering pipelines and perform exploratory data analysis",
+    "Optimize models for production deployment and monitor performance in real-time",
+    "Collaborate with cross-functional teams to translate business requirements into ML solutions",
+    "Implement MLOps practices including versioning, CI/CD, and model monitoring",
+    "Research and evaluate new ML techniques and frameworks for business applications"
+  ],
+  "certifications": [],
+  "popularIndustries": [
+    "fintech",
+    "banking",
+    "e-commerce",
+    "retail",
+    "healthcare",
+    "telecom",
+    "oil-gas",
+    "cybersecurity",
+    "medtech",
+    "automotive"
+  ],
+  "redFlags": [
+    "listing 30+ technologies without depth",
+    "generic achievements without specific metrics",
+    "no mention of production deployment experience",
+    "lack of business impact quantification",
+    "outdated technology stack focus",
+    "no collaboration or teamwork examples",
+    "purely academic projects without industry relevance"
+  ],
+  "notes": "ML Engineer/Data Scientist роль требует сочетания глубоких технических навыков в ML/DL и понимания бизнес-процессов. Ключевые особенности сильных резюме: конкретные метрики улучшений (точность, скорость, экономия), опыт полного цикла ML-проектов от исследования до продакшена, владение современными фреймворками (PyTorch, Transformers, LLM), опыт работы с большими данными и распределенными системами. Важно показать не только техническую экспертизу, но и бизнес-результаты: увеличение конверсии, сокращение затрат, автоматизацию процессов. Востребованы специалисты с опытом в NLP/LLM, CV, recommendation systems и MLOps. Обязательно указывать опыт командной работы, менторства и взаимодействия с бизнес-заказчиками."
+}

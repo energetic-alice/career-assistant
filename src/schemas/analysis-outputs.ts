@@ -5,6 +5,13 @@ import { KNOWN_ROLES } from "../services/known-roles.js";
  * Уровень конкуренции на рынке.
  * В enum включены и «размытые» формулировки — модель иногда возвращает «средняя-высокая» и т.п.
  */
+/**
+ * Уровень конкуренции на рынке.
+ * Кладём и женский («низкая/средняя/высокая»), и мужской («низкий/средний/высокий») род —
+ * Claude свободно перескакивает между ними в зависимости от того, согласует ли с
+ * существительным «конкуренция» (ж.р.) или «уровень/AI-риск» (м.р.). Нормализация
+ * на UI/post-validate этапе при необходимости.
+ */
 export const competitionDiscrete = z.enum([
   "очень низкая",
   "низкая",
@@ -17,6 +24,18 @@ export const competitionDiscrete = z.enum([
   "низко-средняя",
   "высокая-очень высокая",
   "очень низкая-низкая",
+  // мужской род (как в aiRisk.level) — Claude иногда копирует структуру
+  "очень низкий",
+  "низкий",
+  "средний",
+  "высокий",
+  "очень высокий",
+  "средний-высокий",
+  "средне-высокий",
+  "низкий-средний",
+  "низко-средний",
+  "высокий-очень высокий",
+  "очень низкий-низкий",
 ]);
 
 export type CompetitionLevel = z.infer<typeof competitionDiscrete>;
@@ -342,7 +361,12 @@ export const analyzedDirectionSchema = z.object({
     competition: competitionDiscrete,
     vacanciesPer100Specialists: z
       .number()
-      .describe("Из справочника конкуренции: вакансий на 100 специалистов"),
+      .nullable()
+      .describe(
+        "Вакансий на 100 специалистов — заполняй ТОЛЬКО если есть точные данные " +
+        "(RU-рынок, расчёт hh.ru вакансий/резюме). Для UK/EU/US оставляй `null`: " +
+        "оценочные ratio из competition-eu — синтетика, не выдавай их как факт.",
+      ),
   }),
 
   salary: z.object({
@@ -403,18 +427,17 @@ export const analysisOutputSchema = z.object({
 
   honestRisks: z.array(z.string()).describe("Узкие рынки, завышенные ожидания, барьеры, тупики"),
 
-  replacedDirections: z
+  rejectedDirections: z
     .array(
       z.object({
-        originalTitle: z.string().describe("Тайтл направления, которое заменяется"),
-        newTitle: z.string().describe("Новое предлагаемое направление (роль + стек + домен)"),
-        reason: z.string().describe("Почему заменяем: слишком узкий рынок, нет данных, не подходит кандидату"),
+        originalTitle: z.string().describe("Тайтл направления из approved-списка, не вошедшего в топ-3"),
+        reason: z.string().describe("Почему не прошло в топ-3: меньше вакансий, AI-риск выше, salary дальше от target и т.п."),
       }),
     )
     .optional()
     .describe(
-      "Если на основе рыночных данных одно или несколько направлений явно плохие — предложи замену. " +
-      "Pipeline перезапустит анализ для новых направлений.",
+      "Направления из approved-списка, которые НЕ вошли в топ-3, с объяснением. " +
+      "НЕ предлагай новые направления — выбор всегда из переданного списка.",
     ),
 });
 
@@ -442,7 +465,7 @@ export const reviewSummarySchema = z.object({
       type: z.string(),
       adjacency: z.number(),
       competition: z.string(),
-      vacPer100: z.number(),
+      vacPer100: z.number().nullable(),
       salary: z.string(),
       aiRisk: z.string(),
     })
