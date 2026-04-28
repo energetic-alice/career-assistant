@@ -4,6 +4,8 @@ import { Input, Markup } from "telegraf";
 import { marked } from "marked";
 
 type CallbackButton = ReturnType<typeof Markup.button.callback>;
+type UrlButton = ReturnType<typeof Markup.button.url>;
+type HeaderButton = CallbackButton | UrlButton;
 type InlineKeyboardMarkup = ReturnType<typeof Markup.inlineKeyboard>["reply_markup"];
 
 import { getBot } from "./bot-instance.js";
@@ -100,7 +102,11 @@ function findSlotIdx(state: DeepReviewState, slotId: string): number {
 // Header
 // ─────────────────────────────────────────────────────────────────────────────
 
-function formatDeepHeader(state: DeepReviewState, nick: string): string {
+function formatDeepHeader(
+  state: DeepReviewState,
+  nick: string,
+  participantId: string,
+): string {
   const total = state.slots.length;
   const recommended = countRecommended(state.slots);
   const rejected = total - recommended;
@@ -134,6 +140,44 @@ function formatDeepHeader(state: DeepReviewState, nick: string): string {
   if (counts.p > 0 || counts.e > 0) {
     lines.push(`<i>[p]/[~] — дозаполнено через Perplexity, см. источники в карточке.</i>`);
   }
+
+  // Блок финала: показываем ссылку на Doc и/или статус, как только Phase 4
+  // отработал. Если doc не создался — отдельно подсветим ошибку, чтобы
+  // куратор знал, что HTML уже в чате, а Doc можно перегенерировать.
+  const ps = getPipelineState(participantId);
+  const stage = ps?.stage;
+  const finalAnalysis = (ps?.stageOutputs as Record<string, unknown> | undefined)
+    ?.finalAnalysis as
+    | { docUrl?: string; docError?: string; generatedAt?: string }
+    | undefined;
+  const finalErr = (ps?.stageOutputs as Record<string, unknown> | undefined)
+    ?.finalAnalysisError as string | undefined;
+
+  if (stage === "final_ready") {
+    const date = (finalAnalysis?.generatedAt || "").slice(0, 10);
+    const dateLabel = date ? ` · ${escapeHtml(date)}` : "";
+    if (finalAnalysis?.docUrl) {
+      lines.push(
+        `\n<b>📄 Карьерный анализ:</b> ` +
+          `<a href="${escapeHtml(finalAnalysis.docUrl)}">Google Doc</a>${dateLabel} · HTML — выше в чате`,
+      );
+    } else {
+      const err = finalAnalysis?.docError
+        ? ` · ⚠ Doc не создан (${escapeHtml(finalAnalysis.docError.slice(0, 120))})`
+        : ` · ⚠ Doc не создан`;
+      lines.push(
+        `\n<b>📄 Карьерный анализ:</b> 🟢 готов · HTML — выше в чате${dateLabel}${err}`,
+      );
+    }
+  } else if (stage === "final_generating") {
+    lines.push(`\n<b>📄 Карьерный анализ:</b> ⚙️ собирается…`);
+  } else if (stage === "final_failed" && finalErr) {
+    lines.push(
+      `\n<b>📄 Карьерный анализ:</b> ❌ упал — ` +
+        `<code>${escapeHtml(finalErr.slice(0, 200))}</code>`,
+    );
+  }
+
   return lines.join("\n");
 }
 
@@ -143,14 +187,23 @@ function deepHeaderKeyboard(
 ): InlineKeyboardMarkup {
   const recommended = countRecommended(state.slots);
   const canApprove = recommended >= 1;
-  const rows: CallbackButton[][] = [];
+  const rows: HeaderButton[][] = [];
 
   // На стадии deep_ready показываем "Одобрить".
   // После Approve (deep_approved / final_*) — кнопка превращается в "Сгенерировать финальный анализ",
   // которая дёргает Phase 3 + Phase 4 и сохраняет ссылку на Google Doc.
-  const stage = getPipelineState(participantId)?.stage;
+  const ps = getPipelineState(participantId);
+  const stage = ps?.stage;
+  const finalAnalysis = (ps?.stageOutputs as Record<string, unknown> | undefined)
+    ?.finalAnalysis as { docUrl?: string } | undefined;
   const isApproved = stage === "deep_approved" || stage === "final_ready" || stage === "final_failed";
   const isGenerating = stage === "final_generating";
+
+  // Если уже есть Google Doc — отдельная URL-кнопка сверху, чтобы куратор
+  // мог открыть финал прямо из шапки, не листая чат.
+  if (stage === "final_ready" && finalAnalysis?.docUrl) {
+    rows.push([Markup.button.url("📄 Открыть Google Doc", finalAnalysis.docUrl)]);
+  }
 
   if (isGenerating) {
     rows.push([
@@ -211,11 +264,15 @@ async function sendDeepHeader(
 ): Promise<{ chatId: number | string; messageId: number }> {
   const bot = getBot();
   const nick = normalizeNick(getPipelineState(participantId)?.telegramNick ?? "");
-  const msg = await bot.telegram.sendMessage(chatId, formatDeepHeader(state, nick), {
-    parse_mode: "HTML",
-    link_preview_options: { is_disabled: true },
-    reply_markup: deepHeaderKeyboard(participantId, state),
-  });
+  const msg = await bot.telegram.sendMessage(
+    chatId,
+    formatDeepHeader(state, nick, participantId),
+    {
+      parse_mode: "HTML",
+      link_preview_options: { is_disabled: true },
+      reply_markup: deepHeaderKeyboard(participantId, state),
+    },
+  );
   return { chatId, messageId: msg.message_id };
 }
 
@@ -231,7 +288,7 @@ async function editDeepHeader(
       state.headerChatId,
       state.headerMessageId,
       undefined,
-      formatDeepHeader(state, nick),
+      formatDeepHeader(state, nick, participantId),
       {
         parse_mode: "HTML",
         link_preview_options: { is_disabled: true },
@@ -561,7 +618,9 @@ async function handleFinal(
 
   await ctx.answerCbQuery("⚙️ Запустила финальный анализ. Это займёт пару минут.");
 
-  updatePipelineStage(participantId, "final_generating", {});
+  updatePipelineStage(participantId, "final_generating", {
+    finalAnalysisError: undefined,
+  });
   // Перерисуем header — теперь покажет «Финальный анализ собирается…»
   await editDeepHeader(participantId, state);
 
@@ -664,7 +723,10 @@ h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border
     rejectedTitles,
     markdownLength: markdown.length,
   };
-  updatePipelineStage(participantId, "final_ready", { finalAnalysis: out });
+  updatePipelineStage(participantId, "final_ready", {
+    finalAnalysis: out,
+    finalAnalysisError: undefined,
+  });
   const refreshed = loadDeep(participantId);
   if (refreshed) {
     await editDeepHeader(participantId, refreshed);
@@ -699,7 +761,13 @@ h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border
     out.docError = undefined;
     updatePipelineStage(participantId, "final_ready", {
       finalAnalysis: out,
+      finalAnalysisError: undefined,
     });
+    // refresh шапки — теперь там URL-кнопка «📄 Открыть Google Doc».
+    const refreshedDeep = loadDeep(participantId);
+    if (refreshedDeep) {
+      await editDeepHeader(participantId, refreshedDeep);
+    }
     console.log(`[Final] ${participantId}: doc created → ${docUrl}`);
     if (chatId != null) {
       await bot.telegram.sendMessage(chatId, `Google Doc: ${docUrl}`, {
@@ -712,7 +780,12 @@ h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border
     out.docError = msg;
     updatePipelineStage(participantId, "final_ready", {
       finalAnalysis: out,
+      finalAnalysisError: undefined,
     });
+    const refreshedDeep = loadDeep(participantId);
+    if (refreshedDeep) {
+      await editDeepHeader(participantId, refreshedDeep);
+    }
     await replyText(
       `Google Doc не удалось создать (квота/Apps Script). HTML-файл выше содержит полный анализ.\n` +
         `<code>${escapeHtml(msg).slice(0, 400)}</code>`,
