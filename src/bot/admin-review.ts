@@ -141,9 +141,17 @@ export async function sendClientCard(
   );
 
   const finalAnalysis = outputs.finalAnalysis as
-    | { docUrl?: string; generatedAt?: string }
+    | { docUrl?: string; docError?: string; generatedAt?: string }
     | undefined;
   const finalAnalysisError = outputs.finalAnalysisError as string | undefined;
+  // Для карточки: при final_failed → ошибка Phase 3/4, при final_ready без doc
+  // → ошибка createGoogleDoc (квоты Drive и т.п.).
+  const cardAnalysisError =
+    state.stage === "final_failed"
+      ? finalAnalysisError
+      : state.stage === "final_ready" && !finalAnalysis?.docUrl
+        ? finalAnalysis?.docError
+        : undefined;
 
   const cardHtml = formatClientCardForTelegram({
     telegramNick: state.telegramNick,
@@ -158,7 +166,7 @@ export async function sendClientCard(
     clientNotes,
     analysisDocUrl: finalAnalysis?.docUrl,
     analysisGeneratedAt: finalAnalysis?.generatedAt,
-    analysisError: finalAnalysisError,
+    analysisError: cardAnalysisError,
   });
 
   const replyMarkup =

@@ -508,13 +508,20 @@ function formatSelectedTargetRoles(
 }
 
 function formatFinalAnalysisBlock(src: ClientCardSource): string {
-  if (src.stage === "final_ready" && src.analysisDocUrl) {
+  if (src.stage === "final_ready") {
     const date = (src.analysisGeneratedAt || "").slice(0, 10);
     const dateLabel = date ? ` · ${escapeHtml(date)}` : "";
-    return (
-      `<b>📄 Карьерный анализ:</b> ` +
-      `<a href="${escapeHtml(src.analysisDocUrl)}">Google Doc</a>${dateLabel}`
-    );
+    if (src.analysisDocUrl) {
+      return (
+        `<b>📄 Карьерный анализ:</b> ` +
+        `<a href="${escapeHtml(src.analysisDocUrl)}">Google Doc</a>${dateLabel}`
+      );
+    }
+    // markdown отдан в чат, а Doc упал (квоты Drive и т.п.).
+    const errLabel = src.analysisError
+      ? ` · ⚠ Doc не создан (${escapeHtml(src.analysisError.slice(0, 120))})`
+      : ` · ⚠ Doc не создан`;
+    return `<b>📄 Карьерный анализ:</b> 🟢 готов (.md в чате)${dateLabel}${errLabel}`;
   }
   if (src.stage === "final_generating") {
     return `<b>📄 Карьерный анализ:</b> ⚙️ собирается…`;

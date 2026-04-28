@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import type { Context } from "telegraf";
-import { Markup } from "telegraf";
+import { Input, Markup } from "telegraf";
 
 type CallbackButton = ReturnType<typeof Markup.button.callback>;
 type InlineKeyboardMarkup = ReturnType<typeof Markup.inlineKeyboard>["reply_markup"];
@@ -515,10 +515,12 @@ async function handleApprove(
 }
 
 interface FinalAnalysisOutput {
-  docUrl: string;
+  docUrl?: string;
+  docError?: string;
   generatedAt: string;
   top3Titles: string[];
   rejectedTitles: string[];
+  markdownLength: number;
 }
 
 async function handleFinal(
@@ -563,14 +565,18 @@ async function handleFinal(
   await editDeepHeader(participantId, state);
 
   const chatId = ctx.chat?.id;
+  const bot = getBot();
   const replyText = (text: string) =>
     chatId != null
-      ? getBot().telegram.sendMessage(chatId, text, { parse_mode: "HTML" })
+      ? bot.telegram.sendMessage(chatId, text, { parse_mode: "HTML" })
       : Promise.resolve();
 
+  // ── Phase 3+4: считаем markdown. Если уж это упало — финал реально
+  //    не получился, ставим final_failed.
+  let phase1: Awaited<ReturnType<typeof runDeepFromShortlist>>;
+  let phase4: Awaited<ReturnType<typeof runAnalysisPhase4>>;
+  const t0 = Date.now();
   try {
-    const t0 = Date.now();
-
     // approvedDirections для prompt-03 = recommended ∪ rejected (отклонённые
     // тоже надо упомянуть в финале как «обсудили и отклонили»).
     const approvedAll: Direction[] = [
@@ -596,51 +602,18 @@ async function handleFinal(
         `marketData=${marketData ? `${marketData.length}c` : "none"}`,
     );
 
-    const phase1 = await runDeepFromShortlist(shortlistResult, approvedAll, {
+    phase1 = await runDeepFromShortlist(shortlistResult, approvedAll, {
       marketData,
       skipPerplexityStep5: marketData !== undefined,
     });
 
-    const phase4 = await runAnalysisPhase4(
+    phase4 = await runAnalysisPhase4(
       phase1.profile,
       phase1.directions,
       phase1.analysis,
     );
-
-    const candidateName = phase1.profile.name || ps.telegramNick || participantId;
-    const docTitle = `Карьерный анализ — ${candidateName}`;
-    const docUrl = await createGoogleDoc(docTitle, phase4.finalDocument);
-
-    const out: FinalAnalysisOutput = {
-      docUrl,
-      generatedAt: new Date().toISOString(),
-      top3Titles: phase1.analysis.directions.map((d) => d.title),
-      rejectedTitles:
-        phase1.analysis.rejectedDirections?.map((r) => r.originalTitle) ?? [],
-    };
-
-    updatePipelineStage(participantId, "final_ready", {
-      finalAnalysis: out,
-    });
-
-    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-    console.log(
-      `[Final] ${participantId}: done in ${elapsed}s, doc=${docUrl}`,
-    );
-
-    // Refresh header
-    const refreshed = loadDeep(participantId);
-    if (refreshed) {
-      await editDeepHeader(participantId, refreshed);
-    }
-
-    await replyText(
-      `🎉 <b>Финальный анализ готов</b> (${elapsed}s)\n` +
-        `Top-3: ${out.top3Titles.map((t) => escapeHtml(t)).join(" · ")}\n\n` +
-        `📄 <a href="${escapeHtml(docUrl)}">Открыть Google Doc</a>`,
-    );
   } catch (err) {
-    console.error(`[Final] ${participantId}: failed`, err);
+    console.error(`[Final] ${participantId}: phase3/4 failed`, err);
     updatePipelineStage(participantId, "final_failed", {
       finalAnalysisError: err instanceof Error ? err.message : String(err),
     });
@@ -654,6 +627,100 @@ async function handleFinal(
           err instanceof Error ? err.message : String(err),
         ).slice(0, 500)}</code>\n\n` +
         `Можно нажать «Повторить» в шапке.`,
+    );
+    return;
+  }
+
+  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  const candidateName =
+    phase1.profile.name || ps.telegramNick || participantId;
+  const safeName =
+    candidateName.replace(/[^A-Za-zА-Яа-я0-9_-]+/g, "_").slice(0, 40) ||
+    "client";
+  const top3Titles = phase1.analysis.directions.map((d) => d.title);
+  const rejectedTitles =
+    phase1.analysis.rejectedDirections?.map((r) => r.originalTitle) ?? [];
+  const markdown = phase4.finalDocument;
+
+  // ── Сначала отдаём готовый markdown в TG. Это страховка от падения
+  //    Google Apps Script (квоты Drive и пр.) — куратор всегда получает
+  //    собранный анализ как файл, даже если doc-step ниже сломается.
+  console.log(
+    `[Final] ${participantId}: phase3/4 done in ${elapsed}s ` +
+      `(md=${markdown.length}c), sending markdown to TG…`,
+  );
+
+  const out: FinalAnalysisOutput = {
+    generatedAt: new Date().toISOString(),
+    top3Titles,
+    rejectedTitles,
+    markdownLength: markdown.length,
+  };
+  updatePipelineStage(participantId, "final_ready", { finalAnalysis: out });
+  const refreshed = loadDeep(participantId);
+  if (refreshed) {
+    await editDeepHeader(participantId, refreshed);
+  }
+
+  if (chatId != null) {
+    try {
+      await bot.telegram.sendDocument(
+        chatId,
+        Input.fromBuffer(
+          Buffer.from(markdown, "utf-8"),
+          `Карьерный_анализ_${safeName}.md`,
+        ),
+        {
+          caption:
+            `🎉 <b>Финальный анализ готов</b> (${elapsed}s)\n` +
+            `Top-3: ${top3Titles.map((t) => escapeHtml(t)).join(" · ")}`,
+          parse_mode: "HTML",
+        },
+      );
+    } catch (sendErr) {
+      console.error(
+        `[Final] ${participantId}: sendDocument failed`,
+        sendErr,
+      );
+      await replyText(
+        `🎉 <b>Финальный анализ готов</b> (${elapsed}s, md=${markdown.length}c)\n` +
+          `Top-3: ${top3Titles.map((t) => escapeHtml(t)).join(" · ")}\n\n` +
+          `⚠ Не смогла отправить .md файлом: <code>${escapeHtml(
+            sendErr instanceof Error ? sendErr.message : String(sendErr),
+          ).slice(0, 200)}</code>`,
+      );
+    }
+  }
+
+  // ── Google Doc — best-effort. Падение не отменяет уже выданный финал;
+  //    куратор может нажать «Повторить» (он перепрогонит и Phase 3+4, и Doc),
+  //    либо просто работать с .md из чата.
+  try {
+    const docTitle = `Карьерный анализ — ${candidateName}`;
+    const docUrl = await createGoogleDoc(docTitle, markdown);
+    out.docUrl = docUrl;
+    out.docError = undefined;
+    updatePipelineStage(participantId, "final_ready", {
+      finalAnalysis: out,
+    });
+    console.log(
+      `[Final] ${participantId}: doc created → ${docUrl}`,
+    );
+    await replyText(
+      `📄 <a href="${escapeHtml(docUrl)}">Открыть Google Doc</a>`,
+    );
+  } catch (docErr) {
+    const msg = docErr instanceof Error ? docErr.message : String(docErr);
+    console.error(`[Final] ${participantId}: createGoogleDoc failed`, docErr);
+    out.docError = msg;
+    updatePipelineStage(participantId, "final_ready", {
+      finalAnalysis: out,
+    });
+    await replyText(
+      `⚠ <b>Не удалось создать Google Doc</b> — анализ выше как .md.\n` +
+        `<code>${escapeHtml(msg).slice(0, 400)}</code>\n\n` +
+        `Можно «Перегенерировать» позже (когда квоты Drive отпустят), ` +
+        `или скопировать .md руками в Doc.`,
     );
   }
 }
