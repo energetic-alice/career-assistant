@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import type { Context } from "telegraf";
 import { Input, Markup } from "telegraf";
+import { marked } from "marked";
 
 type CallbackButton = ReturnType<typeof Markup.button.callback>;
 type InlineKeyboardMarkup = ReturnType<typeof Markup.inlineKeyboard>["reply_markup"];
@@ -634,21 +635,28 @@ async function handleFinal(
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
   const candidateName =
     phase1.profile.name || ps.telegramNick || participantId;
-  const safeName =
-    candidateName.replace(/[^A-Za-zА-Яа-я0-9_-]+/g, "_").slice(0, 40) ||
-    "client";
   const top3Titles = phase1.analysis.directions.map((d) => d.title);
   const rejectedTitles =
     phase1.analysis.rejectedDirections?.map((r) => r.originalTitle) ?? [];
   const markdown = phase4.finalDocument;
 
-  // ── Сначала отдаём готовый markdown в TG. Это страховка от падения
-  //    Google Apps Script (квоты Drive и пр.) — куратор всегда получает
-  //    собранный анализ как файл, даже если doc-step ниже сломается.
+  // ── HTML-файл в чат как первый шаг. Buffer/caption — буква-в-букву как
+  //    было в commit 47be0b3 (13 апреля): "Финальный анализ (HTML). Можно
+  //    открыть в браузере." Тот же markdown идёт и в Google Doc ниже,
+  //    чтобы редактирование оставалось согласованным.
   console.log(
     `[Final] ${participantId}: phase3/4 done in ${elapsed}s ` +
-      `(md=${markdown.length}c), sending markdown to TG…`,
+      `(md=${markdown.length}c), sending HTML to TG…`,
   );
+
+  const title = `Карьерный анализ: ${candidateName}`;
+  const safeTitle = title.replace(/[^a-zA-Zа-яА-ЯёЁ0-9_\- ]/g, "_");
+  const htmlBody = await marked(markdown);
+  const htmlFile = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${title}</title>
+<style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6}
+h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:8px;text-align:left}</style>
+</head><body>${htmlBody}</body></html>`;
 
   const out: FinalAnalysisOutput = {
     generatedAt: new Date().toISOString(),
@@ -666,16 +674,8 @@ async function handleFinal(
     try {
       await bot.telegram.sendDocument(
         chatId,
-        Input.fromBuffer(
-          Buffer.from(markdown, "utf-8"),
-          `Карьерный_анализ_${safeName}.md`,
-        ),
-        {
-          caption:
-            `🎉 <b>Финальный анализ готов</b> (${elapsed}s)\n` +
-            `Top-3: ${top3Titles.map((t) => escapeHtml(t)).join(" · ")}`,
-          parse_mode: "HTML",
-        },
+        Input.fromBuffer(Buffer.from(htmlFile, "utf-8"), `${safeTitle}.html`),
+        { caption: "Финальный анализ (HTML). Можно открыть в браузере." },
       );
     } catch (sendErr) {
       console.error(
@@ -683,32 +683,29 @@ async function handleFinal(
         sendErr,
       );
       await replyText(
-        `🎉 <b>Финальный анализ готов</b> (${elapsed}s, md=${markdown.length}c)\n` +
-          `Top-3: ${top3Titles.map((t) => escapeHtml(t)).join(" · ")}\n\n` +
-          `⚠ Не смогла отправить .md файлом: <code>${escapeHtml(
-            sendErr instanceof Error ? sendErr.message : String(sendErr),
-          ).slice(0, 200)}</code>`,
+        `⚠ Не смогла отправить HTML-файл: <code>${escapeHtml(
+          sendErr instanceof Error ? sendErr.message : String(sendErr),
+        ).slice(0, 200)}</code>`,
       );
     }
   }
 
-  // ── Google Doc — best-effort. Падение не отменяет уже выданный финал;
-  //    куратор может нажать «Повторить» (он перепрогонит и Phase 3+4, и Doc),
-  //    либо просто работать с .md из чата.
+  // ── Google Doc — попытка из ровно того же markdown, как раньше.
+  //    Падение (квоты Drive, Apps Script bandwidth и пр.) не теряет
+  //    финал — HTML уже у куратора в чате.
   try {
-    const docTitle = `Карьерный анализ — ${candidateName}`;
-    const docUrl = await createGoogleDoc(docTitle, markdown);
+    const docUrl = await createGoogleDoc(title, markdown);
     out.docUrl = docUrl;
     out.docError = undefined;
     updatePipelineStage(participantId, "final_ready", {
       finalAnalysis: out,
     });
-    console.log(
-      `[Final] ${participantId}: doc created → ${docUrl}`,
-    );
-    await replyText(
-      `📄 <a href="${escapeHtml(docUrl)}">Открыть Google Doc</a>`,
-    );
+    console.log(`[Final] ${participantId}: doc created → ${docUrl}`);
+    if (chatId != null) {
+      await bot.telegram.sendMessage(chatId, `Google Doc: ${docUrl}`, {
+        link_preview_options: { is_disabled: false },
+      });
+    }
   } catch (docErr) {
     const msg = docErr instanceof Error ? docErr.message : String(docErr);
     console.error(`[Final] ${participantId}: createGoogleDoc failed`, docErr);
@@ -717,10 +714,8 @@ async function handleFinal(
       finalAnalysis: out,
     });
     await replyText(
-      `⚠ <b>Не удалось создать Google Doc</b> — анализ выше как .md.\n` +
-        `<code>${escapeHtml(msg).slice(0, 400)}</code>\n\n` +
-        `Можно «Перегенерировать» позже (когда квоты Drive отпустят), ` +
-        `или скопировать .md руками в Doc.`,
+      `Google Doc не удалось создать (квота/Apps Script). HTML-файл выше содержит полный анализ.\n` +
+        `<code>${escapeHtml(msg).slice(0, 400)}</code>`,
     );
   }
 }
