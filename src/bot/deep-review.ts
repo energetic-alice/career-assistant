@@ -38,6 +38,7 @@ import {
 } from "./shortlist-format.js";
 import { getShortlistState, toShortlistResult } from "./shortlist-review.js";
 import { registerPendingReply } from "./pending-reply.js";
+import { tryAcquireRunLock, releaseRunLock, RUN_KINDS } from "./run-lock.js";
 
 /**
  * Gate 2 — глубокий анализ (Phase 2).
@@ -586,6 +587,26 @@ async function handleFinal(
   ctx: Context,
 ): Promise<void> {
   if (!isAdminCtx(ctx)) return;
+  // U3: anti-double-click lock на финальный анализ. Захватываем здесь, чтобы
+  // даже короткие preconditions-проверки внутри не успели бы пустить второй
+  // параллельный запуск Phase 3+4 (одновременные клики).
+  if (!tryAcquireRunLock(participantId, "final")) {
+    await ctx.answerCbQuery(
+      `⏳ ${RUN_KINDS.final} уже идёт, подожди до завершения.`,
+    );
+    return;
+  }
+  try {
+    await handleFinalLocked(participantId, ctx);
+  } finally {
+    releaseRunLock(participantId, "final");
+  }
+}
+
+async function handleFinalLocked(
+  participantId: string,
+  ctx: Context,
+): Promise<void> {
   const state = loadDeep(participantId);
   if (!state) {
     await ctx.answerCbQuery("Deep state не найден.");

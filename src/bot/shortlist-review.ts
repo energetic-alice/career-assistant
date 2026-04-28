@@ -36,6 +36,7 @@ import {
   scoreBadge,
 } from "./shortlist-format.js";
 import { registerPendingReply } from "./pending-reply.js";
+import { tryAcquireRunLock, releaseRunLock, RUN_KINDS } from "./run-lock.js";
 
 /**
  * Gate 1 — интерактивный shortlist в Telegram.
@@ -473,6 +474,17 @@ export async function startShortlist(
   }
 
   const chatId = ctx.chat!.id;
+
+  // U3: anti-double-click lock. Если уже идёт shortlist для этого
+  // participantId — отвечаем reply'ем и не стартуем второй параллельный
+  // прогон (он бы перезаписал stageOutputs.shortlist в гонке).
+  if (!tryAcquireRunLock(participantId, "shortlist")) {
+    await ctx.reply(
+      `⏳ ${RUN_KINDS.shortlist} уже идёт для этого клиента. Подожди завершения и попробуй снова, если нужно перезапустить.`,
+    );
+    return;
+  }
+
   updatePipelineStage(participantId, "shortlist_generating");
   await ctx.reply("⚙️ Запускаю предварительный анализ… обычно 30–60 секунд.");
 
@@ -532,6 +544,8 @@ export async function startShortlist(
       } catch {
         // ignore
       }
+    } finally {
+      releaseRunLock(participantId, "shortlist");
     }
   })();
 }

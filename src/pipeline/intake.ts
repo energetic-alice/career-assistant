@@ -72,6 +72,16 @@ function persistPipelineStates(): void {
   saveMap(STORE_NAME, pipelineStates);
 }
 
+/**
+ * Публичный экспорт persist для модулей, которые мутируют stageOutputs
+ * напрямую (например, admin-review.ts при сохранении cardRef после
+ * sendDocument). Используем точечно — основной путь обновления stage
+ * по-прежнему через `updatePipelineStage`.
+ */
+export function persistPipelineStatesPublic(): void {
+  persistPipelineStates();
+}
+
 export function getPipelineState(id: string): PipelineState | undefined {
   return pipelineStates.get(id);
 }
@@ -87,6 +97,7 @@ export function updatePipelineStage(
 ): void {
   const state = pipelineStates.get(id);
   if (!state) return;
+  const stageChanged = state.stage !== stage;
   state.stage = stage;
   state.updatedAt = new Date().toISOString();
   if (extraOutputs) {
@@ -95,6 +106,25 @@ export function updatePipelineStage(
     state.stageOutputs = outputs;
   }
   persistPipelineStates();
+
+  // U2: при смене stage перерисовываем карточку клиента в чате админа,
+  // чтобы caption + кнопки соответствовали новому состоянию (например,
+  // после shortlist:approve у карточки появляется «🔬 Глубокий анализ»).
+  // Делаем fire-and-forget через динамический импорт, чтобы не создавать
+  // циклическую зависимость intake → admin-review → intake.
+  if (stageChanged) {
+    void (async () => {
+      try {
+        const { refreshClientCard } = await import("../bot/admin-review.js");
+        await refreshClientCard(id);
+      } catch (err) {
+        console.warn(
+          `[Intake] refreshClientCard failed for ${id}:`,
+          err instanceof Error ? err.message : err,
+        );
+      }
+    })();
+  }
 }
 
 export function saveResumeVersion(input: SaveResumeVersionInput): ResumeVersion | null {
