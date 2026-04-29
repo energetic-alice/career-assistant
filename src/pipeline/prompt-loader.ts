@@ -290,6 +290,29 @@ export async function loadPrompt04(vars: {
 }
 
 /**
+ * Промпт-чистильщик 04b: запускается ПОСЛЕ Phase 4 и переписывает финальный
+ * текст, убирая англицизмы и раскрывая аббревиатуры в зависимости от уровня
+ * кандидата. Сделан как отдельный второй проход потому, что текстовые правила
+ * в основном промпте Claude по факту игнорирует на HR/non-IT кейсах — там
+ * базовый стиль модели (корпоративный английский) пробивает любые запреты.
+ *
+ * candidateLevel — "junior" | "middle" | "senior" (произвольная строка, нужен
+ * для адаптации жёсткости чистки).
+ * englishLevel — строка из анкеты ("0", "A1", "A2", "B1", "B2", "C1", "C2").
+ */
+export async function loadPrompt04bCleanup(vars: {
+  originalDocument: string;
+  candidateLevel: string;
+  englishLevel: string;
+}): Promise<string> {
+  let template = await loadFile(join(PROMPTS_DIR, "04b-style-cleanup.md"));
+  template = template.replace("{{candidateLevel}}", vars.candidateLevel);
+  template = template.replace("{{englishLevel}}", vars.englishLevel);
+  template = template.replace("{{originalDocument}}", vars.originalDocument);
+  return template;
+}
+
+/**
  * Determine which KB domains are relevant based on direction titles.
  */
 export function inferRelevantDomains(directionTitles: string[]): string[] {

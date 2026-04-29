@@ -16,6 +16,7 @@ import {
   loadPrompt02,
   loadPrompt03,
   loadPrompt04,
+  loadPrompt04bCleanup,
   inferRelevantDomains,
   renderQuestionnaireForPrompt,
   renderPhase0SlugsHint,
@@ -879,11 +880,47 @@ export async function runAnalysisPhase1(
  * Phase 4: Final compilation (free-form Markdown).
  * Runs after admin review, optionally incorporating expert feedback.
  */
+/**
+ * Best-effort определение уровня кандидата (junior/middle/senior) для
+ * адаптивной чистки в Phase 4b. Главные сигналы:
+ *   1. Низкий английский (0/A1/A2) почти всегда означает ru-only / non-IT
+ *      кандидата — для них вычищаем максимально жёстко (как junior).
+ *   2. Иначе ориентируемся на yearsInCurrentRole: <2 → junior, 2-5 → middle,
+ *      5+ → senior. Это грубо для non-IT с большим стажем (HR с 15 лет
+ *      опыта формально получит senior), но это безопасный fallback —
+ *      "лишняя" чистка не вредит, а недочистка — вредит.
+ */
+function inferCandidateLevel(profile: CandidateProfile): "junior" | "middle" | "senior" {
+  const englishLevel = profile.currentBase?.englishLevel;
+  if (englishLevel === "0" || englishLevel === "A1" || englishLevel === "A2") {
+    return "junior";
+  }
+  const yearsRaw = profile.currentBase?.yearsInCurrentRole ?? "";
+  const yearsMatch = yearsRaw.match(/(\d+(?:\.\d+)?)/);
+  const years = yearsMatch ? parseFloat(yearsMatch[1]!) : 0;
+  if (years >= 5) return "senior";
+  if (years >= 2) return "middle";
+  return "junior";
+}
+
+/**
+ * Грубая эвристика: документ англоязычный, если в первых 2k символов латиницы
+ * заметно больше кириллицы. Тогда Phase 4b cleanup пропускаем — он заточен
+ * под чистку русского текста и в английском только испортит формулировки.
+ */
+function isEnglishDocument(md: string): boolean {
+  const sample = md.slice(0, 2000);
+  const cyrillic = (sample.match(/[а-яА-ЯёЁ]/g) ?? []).length;
+  const latin = (sample.match(/[a-zA-Z]/g) ?? []).length;
+  return latin > cyrillic * 2;
+}
+
 export async function runAnalysisPhase4(
   profile: CandidateProfile,
   directions: DirectionsOutput,
   analysis: AnalysisOutput,
   expertFeedback?: string,
+  opts?: { candidateLevel?: "junior" | "middle" | "senior"; skipStyleCleanup?: boolean },
 ): Promise<Phase4Result> {
   console.log("\n[Step 4] Compiling final document...");
   const t0 = Date.now();
@@ -893,10 +930,50 @@ export async function runAnalysisPhase4(
     analysisOutput: JSON.stringify(analysis, null, 2),
     expertFeedback: expertFeedback || "Нет комментариев",
   });
-  const finalDocument = await callClaudeText(prompt04);
-  const timing = Date.now() - t0;
-  console.log(`[Step 4] Done in ${timing}ms`);
+  const draftDocument = await callClaudeText(prompt04);
+  const draftTiming = Date.now() - t0;
+  console.log(`[Step 4] Draft ready in ${draftTiming}ms (${draftDocument.length} chars)`);
 
+  // Phase 4b: style cleanup pass.
+  // Запускается на русскоязычных документах для вычистки англицизмов и
+  // раскрытия аббревиатур. Английские документы пропускаем — там cleanup
+  // только испортит формулировки.
+  if (opts?.skipStyleCleanup || isEnglishDocument(draftDocument)) {
+    if (opts?.skipStyleCleanup) {
+      console.log("[Step 4b] SKIPPED (skipStyleCleanup=true)");
+    } else {
+      console.log("[Step 4b] SKIPPED (документ англоязычный)");
+    }
+    return { finalDocument: draftDocument, timing: draftTiming };
+  }
+
+  console.log("[Step 4b] Style cleanup pass...");
+  const tCleanup = Date.now();
+  const candidateLevel = opts?.candidateLevel ?? inferCandidateLevel(profile);
+  const englishLevel = profile.currentBase?.englishLevel ?? "B1";
+  const cleanupPrompt = await loadPrompt04bCleanup({
+    originalDocument: draftDocument,
+    candidateLevel,
+    englishLevel,
+  });
+
+  let finalDocument = draftDocument;
+  try {
+    finalDocument = await callClaudeText(cleanupPrompt, 16000);
+    const cleanupTiming = Date.now() - tCleanup;
+    console.log(
+      `[Step 4b] Cleanup done in ${cleanupTiming}ms ` +
+        `(level=${candidateLevel}, en=${englishLevel}, ` +
+        `${draftDocument.length} → ${finalDocument.length} chars)`,
+    );
+  } catch (err) {
+    console.warn(
+      `[Step 4b] Cleanup FAILED, fallback to draft: ${(err as Error).message}`,
+    );
+  }
+
+  const timing = Date.now() - t0;
+  console.log(`[Step 4 + 4b] Total ${timing}ms`);
   return { finalDocument, timing };
 }
 
