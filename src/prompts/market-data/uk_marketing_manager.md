@@ -1,4 +1,4 @@
-# marketing manager — itjobswatch.co.uk
+# marketing manager - itjobswatch.co.uk
 
 Дата: 21 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=marketing%20manager
 
@@ -16,9 +16,9 @@
 | Campaign Marketing Manager | 694 | -57 | £50,000 | -4.76% | 9 | 1 |
 
 **Топ-3 тайтла:**
-1. Marketing Manager — 89 live, £50,000
-2. Marketing Director — 29 live, £78,500
-3. Product Marketing Manager — 25 live, £60,000
+1. Marketing Manager - 89 live, £50,000
+2. Marketing Director - 29 live, £78,500
+3. Product Marketing Manager - 25 live, £60,000
 
 **Динамика (perm vacancies):**
 Сейчас: 421 | Год назад: 68 | 2 года назад: 69

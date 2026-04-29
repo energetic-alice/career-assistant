@@ -1,4 +1,4 @@
-# ruby — itjobswatch.co.uk
+# ruby - itjobswatch.co.uk
 
 Дата: 21 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=ruby
 
@@ -11,9 +11,9 @@
 | Ruby Engineer | 695 | -61 | £76,250 | -19.73% | 8 | 1 |
 
 **Топ-3 тайтла:**
-1. Ruby — 58 live, £75,000
-2. Ruby on Rails — 32 live, £75,000
-3. Ruby Developer — 9 live, £75,000
+1. Ruby - 58 live, £75,000
+2. Ruby on Rails - 32 live, £75,000
+3. Ruby Developer - 9 live, £75,000
 
 **Динамика (perm vacancies):**
 Сейчас: 116 | Год назад: 164 | 2 года назад: 431

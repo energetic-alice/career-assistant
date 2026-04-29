@@ -12,7 +12,7 @@
 
 ## Матрица конкуренции по направлениям (EU, remote included)
 
-Колонка `Slug(s)` — canonical slugs из `app/data/market-index.json`. Эти ratio применяются build-скриптом ко всем abroad-buckets (UK, EU, US) одинаково — per-country отклонения описаны текстом ниже. Строки без slug (`—`) игнорируются.
+Колонка `Slug(s)` - canonical slugs из `app/data/market-index.json`. Эти ratio применяются build-скриптом ко всем abroad-buckets (UK, EU, US) одинаково - per-country отклонения описаны текстом ниже. Строки без slug (`-`) игнорируются.
 
 | Направление | Slug(s) | Примерн. вакансий (EU) | Оценка ratio | Динамика YoY | Конкуренция |
 |---|---|---|---|---|---|
@@ -24,12 +24,12 @@
 | Backend Ruby/Rails | `backend_ruby` | ~5000 | ~5.0 | -10% | Средняя (legacy niche) |
 | Frontend React | `frontend_react` | ~30000 | ~2.0 | -10% | Высокая |
 | DevOps / SRE | `devops, sre` | ~25000 | ~8.0 | +15% | Низкая |
-| DevSecOps | — | ~6000 | ~10.0 | +30% | Низкая |
+| DevSecOps | - | ~6000 | ~10.0 | +30% | Низкая |
 | Platform Engineering | `platform_engineer` | ~8000 | ~12.0 | +40% | Низкая |
 | MLOps | `mlops` | ~4000 | ~10.0 | +50% | Низкая |
 | Data Analyst | `data_analyst` | ~61000 | ~3.0 | +5% | Средняя |
 | Data Engineer | `data_engineer` | ~22000 | ~6.0 | +20% | Низкая |
-| Analytics Engineer | — | ~5000 | ~8.0 | +35% | Низкая |
+| Analytics Engineer | - | ~5000 | ~8.0 | +35% | Низкая |
 | Data Scientist / ML | `data_scientist` | ~15000 | ~3.0 | +5% | Средняя |
 | ML Engineer | `ml_engineer` | ~8000 | ~5.0 | +25% | Средняя |
 | Системный аналитик / BA | `systems_analyst, business_analyst` | ~20000 | ~3.0 | +5% | Средняя |
@@ -39,8 +39,8 @@
 | Mobile (iOS + Android) | `mobileapp_swift, mobileapp_kotlin` | ~10000 | ~3.5 | -5% | Средняя |
 | React Native / Flutter | `mobileapp_react_native, mobileapp_flutter` | ~5000 | ~4.0 | +10% | Средняя |
 | Engineering Manager | `engineering_manager` | ~8000 | ~5.0 | +10% | Средняя |
-| Cloud Architect | — | ~6000 | ~8.0 | +15% | Низкая |
-| Industrial IoT / MLOps | — | ~2000 | ~15.0 | +30% | Очень низкая |
+| Cloud Architect | - | ~6000 | ~8.0 | +15% | Низкая |
+| Industrial IoT / MLOps | - | ~2000 | ~15.0 | +30% | Очень низкая |
 
 Slug-и из каталога, которых нет в справочнике: `backend_net`, `backend_php`, `backend_cplusplus`, `frontend_vue`, `frontend_angular`, `fullstack`, `appsec`, `manual_testing`, `project_manager`, `tech_lead`, `software_architect`, `product_analyst`, `ui_ux_designer`, `recruiter`, `technical_writer`, `infosecspec`, `1c_developer`, `gamedev_unity`, `web3_developer`, `system_admin`, `tech_support_manager`.
 

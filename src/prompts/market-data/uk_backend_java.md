@@ -1,4 +1,4 @@
-# java — itjobswatch.co.uk
+# java - itjobswatch.co.uk
 
 Дата: 21 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=java
 
@@ -16,9 +16,9 @@
 | Java 2 Platform, Enterprise Edition (J2EE) | 688 | -176 | £77,500 | -29.54% | 15 | 6 |
 
 **Топ-3 тайтла:**
-1. Java — 910 live, £72,500
-2. Java Developer — 100 live, £70,000
-3. Java Engineer — 81 live, £80,000
+1. Java - 910 live, £72,500
+2. Java Developer - 100 live, £70,000
+3. Java Engineer - 81 live, £80,000
 
 **Live total (skill page: java):** 910 | Источник: https://www.itjobswatch.co.uk/find/Java-jobs-in-the-UK
 

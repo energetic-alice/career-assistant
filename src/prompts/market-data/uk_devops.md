@@ -1,4 +1,4 @@
-# devops — itjobswatch.co.uk
+# devops - itjobswatch.co.uk
 
 Дата: 16 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=devops
 
@@ -18,9 +18,9 @@
 | Senior DevOps Engineer | 572 | -41 | £80,000 | -5.88% | 152 | 17 |
 
 **Топ-3 тайтла:**
-1. DevOps — 1519 live, £70,000
-2. Azure DevOps — 438 live, £67,250
-3. DevOps Engineer — 229 live, £70,000
+1. DevOps - 1519 live, £70,000
+2. Azure DevOps - 438 live, £67,250
+3. DevOps Engineer - 229 live, £70,000
 
 **Динамика (perm vacancies):**
 Сейчас: 3,879 | Год назад: 3,649 | 2 года назад: 7,237

@@ -1,4 +1,4 @@
-# cyber security — itjobswatch.co.uk
+# cyber security - itjobswatch.co.uk
 
 Дата: 16 апреля 2026 г. (top-таблица) · 26 апреля 2026 г. (security-ниши, см. ниже)
 Источник: https://www.itjobswatch.co.uk/default.aspx?q=cyber%20security
@@ -22,9 +22,9 @@
 | Penetration Tester | 632 | -4 | £60,000 | -14.28% | 71 | 9 |
 
 **Топ-3 тайтла:**
-1. Cyber Security — 2371 live, £55,000
-2. Information Security — 339 live, £70,000
-3. Security Engineer — 329 live, £60,000
+1. Cyber Security - 2371 live, £55,000
+2. Information Security - 339 live, £70,000
+3. Security Engineer - 329 live, £60,000
 
 **Динамика (perm vacancies):**
 Сейчас: 10,090 | Год назад: 2,542 | 2 года назад: 5,186

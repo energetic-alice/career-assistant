@@ -1,4 +1,4 @@
-# mobileapp_react_native — hh.ru + habr
+# mobileapp_react_native - hh.ru + habr
 
 Дата: 21 апреля 2026 г.
 Источники:
@@ -13,8 +13,8 @@
 | RN разработчик | 5 | 338k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. React Native developer — 74
-2. React Native разработчик — 69
-3. Мобильный разработчик React Native — 38
+1. React Native developer - 74
+2. React Native разработчик - 69
+3. Мобильный разработчик React Native - 38
 
 **По грейдам (Москва):** Junior 135k ₽ (n=18) · Middle 263k ₽ (n=127) · Senior 412k ₽ (n=109) · Lead 564k ₽ (n=39)

@@ -1,4 +1,4 @@
-# qa-automation-engineer — hh.ru + habr
+# qa-automation-engineer - hh.ru + habr
 
 Дата: 19 апреля 2026 г.
 Источники:
@@ -15,8 +15,8 @@
 | Автотестировщик | 123 | 239k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. QA Engineer — 971
-2. Test Automation Engineer — 536
-3. QA Automation — 431
+1. QA Engineer - 971
+2. Test Automation Engineer - 536
+3. QA Automation - 431
 
 **По грейдам (Москва):** Middle 180k ₽ (n=92) · Senior 298k ₽ (n=47) · Lead 319k ₽ (n=29)

@@ -1,4 +1,4 @@
-# ux designer — itjobswatch.co.uk
+# ux designer - itjobswatch.co.uk
 
 Дата: 16 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=ux%20designer
 
@@ -16,9 +16,9 @@
 | Mobile UI Designer | 715 | - | £75,000 | - | 9 | 4 |
 
 **Топ-3 тайтла:**
-1. UX Design — 254 live, £62,500
-2. UX Designer — 68 live, £55,000
-3. UI Designer — 46 live, £52,500
+1. UX Design - 254 live, £62,500
+2. UX Designer - 68 live, £55,000
+3. UI Designer - 46 live, £52,500
 
 **Динамика (perm vacancies):**
 Сейчас: 498 | Год назад: 459 | 2 года назад: 1,035

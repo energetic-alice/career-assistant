@@ -1,4 +1,4 @@
-# qa tester — itjobswatch.co.uk
+# qa tester - itjobswatch.co.uk
 
 Дата: 21 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=qa%20tester
 
@@ -15,9 +15,9 @@
 | Senior QA Tester | 700 | -63 | £62,500 | +49.61% | 3 | N/A |
 
 **Топ-3 тайтла:**
-1. Software Tester — 22 live, £33,000
-2. QA Officer — 11 live, £30,000
-3. QA Analyst — 8 live, £50,000
+1. Software Tester - 22 live, £33,000
+2. QA Officer - 11 live, £30,000
+3. QA Analyst - 8 live, £50,000
 
 **Динамика (perm vacancies):**
 Сейчас: 38 | Год назад: 34 | 2 года назад: 99

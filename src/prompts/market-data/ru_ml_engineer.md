@@ -1,4 +1,4 @@
-# ml_engineer — hh.ru + habr
+# ml_engineer - hh.ru + habr
 
 Дата: 21 апреля 2026 г.
 Источники:
@@ -18,8 +18,8 @@
 | Machine Learning инженер | 77 | 365k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. AI engineer — 590
-2. CV инженер — 292
-3. ML Engineer — 286
+1. AI engineer - 590
+2. CV инженер - 292
+3. ML Engineer - 286
 
 **По грейдам (Москва):** Junior 166k ₽ (n=49) · Middle 292k ₽ (n=101) · Senior 438k ₽ (n=52) · Lead 535k ₽ (n=19)

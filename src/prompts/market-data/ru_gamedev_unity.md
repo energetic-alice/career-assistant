@@ -1,4 +1,4 @@
-# gamedev_unity — hh.ru + habr
+# gamedev_unity - hh.ru + habr
 
 Дата: 21 апреля 2026 г.
 Источники:
@@ -15,8 +15,8 @@
 | C# Unity разработчик | 43 | 238k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. Unity developer — 633
-2. Unity3D разработчик — 155
-3. Gamedev Unity — 114
+1. Unity developer - 633
+2. Unity3D разработчик - 155
+3. Gamedev Unity - 114
 
 **По грейдам (Москва):** Junior 80k ₽ (n=5) · Middle 170k ₽ (n=17) · Senior 307k ₽ (n=8) · Lead 302k ₽ (n=9)

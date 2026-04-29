@@ -1,4 +1,4 @@
-# c++ developer — itjobswatch.co.uk
+# c++ developer - itjobswatch.co.uk
 
 Дата: 21 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=c%2B%2B%20developer
 
@@ -16,9 +16,9 @@
 | Graduate C++ Developer | 695 | -56 | £45,000 | - | 8 | N/A |
 
 **Топ-3 тайтла:**
-1. C++ Developer — 46 live, £80,000
-2. Senior C++ Developer — 13 live, £100,000
-3. C++ Software Developer — 7 live, £45,000
+1. C++ Developer - 46 live, £80,000
+2. Senior C++ Developer - 13 live, £100,000
+3. C++ Software Developer - 7 live, £45,000
 
 **Динамика (perm vacancies):**
 Сейчас: 153 | Год назад: 130 | 2 года назад: 295

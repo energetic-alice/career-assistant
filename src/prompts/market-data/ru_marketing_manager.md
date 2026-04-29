@@ -1,4 +1,4 @@
-# marketing-manager — hh.ru + habr
+# marketing-manager - hh.ru + habr
 
 Дата: 20 апреля 2026 г.
 Источники:
@@ -15,8 +15,8 @@
 | Performance Marketing Manager | 129 | 190k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. Менеджер по маркетингу — 1 119
-2. Маркетинг менеджер — 614
-3. Marketing Manager — 521
+1. Менеджер по маркетингу - 1 119
+2. Маркетинг менеджер - 614
+3. Marketing Manager - 521
 
 **По грейдам (Москва):** Middle 151k ₽ (n=46) · Senior 229k ₽ (n=36) · Lead 225k ₽ (n=17)

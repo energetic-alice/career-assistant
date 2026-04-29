@@ -443,7 +443,10 @@ async function main() {
     md.push("", `_${habrNote}_`);
   }
 
-  const text = md.join("\n");
+  // Sanitize до записи: эти .md подгружаются в LLM-промпты, ё/тире в них
+  // учат Claude нашему "плохому" стилю. См. text-sanitize.ts.
+  const { sanitizeRussianText } = await import("../services/text-sanitize.js");
+  const text = sanitizeRussianText(md.join("\n"));
   console.log("\n" + "=".repeat(60));
   console.log(text);
 

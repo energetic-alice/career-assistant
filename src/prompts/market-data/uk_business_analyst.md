@@ -1,4 +1,4 @@
-# business analyst — itjobswatch.co.uk
+# business analyst - itjobswatch.co.uk
 
 Дата: 16 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=business%20analyst
 
@@ -16,9 +16,9 @@
 | Salesforce Business Analyst | 707 | -85 | £52,500 | -30.00% | 17 | 8 |
 
 **Топ-3 тайтла:**
-1. Business Analyst — 437 live, £55,000
-2. Senior Business Analyst — 48 live, £65,000
-3. Technical Business Analyst — 39 live, £60,000
+1. Business Analyst - 437 live, £55,000
+2. Senior Business Analyst - 48 live, £65,000
+3. Technical Business Analyst - 39 live, £60,000
 
 **Динамика (perm vacancies):**
 Сейчас: 1,383 | Год назад: 678 | 2 года назад: 1,495

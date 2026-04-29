@@ -1,4 +1,4 @@
-# data engineer — itjobswatch.co.uk
+# data engineer - itjobswatch.co.uk
 
 Дата: 16 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=data%20engineer
 
@@ -16,9 +16,9 @@
 | Big Data Engineer | 693 | -61 | £90,000 | +16.12% | 31 | 2 |
 
 **Топ-3 тайтла:**
-1. Data Engineering — 468 live, £75,000
-2. Data Engineer — 425 live, £68,500
-3. Senior Data Engineer — 82 live, £74,250
+1. Data Engineering - 468 live, £75,000
+2. Data Engineer - 425 live, £68,500
+3. Senior Data Engineer - 82 live, £74,250
 
 **Динамика (perm vacancies):**
 Сейчас: 1,224 | Год назад: 843 | 2 года назад: 1,614

@@ -1,4 +1,4 @@
-# frontend-developer-react — hh.ru + habr
+# frontend-developer-react - hh.ru + habr
 
 Дата: 20 апреля 2026 г.
 Источники:
@@ -15,8 +15,8 @@
 | React инженер | 170 | 298k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. React программист — 512
-2. React разработчик — 436
-3. Frontend React — 355
+1. React программист - 512
+2. React разработчик - 436
+3. Frontend React - 355
 
 **По грейдам (Москва):** Middle 240k ₽ (n=225) · Senior 357k ₽ (n=188) · Lead 455k ₽ (n=84)

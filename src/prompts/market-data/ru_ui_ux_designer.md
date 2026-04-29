@@ -1,4 +1,4 @@
-# ux-ui-designer — hh.ru + habr
+# ux-ui-designer - hh.ru + habr
 
 Дата: 20 апреля 2026 г.
 Источники:
@@ -16,8 +16,8 @@
 | UI designer | 345 | 186k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. UX designer — 595
-2. Product Designer — 572
-3. Продуктовый дизайнер — 461
+1. UX designer - 595
+2. Product Designer - 572
+3. Продуктовый дизайнер - 461
 
 **По грейдам (Москва):** Middle 140k ₽ (n=81) · Senior 232k ₽ (n=33) · Lead 343k ₽ (n=19)

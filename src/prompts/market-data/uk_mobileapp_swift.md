@@ -1,4 +1,4 @@
-# ios developer — itjobswatch.co.uk
+# ios developer - itjobswatch.co.uk
 
 Дата: 16 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=ios%20developer
 
@@ -12,9 +12,9 @@
 | Senior iOS Android Developer | 721 | -90 | £70,000 | - | 3 | N/A |
 
 **Топ-3 тайтла:**
-1. iOS Development — 21 live, £70,000
-2. iOS Developer — 11 live, £70,000
-3. iOS Android Developer — 5 live, £75,000
+1. iOS Development - 21 live, £70,000
+2. iOS Developer - 11 live, £70,000
+3. iOS Android Developer - 5 live, £75,000
 
 **Динамика (perm vacancies):**
 Сейчас: 117 | Год назад: 99 | 2 года назад: 153

@@ -1,4 +1,4 @@
-# it support — itjobswatch.co.uk
+# it support - itjobswatch.co.uk
 
 Дата: 21 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=it%20support
 
@@ -16,9 +16,9 @@
 | IT Support Assistant | 690 | -73 | £27,384 | -0.42% | 13 | 8 |
 
 **Топ-3 тайтла:**
-1. IT Support — 322 live, £31,000
-2. Technical Support — 136 live, £40,000
-3. IT Support Engineer — 126 live, £32,500
+1. IT Support - 322 live, £31,000
+2. Technical Support - 136 live, £40,000
+3. IT Support Engineer - 126 live, £32,500
 
 **Динамика (perm vacancies):**
 Сейчас: 2,718 | Год назад: 1,509 | 2 года назад: 3,045

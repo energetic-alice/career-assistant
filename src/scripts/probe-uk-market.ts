@@ -24,6 +24,7 @@ import {
   type ItjobswatchTrend,
   sleep,
 } from "../services/itjw-scraper.js";
+import { sanitizeRussianText as sanitizeForPrompt } from "../services/text-sanitize.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MARKET_DATA_DIR = join(__dirname, "..", "prompts", "market-data");
@@ -373,7 +374,7 @@ async function runItjobswatch(roles: readonly string[]) {
         console.warn(`⚠ ${role}: 0 rows — skip write (preserve existing uk_${role}.md)`);
       } else {
         const filePath = join(MARKET_DATA_DIR, `uk_${role}.md`);
-        const md = formatItjobswatchMd(result);
+        const md = sanitizeForPrompt(formatItjobswatchMd(result));
         await writeFile(filePath, md, "utf-8");
         const best = result.rows[0];
         console.log(

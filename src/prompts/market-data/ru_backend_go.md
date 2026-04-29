@@ -1,4 +1,4 @@
-# backend-developer-go — hh.ru + habr
+# backend-developer-go - hh.ru + habr
 
 Дата: 19 апреля 2026 г.
 Источники:
@@ -15,8 +15,8 @@
 | Backend Go | 230 | 348k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. Go программист — 465
-2. Go разработчик — 389
-3. Golang developer — 335
+1. Go программист - 465
+2. Go разработчик - 389
+3. Golang developer - 335
 
 **По грейдам (Москва):** Middle 285k ₽ (n=232) · Senior 411k ₽ (n=166) · Lead 513k ₽ (n=96)

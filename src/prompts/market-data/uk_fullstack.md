@@ -1,4 +1,4 @@
-# full stack developer — itjobswatch.co.uk
+# full stack developer - itjobswatch.co.uk
 
 Дата: 16 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=full%20stack%20developer
 
@@ -16,9 +16,9 @@
 | Full Stack Java Developer | 631 | -31 | £80,000 | +42.22% | 93 | 8 |
 
 **Топ-3 тайтла:**
-1. Full Stack Development — 876 live, £70,000
-2. Full Stack Engineer — 174 live, £75,000
-3. Full Stack Developer — 129 live, £65,000
+1. Full Stack Development - 876 live, £70,000
+2. Full Stack Engineer - 174 live, £75,000
+3. Full Stack Developer - 129 live, £65,000
 
 **Динамика (perm vacancies):**
 Сейчас: 2,227 | Год назад: 1,357 | 2 года назад: 4,860

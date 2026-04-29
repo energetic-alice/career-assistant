@@ -1,4 +1,4 @@
-# qa engineer — itjobswatch.co.uk
+# qa engineer - itjobswatch.co.uk
 
 Дата: 16 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=qa%20engineer
 
@@ -11,9 +11,9 @@
 | Software QA Engineer | 713 | -87 | £55,000 | +29.41% | 11 | 4 |
 
 **Топ-3 тайтла:**
-1. QA Engineer — 75 live, £50,000
-2. Senior QA Engineer — 14 live, £63,750
-3. QA Automation Engineer — 11 live, £61,000
+1. QA Engineer - 75 live, £50,000
+2. Senior QA Engineer - 14 live, £63,750
+3. QA Automation Engineer - 11 live, £61,000
 
 **Динамика (perm vacancies):**
 Сейчас: 200 | Год назад: 104 | 2 года назад: 266

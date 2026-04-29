@@ -1,4 +1,4 @@
-# mobile-developer-flutter — hh.ru + habr
+# mobile-developer-flutter - hh.ru + habr
 
 Дата: 20 апреля 2026 г.
 Источники:
@@ -13,8 +13,8 @@
 | Dart разработчик | 36 | 300k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. Flutter developer — 79
-2. Flutter разработчик — 62
-3. Мобильный разработчик Flutter — 46
+1. Flutter developer - 79
+2. Flutter разработчик - 62
+3. Мобильный разработчик Flutter - 46
 
 **По грейдам (Москва):** Middle 238k ₽ (n=12) · Senior 363k ₽ (n=6)

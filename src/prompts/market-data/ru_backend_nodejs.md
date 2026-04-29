@@ -1,4 +1,4 @@
-# backend-developer-node-js — hh.ru + habr
+# backend-developer-node-js - hh.ru + habr
 
 Дата: 20 апреля 2026 г.
 Источники:
@@ -15,8 +15,8 @@
 | NestJS разработчик | 61 | 299k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. Node.js developer — 309
-2. JavaScript backend разработчик — 305
-3. Node.js разработчик — 203
+1. Node.js developer - 309
+2. JavaScript backend разработчик - 305
+3. Node.js разработчик - 203
 
 **По грейдам (Москва):** Middle 216k ₽ (n=19) · Senior 382k ₽ (n=10) · Lead 457k ₽ (n=6)

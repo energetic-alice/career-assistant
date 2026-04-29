@@ -1,4 +1,4 @@
-# android developer — itjobswatch.co.uk
+# android developer - itjobswatch.co.uk
 
 Дата: 16 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=android%20developer
 
@@ -13,9 +13,9 @@
 | Senior iOS Android Developer | 721 | -90 | £70,000 | - | 3 | N/A |
 
 **Топ-3 тайтла:**
-1. Android — 182 live, £57,062
-2. Android Development — 37 live, £75,000
-3. Android Developer — 14 live, £75,000
+1. Android - 182 live, £57,062
+2. Android Development - 37 live, £75,000
+3. Android Developer - 14 live, £75,000
 
 **Динамика (perm vacancies):**
 Сейчас: 559 | Год назад: 786 | 2 года назад: 1,308

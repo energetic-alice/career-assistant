@@ -1,4 +1,4 @@
-# it project manager — itjobswatch.co.uk
+# it project manager - itjobswatch.co.uk
 
 Дата: 16 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=it%20project%20manager
 
@@ -16,9 +16,9 @@
 | Security Project Manager | 706 | -79 | £63,076 | +1.73% | 18 | 9 |
 
 **Топ-3 тайтла:**
-1. Project Manager — 589 live, £63,076
-2. Senior Project Manager — 99 live, £65,000
-3. IT Project Manager — 62 live, £60,000
+1. Project Manager - 589 live, £63,076
+2. Senior Project Manager - 99 live, £65,000
+3. IT Project Manager - 62 live, £60,000
 
 **Динамика (perm vacancies):**
 Сейчас: 1,078 | Год назад: 1,687 | 2 года назад: 3,784

@@ -1,4 +1,4 @@
-# frontend-developer-vue — hh.ru + habr
+# frontend-developer-vue - hh.ru + habr
 
 Дата: 20 апреля 2026 г.
 Источники:
@@ -15,8 +15,8 @@
 | Nuxt разработчик | 47 | 277k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. Vue разработчик — 209
-2. Frontend Vue — 173
-3. Vue.js developer — 131
+1. Vue разработчик - 209
+2. Frontend Vue - 173
+3. Vue.js developer - 131
 
 **По грейдам (Москва):** Middle 217k ₽ (n=104) · Senior 337k ₽ (n=57) · Lead 406k ₽ (n=41)

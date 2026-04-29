@@ -1,4 +1,4 @@
-# .net — itjobswatch.co.uk
+# .net - itjobswatch.co.uk
 
 Дата: 21 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=.net
 
@@ -16,9 +16,9 @@
 | .NET Software Developer | 595 | -17 | £55,000 | +10.00% | 108 | 15 |
 
 **Топ-3 тайтла:**
-1. .NET — 763 live, £65,000
-2. .NET Developer — 218 live, £60,000
-3. .NET Core — 217 live, £60,000
+1. .NET - 763 live, £65,000
+2. .NET Developer - 218 live, £60,000
+3. .NET Core - 217 live, £60,000
 
 **Динамика (perm vacancies):**
 Сейчас: 2,002 | Год назад: 2,125 | 2 года назад: 6,881

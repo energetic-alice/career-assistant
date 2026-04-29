@@ -1,4 +1,4 @@
-# mobile-developer-ios-swift — hh.ru + habr
+# mobile-developer-ios-swift - hh.ru + habr
 
 Дата: 19 апреля 2026 г.
 Источники:
@@ -15,8 +15,8 @@
 | iOS Swift разработчик | 57 | 359k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. iOS developer — 551
-2. iOS разработчик — 304
-3. Мобильный разработчик iOS — 222
+1. iOS developer - 551
+2. iOS разработчик - 304
+3. Мобильный разработчик iOS - 222
 
 **По грейдам (Москва):** Middle 293k ₽ (n=29) · Senior 425k ₽ (n=31) · Lead 577k ₽ (n=10)

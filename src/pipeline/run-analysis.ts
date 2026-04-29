@@ -40,6 +40,7 @@ import {
 } from "../services/direction-enricher.js";
 import { directionKey } from "../services/deep-research-service.js";
 import { getMarketResearchProvider } from "../services/market-research/index.js";
+import { sanitizeRussianText } from "../services/text-sanitize.js";
 import type { Region } from "../schemas/analysis-outputs.js";
 
 const client = new Anthropic();
@@ -936,15 +937,21 @@ export async function runAnalysisPhase4(
 
   // Phase 4b: style cleanup pass.
   // Запускается на русскоязычных документах для вычистки англицизмов и
-  // раскрытия аббревиатур. Английские документы пропускаем — там cleanup
+  // раскрытия аббревиатур. Английские документы пропускаем - там cleanup
   // только испортит формулировки.
-  if (opts?.skipStyleCleanup || isEnglishDocument(draftDocument)) {
+  const englishDoc = isEnglishDocument(draftDocument);
+  if (opts?.skipStyleCleanup || englishDoc) {
     if (opts?.skipStyleCleanup) {
       console.log("[Step 4b] SKIPPED (skipStyleCleanup=true)");
     } else {
       console.log("[Step 4b] SKIPPED (документ англоязычный)");
     }
-    return { finalDocument: draftDocument, timing: draftTiming };
+    // Для англоязычных документов символьную зачистку не применяем -
+    // em-dash в английском это норма; для русских пропуск всё равно
+    // прогоняем через sanitize (на случай ручного skipStyleCleanup=true
+    // из вызывающего кода).
+    const out = englishDoc ? draftDocument : sanitizeRussianText(draftDocument);
+    return { finalDocument: out, timing: draftTiming };
   }
 
   console.log("[Step 4b] Style cleanup pass...");
@@ -964,11 +971,22 @@ export async function runAnalysisPhase4(
     console.log(
       `[Step 4b] Cleanup done in ${cleanupTiming}ms ` +
         `(level=${candidateLevel}, en=${englishLevel}, ` +
-        `${draftDocument.length} → ${finalDocument.length} chars)`,
+        `${draftDocument.length} -> ${finalDocument.length} chars)`,
     );
   } catch (err) {
     console.warn(
       `[Step 4b] Cleanup FAILED, fallback to draft: ${(err as Error).message}`,
+    );
+  }
+
+  // Финальная детерминированная зачистка - последний рубеж против ё/тире,
+  // которые регулярно проскакивают через LLM. Применяется и к успешному
+  // cleanup-результату, и к draft-fallback.
+  const beforeSanitize = finalDocument.length;
+  finalDocument = sanitizeRussianText(finalDocument);
+  if (finalDocument.length !== beforeSanitize) {
+    console.log(
+      `[Step 4b] Sanitize: ${beforeSanitize} -> ${finalDocument.length} chars (ё/—/– убраны)`,
     );
   }
 

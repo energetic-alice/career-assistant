@@ -1,4 +1,4 @@
-# php — itjobswatch.co.uk
+# php - itjobswatch.co.uk
 
 Дата: 21 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=php
 
@@ -16,9 +16,9 @@
 | PHP Software Engineer | 686 | -87 | £60,000 | +9.09% | 17 | 1 |
 
 **Топ-3 тайтла:**
-1. PHP — 133 live, £50,000
-2. Laravel PHP Framework — 53 live, £55,000
-3. PHP Developer — 28 live, £45,000
+1. PHP - 133 live, £50,000
+2. Laravel PHP Framework - 53 live, £55,000
+3. PHP Developer - 28 live, £45,000
 
 **Динамика (perm vacancies):**
 Сейчас: 642 | Год назад: 649 | 2 года назад: 1,865

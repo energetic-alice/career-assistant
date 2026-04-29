@@ -1,4 +1,4 @@
-# engineering-manager-tech-lead — hh.ru + habr
+# engineering-manager-tech-lead - hh.ru + habr
 
 Дата: 20 апреля 2026 г.
 Источники:
@@ -16,8 +16,8 @@
 | Head of Engineering | 26 | 315k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. Руководитель разработки — 1 052
-2. Тимлид — 564
-3. Engineering Manager — 517
+1. Руководитель разработки - 1 052
+2. Тимлид - 564
+3. Engineering Manager - 517
 
 **По грейдам (Москва):** Middle 250k ₽ (n=1 166) · Senior 380k ₽ (n=820) · Lead 467k ₽ (n=406)

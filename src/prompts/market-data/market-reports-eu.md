@@ -1,4 +1,4 @@
-# Market Reports: European Union (Germany, Netherlands, Ireland, Nordics, Poland, Czechia — remote-friendly)
+# Market Reports: European Union (Germany, Netherlands, Ireland, Nordics, Poland, Czechia - remote-friendly)
 
 Дата сбора: 15 апреля 2026 г.
 Источник: Perplexity Sonar Pro
@@ -6,7 +6,7 @@
 
 ---
 
-### Step 1: IT Job Market Competition Matrix (EU Focus: Germany, Netherlands, Ireland, Nordics, Poland, Czechia — Remote-Friendly)
+### Step 1: IT Job Market Competition Matrix (EU Focus: Germany, Netherlands, Ireland, Nordics, Poland, Czechia - Remote-Friendly)
 
 No specific vacancy, salary, or YoY trend data for the listed IT roles was available from itjobswatch.co.uk in the search results, as the results did not include direct queries or extracts from that site.[1][2][3][4] Regional boards (stepstone.de, arbeitnow.com, indeed.de, indeed.nl) and levels.fyi also lacked role-specific live vacancy counts or salary data for the EU regions specified. UK remote-friendly positions were not detailed with verifiable numbers. All fields marked "N/A".
 

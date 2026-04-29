@@ -1,4 +1,4 @@
-# python developer — itjobswatch.co.uk
+# python developer - itjobswatch.co.uk
 
 Дата: 21 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=python%20developer
 
@@ -16,9 +16,9 @@
 | Lead Python Developer | 642 | -23 | £80,000 | -5.88% | 61 | 4 |
 
 **Топ-3 тайтла:**
-1. Python Developer — 106 live, £75,000
-2. FastAPI — 101 live, £87,500
-3. Django — 76 live, £80,000
+1. Python Developer - 106 live, £75,000
+2. FastAPI - 101 live, £87,500
+3. Django - 76 live, £80,000
 
 **Динамика (perm vacancies):**
 Сейчас: 387 | Год назад: 245 | 2 года назад: 527

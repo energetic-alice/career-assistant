@@ -1,4 +1,4 @@
-# backend-developer-php — hh.ru + habr
+# backend-developer-php - hh.ru + habr
 
 Дата: 20 апреля 2026 г.
 Источники:
@@ -16,8 +16,8 @@
 | Symfony разработчик | 85 | 277k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. PHP developer — 519
-2. PHP программист — 439
-3. PHP разработчик — 378
+1. PHP developer - 519
+2. PHP программист - 439
+3. PHP разработчик - 378
 
 **По грейдам (Москва):** Middle 220k ₽ (n=76) · Senior 333k ₽ (n=71) · Lead 405k ₽ (n=48)

@@ -1,4 +1,4 @@
-# data analyst — itjobswatch.co.uk
+# data analyst - itjobswatch.co.uk
 
 Дата: 16 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=data%20analyst
 
@@ -16,9 +16,9 @@
 | HR Data Analyst | 680 | -51 | £45,000 | +3.44% | 44 | 8 |
 
 **Топ-3 тайтла:**
-1. Data Analyst — 451 live, £40,000
-2. Data Analytics — 391 live, £55,000
-3. Trainee Data Analyst — 48 live, £40,000
+1. Data Analyst - 451 live, £40,000
+2. Data Analytics - 391 live, £55,000
+3. Trainee Data Analyst - 48 live, £40,000
 
 **Динамика (perm vacancies):**
 Сейчас: 1,911 | Год назад: 406 | 2 года назад: 899

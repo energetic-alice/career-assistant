@@ -1,4 +1,4 @@
-# product manager — itjobswatch.co.uk
+# product manager - itjobswatch.co.uk
 
 Дата: 16 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=product%20manager
 
@@ -16,9 +16,9 @@
 | Digital Product Manager | 679 | -96 | £60,000 | +2.56% | 45 | 9 |
 
 **Топ-3 тайтла:**
-1. Product Manager — 288 live, £70,000
-2. Product Management — 248 live, £68,000
-3. Product Marketing — 119 live, £57,386
+1. Product Manager - 288 live, £70,000
+2. Product Management - 248 live, £68,000
+3. Product Marketing - 119 live, £57,386
 
 **Динамика (perm vacancies):**
 Сейчас: 477 | Год назад: 582 | 2 года назад: 616

@@ -1,4 +1,4 @@
-# talent acquisition — itjobswatch.co.uk
+# talent acquisition - itjobswatch.co.uk
 
 Дата: 16 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=talent%20acquisition
 

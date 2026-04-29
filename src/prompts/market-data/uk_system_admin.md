@@ -1,4 +1,4 @@
-# system administrator — itjobswatch.co.uk
+# system administrator - itjobswatch.co.uk
 
 Дата: 21 апреля 2026 г. | Источник: https://www.itjobswatch.co.uk/default.aspx?q=system%20administrator
 
@@ -16,9 +16,9 @@
 | E-Commerce Systems Administrator | 698 | - | £35,000 | - | 5 | N/A |
 
 **Топ-3 тайтла:**
-1. Systems Administrator — 65 live, £45,000
-2. Microsoft Certified Solutions Associate (MCSA) formerly Microsoft Certified Systems Administrator — 14 live, £35,000
-3. IT Systems Administrator — 10 live, £40,000
+1. Systems Administrator - 65 live, £45,000
+2. Microsoft Certified Solutions Associate (MCSA) formerly Microsoft Certified Systems Administrator - 14 live, £35,000
+3. IT Systems Administrator - 10 live, £40,000
 
 **Динамика (perm vacancies):**
 Сейчас: 298 | Год назад: 224 | 2 года назад: 523

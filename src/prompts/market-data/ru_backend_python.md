@@ -1,4 +1,4 @@
-# backend_python — hh.ru + habr
+# backend_python - hh.ru + habr
 
 Дата: 21 апреля 2026 г.
 Источники:
@@ -17,8 +17,8 @@
 | Flask | 104 | 308k ₽ |
 
 **Топ-3 формулировки (по числу вакансий):**
-1. Python developer — 2 144
-2. Python инженер — 1 266
-3. Python разработчик — 936
+1. Python developer - 2 144
+2. Python инженер - 1 266
+3. Python разработчик - 936
 
 **По грейдам (Москва):** Junior 134k ₽ (n=56) · Middle 250k ₽ (n=193) · Senior 367k ₽ (n=130) · Lead 460k ₽ (n=70)
