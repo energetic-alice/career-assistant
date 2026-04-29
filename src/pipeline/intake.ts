@@ -488,6 +488,44 @@ export function registerIntakeRoutes(app: FastifyInstance) {
           (s) => normalizeNick(s.telegramNick) === nick,
         );
 
+        // Защита от перезатирания при повторном webhook (например, GAS-rescue
+        // resendAll прогоняет ВСЕ строки таблицы заново). Если клиент уже
+        // продвинулся по pipeline, не сбрасываем его обратно в intake_received
+        // и не теряем shortlist/deep/final/clientSummary/selectedTargetRoles.
+        //
+        // Безопасным считаем повторный приём только если клиент ещё не успел
+        // получить clientSummary И находится в одной из самых ранних стадий.
+        // Это покрывает реальный кейс «клиент перезаполнил форму до запуска
+        // анализа» (там нечего терять) и блокирует rescue-replay поверх уже
+        // работающих карточек.
+        if (existing) {
+          const prevOuts = (existing.stageOutputs ?? {}) as Record<string, unknown>;
+          const hasClientSummary = !!prevOuts.clientSummary;
+          const earlyStages: PipelineState["stage"][] = [
+            "intake_received",
+            "resume_parsed",
+          ];
+          const isEarly = earlyStages.includes(existing.stage);
+          if (hasClientSummary || !isEarly) {
+            request.log.info(
+              {
+                participantId: existing.participantId,
+                nick: questionnaire.telegramNick,
+                stage: existing.stage,
+                hasClientSummary,
+              },
+              "Webhook skipped: client already advanced past intake",
+            );
+            return reply.status(200).send({
+              success: true,
+              skipped: true,
+              reason: "already_processed",
+              participantId: existing.participantId,
+              stage: existing.stage,
+            });
+          }
+        }
+
         const participantId = existing?.participantId ?? crypto.randomUUID();
         const now = new Date().toISOString();
 

@@ -193,6 +193,7 @@ export async function sendClientCard(
     analysisDocUrl: finalAnalysis?.docUrl,
     analysisGeneratedAt: finalAnalysis?.generatedAt,
     analysisError: cardAnalysisError,
+    program: outputs.program as string | undefined,
   });
 
   const replyMarkup =
@@ -352,6 +353,7 @@ export async function refreshClientCard(participantId: string): Promise<void> {
     analysisDocUrl: finalAnalysis?.docUrl,
     analysisGeneratedAt: finalAnalysis?.generatedAt,
     analysisError: cardAnalysisError,
+    program: outputs.program as string | undefined,
   });
 
   const replyMarkup = buildAnalyzeKeyboard(participantId, state.stage, outputs);

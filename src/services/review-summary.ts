@@ -446,6 +446,12 @@ export interface ClientCardSource {
     authorUsername?: string;
     source?: string;
   }>;
+  /**
+   * Метка программы Алисы ("КА1", "КА2", "М14", "тест"). Показываем
+   * первой строкой заголовка, чтобы куратор моментально видел приоритет
+   * и не путал тестовых клиентов с реальной КА2.
+   */
+  program?: string;
 }
 
 /**
@@ -460,10 +466,19 @@ export function formatClientCardForTelegram(src: ClientCardSource): string {
     ? renderFromClientSummary(src.clientSummary, src.telegramNick, src.stage)
     : renderFromRawFallback(src);
 
+  const programLine = src.program
+    ? `<b>📚 Программа:</b> ${escapeHtml(src.program)}`
+    : "";
   const selectedTargets = formatSelectedTargetRoles(src.selectedTargetRoles);
   const notesBlock = formatClientNotes(src.clientNotes);
   const finalAnalysisBlock = formatFinalAnalysisBlock(src);
-  const withTargets = [body, selectedTargets, notesBlock, finalAnalysisBlock]
+  const withTargets = [
+    programLine,
+    body,
+    selectedTargets,
+    notesBlock,
+    finalAnalysisBlock,
+  ]
     .filter((s) => s && s.length > 0)
     .join("\n\n");
 

@@ -32,6 +32,21 @@ export const pipelineStageEnum = z.enum([
 
 export type PipelineStage = z.infer<typeof pipelineStageEnum>;
 
+/**
+ * Метка программы Алисы, в рамках которой пришёл клиент.
+ * Хранится в `stageOutputs.program` (extra-метаданные для UI карточки и
+ * /clients-списка), НЕ участвует в pipeline-логике, поэтому не часть
+ * `pipelineStateSchema`. Проставляется вручную через backfill/скрипты;
+ * webhook сам ничего не выставляет — куратор решает.
+ *
+ *   - "КА1"  — первая «живая» программа (legacy-импорт из Google Doc'ов).
+ *   - "КА2"  — текущая активная программа.
+ *   - "М14"  — отдельный mentoring-трек.
+ *   - "тест" — тестовые/пилотные клиенты.
+ */
+export const PROGRAM_LABELS = ["КА1", "КА2", "М14", "тест"] as const;
+export type ProgramLabel = (typeof PROGRAM_LABELS)[number];
+
 export const pipelineStateSchema = z.object({
   participantId: z.string(),
   telegramNick: z.string(),

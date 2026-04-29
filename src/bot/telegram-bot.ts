@@ -107,8 +107,12 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
 
       const nameStr = name ? ` <b>${escapeHtml(name)}</b>` : "";
       const stageLabel = STAGE_LABELS[s.stage] ?? s.stage;
+      // Метка программы (КА1/КА2/М14/тест) — extra-метаданные из stageOutputs,
+      // не часть pipeline. Показываем тегом в начале строки клиента.
+      const program = (s.stageOutputs as { program?: string } | undefined)?.program;
+      const programTag = program ? `[${escapeHtml(program)}] ` : "";
 
-      lines.push(`<b>@${escapeHtml(nick)}</b>${nameStr}${context}`);
+      lines.push(`${programTag}<b>@${escapeHtml(nick)}</b>${nameStr}${context}`);
       lines.push(`  ${escapeHtml(stageLabel)} — /client_${nick}`);
       lines.push("");
     }
