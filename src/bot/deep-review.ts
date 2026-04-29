@@ -580,6 +580,7 @@ interface FinalAnalysisOutput {
   top3Titles: string[];
   rejectedTitles: string[];
   markdownLength: number;
+  markdown?: string;
 }
 
 async function handleFinal(
@@ -743,6 +744,7 @@ h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border
     top3Titles,
     rejectedTitles,
     markdownLength: markdown.length,
+    markdown,
   };
   updatePipelineStage(participantId, "final_ready", {
     finalAnalysis: out,
