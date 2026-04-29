@@ -41,8 +41,9 @@
 | Engineering Manager | `engineering_manager` | ~8000 | ~5.0 | +10% | Средняя |
 | Cloud Architect | - | ~6000 | ~8.0 | +15% | Низкая |
 | Industrial IoT / MLOps | - | ~2000 | ~15.0 | +30% | Очень низкая |
+| IT/Tech Recruiter / Talent Acquisition | `recruiter` | ~1200 | ~3.5 | +5-10% | Средняя |
 
-Slug-и из каталога, которых нет в справочнике: `backend_net`, `backend_php`, `backend_cplusplus`, `frontend_vue`, `frontend_angular`, `fullstack`, `appsec`, `manual_testing`, `project_manager`, `tech_lead`, `software_architect`, `product_analyst`, `ui_ux_designer`, `recruiter`, `technical_writer`, `infosecspec`, `1c_developer`, `gamedev_unity`, `web3_developer`, `system_admin`, `tech_support_manager`.
+Slug-и из каталога, которых нет в справочнике: `backend_net`, `backend_php`, `backend_cplusplus`, `frontend_vue`, `frontend_angular`, `fullstack`, `appsec`, `manual_testing`, `project_manager`, `tech_lead`, `software_architect`, `product_analyst`, `ui_ux_designer`, `technical_writer`, `infosecspec`, `1c_developer`, `gamedev_unity`, `web3_developer`, `system_admin`, `tech_support_manager`.
 
 ## По регионам (отклонения от EU-среднего)
 
