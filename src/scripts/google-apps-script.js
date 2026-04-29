@@ -134,6 +134,78 @@ function getTargetForm() {
   return form;
 }
 
+/* ── Self-heal: установка/восстановление onFormSubmit-триггера ── */
+/*
+ * Google периодически тихо отключает installable triggers (после серии ошибок
+ * подряд, после смены OAuth-сессии, при копировании проекта и т.д.). Без
+ * триггера новые ответы формы НЕ долетают до webhook'а — sheet растёт, а наш
+ * бот молчит. Эти три функции лечат проблему:
+ *
+ *   1. installFormTrigger() — нажми вручную один раз. Сносит ВСЕ существующие
+ *      триггеры на onFormSubmit и ставит ровно один правильный (spreadsheet
+ *      → on form submit). Идемпотентно: можно дёргать сколько угодно раз.
+ *   2. ensureFormTrigger() — то же, но НЕ пересоздаёт, если триггер уже жив.
+ *      Ничего не делает в норме, лечит только если триггер пропал.
+ *   3. installAutoHeal() — запусти один раз. Поставит time-based триггер
+ *      раз в час, который вызывает ensureFormTrigger(). Дальше система
+ *      сама себя чинит, даже если onFormSubmit отвалится.
+ */
+
+function installFormTrigger() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) {
+    throw new Error("Run this from the spreadsheet-bound Apps Script project.");
+  }
+
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === "onFormSubmit") {
+      ScriptApp.deleteTrigger(t);
+      Logger.log("Deleted stale onFormSubmit trigger: " + t.getUniqueId());
+    }
+  });
+
+  const trigger = ScriptApp.newTrigger("onFormSubmit")
+    .forSpreadsheet(ss)
+    .onFormSubmit()
+    .create();
+
+  Logger.log("Installed onFormSubmit trigger: " + trigger.getUniqueId());
+  return trigger.getUniqueId();
+}
+
+function ensureFormTrigger() {
+  const alive = ScriptApp.getProjectTriggers().some(function (t) {
+    return (
+      t.getHandlerFunction() === "onFormSubmit" &&
+      t.getEventType() === ScriptApp.EventType.ON_FORM_SUBMIT
+    );
+  });
+
+  if (alive) {
+    Logger.log("ensureFormTrigger: trigger is alive, nothing to do");
+    return;
+  }
+
+  Logger.log("ensureFormTrigger: trigger missing, reinstalling...");
+  installFormTrigger();
+}
+
+function installAutoHeal() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === "ensureFormTrigger") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+
+  const heal = ScriptApp.newTrigger("ensureFormTrigger")
+    .timeBased()
+    .everyHours(1)
+    .create();
+
+  Logger.log("Installed hourly self-heal trigger: " + heal.getUniqueId());
+  return heal.getUniqueId();
+}
+
 /**
  * Rescue/backfill: переотправить ВСЕ ответы прямо из Google Form.
  * Использовать, когда во вкладке Responses видно 16 ответов, но linked Sheet
