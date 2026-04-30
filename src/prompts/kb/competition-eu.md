@@ -42,8 +42,11 @@
 | Cloud Architect | - | ~6000 | ~8.0 | +15% | Низкая |
 | Industrial IoT / MLOps | - | ~2000 | ~15.0 | +30% | Очень низкая |
 | IT/Tech Recruiter / Talent Acquisition | `recruiter` | ~1200 | ~3.5 | +5-10% | Средняя |
+| UX/UI / Product Designer (senior+) | `ui_ux_designer` | ~1500 EU (узко) | ~2.0 | -50% за 2 года | Высокая |
 
-Slug-и из каталога, которых нет в справочнике: `backend_net`, `backend_php`, `backend_cplusplus`, `frontend_vue`, `frontend_angular`, `fullstack`, `appsec`, `manual_testing`, `project_manager`, `tech_lead`, `software_architect`, `product_analyst`, `ui_ux_designer`, `technical_writer`, `infosecspec`, `1c_developer`, `gamedev_unity`, `web3_developer`, `system_admin`, `tech_support_manager`.
+Примечание по UX/UI: рынок прошел серьезное сжатие в 2024-2026 из-за AI-инструментов (Figma AI, Midjourney, автогенерация дизайн-систем). Junior/middle позиции закрываются в разы быстрее, чем открываются новые. Senior+ с опытом дизайн-систем, B2B-продуктов и лидерства команд защищены лучше, но общий рынок сузился - UK itjobswatch показывает падение с ~1000 до ~250 вакансий за 2 года. AI-риск = high по данным market-index, смягчать не надо.
+
+Slug-и из каталога, которых нет в справочнике: `backend_net`, `backend_php`, `backend_cplusplus`, `frontend_vue`, `frontend_angular`, `fullstack`, `appsec`, `manual_testing`, `project_manager`, `tech_lead`, `software_architect`, `product_analyst`, `technical_writer`, `infosecspec`, `1c_developer`, `gamedev_unity`, `web3_developer`, `system_admin`, `tech_support_manager`.
 
 ## По регионам (отклонения от EU-среднего)
 
