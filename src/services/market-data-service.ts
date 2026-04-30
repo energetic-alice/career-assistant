@@ -7,7 +7,19 @@ import type { MarketIndex } from "../schemas/market-index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MARKET_DATA_DIR = join(__dirname, "..", "prompts", "market-data");
+const COUNTRY_SALARY_DIR = join(MARKET_DATA_DIR, "by-country");
 const KB_DIR = join(__dirname, "..", "prompts", "kb");
+
+// physicalCountry в профиле приходит как полное английское название
+// (см. analysis-outputs.ts:135). Конвертируем в ISO для имён файлов
+// `by-country/{ISO}_{slug}.md`.
+const COUNTRY_NAME_TO_ISO: Record<string, string> = {
+  Netherlands: "NL", Germany: "DE", Spain: "ES",
+  France: "FR", Austria: "AT", Ireland: "IE",
+  Poland: "PL", Sweden: "SE", "United States": "US",
+  Israel: "IL", "United Arab Emirates": "AE", UAE: "AE",
+  Singapore: "SG", Australia: "AU", "United Kingdom": "UK", UK: "UK",
+};
 
 const SONAR_URL = "https://api.perplexity.ai/v1/sonar";
 const SONAR_MODEL = "sonar-pro";
@@ -328,6 +340,118 @@ export const loadParsedItjw = loadParsedUk;
 export const loadParsedHh = loadParsedRu;
 
 // ---------------------------------------------------------------------------
+// Country salary (by-country/{ISO}_{slug}.md, источник: probe-country-salary.ts)
+// ---------------------------------------------------------------------------
+
+export interface CountrySalaryTier {
+  min: number | null;
+  max: number | null;
+  median: number | null;
+}
+
+export interface ParsedCountrySalary {
+  role: string;
+  country: string;
+  currency: string;
+  period: "/год" | "/мес";
+  tiers: {
+    junior: CountrySalaryTier;
+    middle: CountrySalaryTier;
+    senior: CountrySalaryTier;
+    lead: CountrySalaryTier;
+  };
+  notes?: string;
+}
+
+function parseCountryNum(raw: string): number | null {
+  const cleaned = raw.replace(/[,\s]/g, "").replace(/[—-]/g, "");
+  if (!cleaned || cleaned === "—") return null;
+  const n = parseInt(cleaned, 10);
+  return Number.isNaN(n) ? null : n;
+}
+
+export function parseCountrySalaryFile(content: string): ParsedCountrySalary | null {
+  const lines = content.split("\n");
+  if (lines.length < 8) return null;
+
+  // # recruiter - Netherlands (EUR gross /год)
+  const headerMatch = lines[0]?.match(
+    /^#\s+(\S+)\s+[-—]\s+(.+?)\s+\(([A-Z]{3})\s+\w+\s+(\/год|\/мес)\)/,
+  );
+  if (!headerMatch) return null;
+  const [, role, country, currency, period] = headerMatch;
+
+  const tiers: ParsedCountrySalary["tiers"] = {
+    junior: { min: null, max: null, median: null },
+    middle: { min: null, max: null, median: null },
+    senior: { min: null, max: null, median: null },
+    lead: { min: null, max: null, median: null },
+  };
+
+  for (const line of lines) {
+    const m = line.match(
+      /^\|\s*(junior|middle|senior|lead)\s*\|[^|]+\|\s*([\d,—-]+)\s*\|\s*([\d,—-]+)\s*\|\s*([\d,—-]+)\s*\|/,
+    );
+    if (m) {
+      const [, tierName, minS, maxS, medS] = m;
+      tiers[tierName as keyof typeof tiers] = {
+        min: parseCountryNum(minS!),
+        max: parseCountryNum(maxS!),
+        median: parseCountryNum(medS!),
+      };
+    }
+  }
+
+  let notes: string | undefined;
+  for (const line of lines) {
+    const m = line.match(/^\*\*Заметки:\*\*\s+(.+)$/);
+    if (m) {
+      notes = m[1]!.trim();
+      break;
+    }
+  }
+
+  return {
+    role: role!,
+    country: country!.trim(),
+    currency: currency!,
+    period: period as "/год" | "/мес",
+    tiers,
+    notes,
+  };
+}
+
+/**
+ * Грузит per-country salary файл `by-country/{ISO}_{slug}.md`. Возвращает
+ * `null` если файл отсутствует или не парсится.
+ */
+export async function loadParsedCountrySalary(
+  countryIso: string,
+  slug: string,
+): Promise<ParsedCountrySalary | null> {
+  try {
+    const content = await readFile(
+      join(COUNTRY_SALARY_DIR, `${countryIso}_${slug}.md`),
+      "utf-8",
+    );
+    return parseCountrySalaryFile(content);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Возвращает ISO-код локального рынка клиента или null если страна не покрыта
+ * `by-country/` файлами. Берём `physicalCountry` (надёжнее чем
+ * `targetCountries`, т.к. целевая страна может быть текстовой формулировкой).
+ */
+export function inferClientCountryIso(profile: CandidateProfile): string | null {
+  const country = profile.barriers.physicalCountry?.trim();
+  if (!country) return null;
+  return COUNTRY_NAME_TO_ISO[country] ?? null;
+}
+
+// ---------------------------------------------------------------------------
 // buildMarketSummary — compact market summary for prompts
 // ---------------------------------------------------------------------------
 
@@ -518,6 +642,50 @@ export async function buildMarketSummary(
   if (showRU && !hasSomeRU) {
     mdLines.push("");
     mdLines.push("*RU данные: hh.ru файлы пусты (требуется перезаполнение)*");
+  }
+
+  // ---- Локальные tier-зарплаты для страны клиента (by-country/) ----
+  const countryIso = inferClientCountryIso(profile);
+  if (countryIso) {
+    const localBlocks: ParsedCountrySalary[] = [];
+    for (const slug of roleSlugs) {
+      const cs = await loadParsedCountrySalary(countryIso, slug);
+      if (cs) localBlocks.push(cs);
+    }
+    if (localBlocks.length > 0) {
+      const first = localBlocks[0]!;
+      mdLines.push("");
+      mdLines.push(
+        `## Локальные tier-зарплаты — ${first.country} (${first.currency} gross ${first.period})`,
+      );
+      mdLines.push("");
+      mdLines.push(
+        "ВАЖНО: используй ИМЕННО эти числа для зарплатных вилок в анализе. Это broad mid-market медианы национального уровня (PayScale / Glassdoor / ERI), а НЕ Big Tech / FAANG ceilings. Для transitioning кандидата стартовый tier = junior или middle (не senior, даже если у него много лет опыта в смежной роли).",
+      );
+      mdLines.push("");
+      mdLines.push("| Роль | Junior (min-max, med) | Middle | Senior | Lead |");
+      mdLines.push("|---|---|---|---|---|");
+      for (const cs of localBlocks) {
+        const fmt = (t: CountrySalaryTier): string => {
+          if (t.min == null && t.max == null && t.median == null) return "—";
+          const med = t.median != null ? `, med ${t.median.toLocaleString("en")}` : "";
+          const min = t.min != null ? t.min.toLocaleString("en") : "—";
+          const max = t.max != null ? t.max.toLocaleString("en") : "—";
+          return `${min}-${max}${med}`;
+        };
+        mdLines.push(
+          `| ${cs.role} | ${fmt(cs.tiers.junior)} | ${fmt(cs.tiers.middle)} | ${fmt(cs.tiers.senior)} | ${fmt(cs.tiers.lead)} |`,
+        );
+      }
+      const withNotes = localBlocks.filter((cs) => cs.notes);
+      if (withNotes.length > 0) {
+        mdLines.push("");
+        mdLines.push("**Notes по ролям (Big Tech ceilings, региональные премии):**");
+        for (const cs of withNotes) {
+          mdLines.push(`- *${cs.role}*: ${cs.notes}`);
+        }
+      }
+    }
   }
 
   return {
