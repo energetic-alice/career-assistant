@@ -1227,7 +1227,8 @@
         "twoYearsAgo": 1035,
         "ratio": 0.48
       },
-      "source": "itjobswatch.co.uk (uk_ui_ux_designer.md)"
+      "source": "itjobswatch.co.uk (uk_ui_ux_designer.md)",
+      "competitionPer100Specialists": 2
     },
     "eu": null,
     "us": null,
@@ -1296,7 +1297,8 @@
       "vacancies": null,
       "medianSalaryMid": null,
       "trend": null,
-      "source": "itjobswatch.co.uk (uk_recruiter.md)"
+      "source": "itjobswatch.co.uk (uk_recruiter.md)",
+      "competitionPer100Specialists": 3.5
     },
     "eu": null,
     "us": null,
@@ -1355,7 +1357,7 @@
       "Penetration Tester"
     ],
     "ru": {
-      "vacancies": 851,
+      "vacancies": 810,
       "medianSalaryMid": 239000,
       "trend": null,
       "source": "hh.ru (ru_infosecspec.md)"

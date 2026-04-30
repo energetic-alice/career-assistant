@@ -151,17 +151,6 @@ interface ValidatedClaudeFill {
 
 const RU_PROXY_REGIONS: ReadonlySet<Region> = new Set<Region>(["ru", "cis"]);
 
-/**
- * Регионы, которые UK-data (itjobswatch) обслуживает корректно:
- *   uk, eu — прямой proxy (рынки близкие по уровню зарплат, динамики).
- *   global — для глобально-распределённых ролей UK-rate как нижняя оценка ОК.
- *
- * НЕ покрываются UK-proxy: us, latam, asia-pacific, middle-east. Для этих
- * регионов нужна отдельная зарплата от Claude (vacancies/trend всё равно
- * берём из UK как пропорциональный baseline).
- */
-const UK_PROXY_REGIONS: ReadonlySet<Region> = new Set<Region>(["uk", "eu", "global"]);
-
 function allTargetsAreRuProxy(summary: ClientSummary): boolean {
   const regions = summary.targetMarketRegions ?? [];
   if (regions.length === 0) return false;
@@ -169,39 +158,29 @@ function allTargetsAreRuProxy(summary: ClientSummary): boolean {
 }
 
 /**
- * Нужна ли Claude-salary для конкретного direction.
+ * На этапе shortlist НЕ ходим в Claude за региональными salary.
  *
- * Алгоритм:
- *   - bucket=ru → false (RU/CIS закрывается RU-данными отдельно).
- *   - bucket=usa → true всегда (USD, US market).
- *   - bucket=abroad: смотрим на target-регионы клиента. Если все target-ы ∈
- *     {uk, eu, global} — UK-proxy ОК, Claude не нужен. Если есть хотя бы один
- *     non-UK-proxy target (us/latam/asia-pacific/middle-east) — нужен Claude.
+ * История: раньше для bucket=usa или bucket=abroad с non-UK-proxy target
+ * (us/latam/asia-pacific/middle-east) мы просили Claude вернуть
+ * `medianSalaryRegional` в USD. Это приводило к двум проблемам:
+ *   1. Claude регулярно давал senior-уровня цифры даже для middle
+ *      direction'ов (например $140k для DevOps middle).
+ *   2. UI `formatMoney` для bucket=abroad конвертирует значение как GBP/год
+ *      через курс ×1.17/12 → USD-число рендерилось как €14k/мес.
+ *
+ * На этапе shortlist нам достаточно UK-proxy (£/год) из itjobswatch —
+ * шкала между направлениями сохраняется, а USA-аплифт (×1.5) применяется
+ * в UI при bucket=usa. Claude по-прежнему вызывается, но только для
+ * `matchAccepted` и `aiRisk` (это его настоящая ценность).
+ *
+ * Финальный анализ (Phase 3/4) при необходимости может запрашивать
+ * отдельные страны через `probe-country-salary`-файлы.
  */
-function needsClaudeSalary(direction: Direction, summary: ClientSummary): {
+function needsClaudeSalary(_direction: Direction, _summary: ClientSummary): {
   needed: boolean;
-  /** Лейбл для Claude-prompt-а — на каком рынке считать salary. */
   regionLabel: string;
 } {
-  if (direction.bucket === "ru") return { needed: false, regionLabel: "RU" };
-
-  const targets = (summary.targetMarketRegions ?? []) as Region[];
-
-  if (direction.bucket === "usa") {
-    return { needed: true, regionLabel: "USA" };
-  }
-
-  // bucket=abroad: какие из target-регионов не покрываются UK-proxy?
-  const nonUkProxy = targets.filter(
-    (r) => !UK_PROXY_REGIONS.has(r) && !RU_PROXY_REGIONS.has(r),
-  );
-  if (nonUkProxy.length === 0) {
-    return { needed: false, regionLabel: "UK/EU (covered by itjobswatch)" };
-  }
-  return {
-    needed: true,
-    regionLabel: nonUkProxy.join(" / ").toUpperCase(),
-  };
+  return { needed: false, regionLabel: "UK-proxy only (Claude salary отключен на shortlist)" };
 }
 
 function regionLabel(direction: Direction, summary: ClientSummary): string {
@@ -572,11 +551,12 @@ function mergeFromResolverAndClaude(args: {
     merged.dataSource = resolverSource;
   }
 
-  // 2. Salary: если Claude дал regional → перезаписываем; иначе — UK
-  // proxy от resolver-а (если useResolver).
-  if (fill?.medianSalaryRegional != null) {
-    merged.medianSalaryMid = fill.medianSalaryRegional;
-  } else if (useResolver && resolved?.medianSalaryGbp !== null && resolved?.medianSalaryGbp !== undefined) {
+  // 2. Salary: только UK-proxy от resolver-а. Claude regional USD на
+  // shortlist-этапе больше не используем — смешение GBP и USD в одном
+  // поле `medianSalaryMid` ломало UI (formatMoney считает abroad как GBP).
+  // Если нужны country-specific цифры — они подтянутся в Phase 3/4 из
+  // `by-country/*.md` файлов.
+  if (useResolver && resolved?.medianSalaryGbp !== null && resolved?.medianSalaryGbp !== undefined) {
     merged.medianSalaryMid = resolved.medianSalaryGbp;
   }
 
@@ -643,15 +623,19 @@ async function mapPool<TIn, TOut>(
   return out;
 }
 
-// ─── Resolution targets (mirror of deep-research-service) ─────────────────────
+// ─── Resolution targets ──────────────────────────────────────────────────────
 //
-// В v3 мы вызываем niche-resolver и Claude для ВСЕХ recommended directions
-// (не только тех, где есть gap). Resolver уточняет per-niche цифры даже когда
-// market-index уже что-то дал — для "infosecspec" в shared-bucket-е это даёт
-// разные числа на AppSec / SOC / DevSecOps вместо одной общей.
-//
-// Ru-only target (клиент только на RU/CIS) — пропускаем целиком, у нас нет
-// per-niche RU-резолвера.
+// Политика на shortlist-этапе:
+//   - known slugs (есть в market-index) → НЕ трогаем. Берём медиану и
+//     vacancies по slug из market-index как есть. Niche-resolver не ходит
+//     (раньше он подменял top-row на "Senior React Developer" и т.п.).
+//     aiRisk/matchAccepted Claude-ом тоже не перезаписываем — market-index
+//     наш единственный источник правды для known ролей.
+//   - off-index slugs (не в market-index) → резолвер + Claude как раньше,
+//     это единственный способ получить хоть какие-то цифры. При этом
+//     Claude-salary (USD) теперь всё равно не применяется — см.
+//     `needsClaudeSalary` и `mergeFromResolverAndClaude`.
+//   - ru-only target / bucket=ru → пропускаем (RU-резолвера у нас нет).
 
 interface ResolveTarget {
   index: number;
@@ -672,7 +656,8 @@ function detectResolveTargets(
     if (!d || !e) continue;
     if (d.recommended === false) continue;
     if (ruOnly) continue;
-    if (d.bucket === "ru") continue; // ru-bucket направления — не наш resolver
+    if (d.bucket === "ru") continue;
+    if (e.source === "market-index") continue;
     out.push({ index: i, direction: d, baseline: e });
   }
   return out;

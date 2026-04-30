@@ -236,9 +236,14 @@ export function parseItjwFile(content: string): ParsedItjw | null {
     });
   }
 
+  // Разделитель между title и live-count может быть любым из: em-dash `—`,
+  // en-dash `–`, обычным hyphen `-`. После глобального `sanitizeRussianText`
+  // все `—` / `–` в md-файлах заменились на `-`, поэтому раньше top3 не
+  // парсился и build-market-index молча падал на `trend.now` (permJobs6m),
+  // что выдавало за "1597 live-вакансий" 6-месячный поток.
   const top3: ParsedItjw["top3"] = [];
   for (const line of lines) {
-    const m = line.match(/^\d+\.\s+(.+?)\s+—\s+(\d[\d,]*)\s+live,\s+£([\d,]+)/);
+    const m = line.match(/^\d+\.\s+(.+?)\s+[—–-]\s+(\d[\d,]*)\s+live,\s+£([\d,]+)/);
     if (m) {
       top3.push({
         title: m[1]!,

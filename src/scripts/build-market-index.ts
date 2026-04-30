@@ -271,11 +271,15 @@ async function buildUk(def: RoleDef): Promise<RegionStats | null> {
   if (!parsed) return null;
   const top = parsed.top3[0];
 
-  // Выбор источника числа живых вакансий:
-  //   1. skill-page live (hardcoded "Live total (skill page): N" строка в md-файле)
-  //   2. def.ukSumLive = true → сумма по всем родственным тайтлам таблицы
-  //   3. top-1 liveJobs из поиска (по умолчанию)
-  let vacancies: number | null = top?.liveJobs ?? parsed.trend?.now ?? null;
+  // Источник числа вакансий — ТОЛЬКО live (текущие активные). Никогда
+  // не падаем на `trend.now` (perm jobs 6m) или `permJobs6m` — это
+  // накопленный поток за период и путает клиента (1597 "вакансий"
+  // frontend_react на деле были 634 live + прошедшие за 6 месяцев).
+  // Приоритет:
+  //   1. skill-page live (hardcoded "Live total (skill page): N" строка в md)
+  //   2. def.ukSumLive = true → сумма `liveNow` по родственным тайтлам
+  //   3. top-1 `liveJobs` из поиска (по умолчанию)
+  let vacancies: number | null = top?.liveJobs ?? null;
   const skillPageMatch = content.match(/Live total \(skill page[^)]*\):\s*([\d,]+)/i);
   if (skillPageMatch) {
     vacancies = parseInt(skillPageMatch[1]!.replace(/,/g, ""), 10) || vacancies;

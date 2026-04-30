@@ -49,17 +49,18 @@ export function scoreBadge(d: Direction): string {
 /**
  * Медианная зарплата по конвенциям источников:
  *   - ru     → hh.ru, RUB/месяц (рисуем как есть)
- *   - abroad → itjobswatch.co.uk, GBP/год (конвертим в EUR/мес × 1.17 / 12,
- *              чтобы UI был в одном масштабе с RU и совпадал с тем, что
- *              реально считает scorer для ранжирования. Раньше показывали
- *              сырой £70k/год как `~€70k/мес` — все senior-роли становились
- *              «одинаковыми» евромиллионерами).
- *   - usa    → US-источники, USD/год → USD/мес (÷12).
+ *   - abroad → itjobswatch.co.uk, GBP/год → €/мес (× 1.17 / 12).
+ *   - usa    → UK-proxy, GBP/год × USA_UPLIFT (1.5) × GBP→USD (1.25) / 12.
+ *             На shortlist-этапе мы НЕ ходим в Claude за US-salary (см.
+ *             `claude-provider.needsClaudeSalary`) — в `medianSalaryMid`
+ *             всегда лежит UK GBP/год, и US-uplift применяется здесь.
  *
- * GBP→EUR курс синхронизирован с `role-scorer.GBP_TO_EUR` (1.17), специально
- * не импортим оттуда чтобы не таскать жирный модуль в bot-форматтер.
+ * Курсы синхронизированы с `role-scorer` (GBP_TO_EUR=1.17), в bot-форматтере
+ * продублированы константами, чтобы не таскать жирный модуль.
  */
 const GBP_TO_EUR_DISPLAY = 1.17;
+const GBP_TO_USD_DISPLAY = 1.25;
+const USA_UPLIFT = 1.5;
 
 function formatMoney(n: number | null, bucket: Direction["bucket"]): string {
   if (n == null) return "—";
@@ -68,11 +69,10 @@ function formatMoney(n: number | null, bucket: Direction["bucket"]): string {
     return `~${k}k ₽/мес`;
   }
   if (bucket === "usa") {
-    const monthlyUsd = n / 12;
+    const monthlyUsd = (n * USA_UPLIFT * GBP_TO_USD_DISPLAY) / 12;
     const k = Math.round(monthlyUsd / 1000);
     return `~$${k}k/мес`;
   }
-  // abroad: GBP/год из UK → EUR/мес для отображения.
   const monthlyEur = (n * GBP_TO_EUR_DISPLAY) / 12;
   const k = Math.round(monthlyEur / 1000);
   return `~€${k}k/мес`;
