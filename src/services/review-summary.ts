@@ -347,28 +347,37 @@ export function formatResumeForTelegram(input: {
   return buildHtmlDoc(input.title ?? "Резюме клиента", pairs);
 }
 
+// Цветовая шкала прогресса пайплайна:
+//   🟡 intake (анкета / резюме / готов к запуску)
+//   ⚙️ в процессе (generating / running)
+//   🔵 промежуточные (legacy phase 0: профиль / направления / рынок)
+//   🟠 shortlist-этап (предварительный анализ, ждёт / одобрен)
+//   🟣 deep-этап (глубокий анализ, ждёт / одобрен)
+//   🟢 финал готов
+//   📤 финал отправлен клиенту
+//   ❌ упало
 export const STAGE_LABELS: Record<PipelineStage, string> = {
   intake_received: "🟡 Анкета получена",
   resume_parsed: "🟡 Резюме распознано",
-  awaiting_analysis: "🟢 Анкета добавлена",
+  awaiting_analysis: "🟡 Анкета добавлена",
   analysis_running: "⚙️ Анализ запущен",
-  profile_extracted: "🟡 Профиль извлечён",
-  directions_generated: "🟡 Направления сгенерированы",
-  market_data_fetched: "🟡 Рыночные данные собраны",
-  directions_analyzed: "🟡 Анализ направлений готов",
-  admin_review_pending: "🔵 Ждёт ревью",
-  admin_reviewed: "🔵 Ревью пройдено",
+  profile_extracted: "🔵 Профиль извлечён",
+  directions_generated: "🔵 Направления сгенерированы",
+  market_data_fetched: "🔵 Рыночные данные собраны",
+  directions_analyzed: "🔵 Анализ направлений готов",
+  admin_review_pending: "🟠 Ждёт ревью",
+  admin_reviewed: "🟠 Ревью пройдено",
   final_compiled: "🟢 Документ собран",
   completed: "🟢 Завершён",
   completed_legacy: "✅ Анализ готов (legacy)",
   shortlist_generating: "⚙️ Предварительный анализ…",
-  shortlist_ready: "🔵 Shortlist готов — ждёт ревью",
+  shortlist_ready: "🟠 Shortlist готов — ждёт ревью",
   shortlist_failed: "❌ Предварительный анализ упал",
-  shortlist_approved: "🔵 Shortlist одобрен",
+  shortlist_approved: "🟠 Shortlist одобрен",
   deep_generating: "⚙️ Глубокий анализ…",
-  deep_ready: "🔵 Глубокий анализ готов — ждёт ревью",
+  deep_ready: "🟣 Глубокий анализ готов — ждёт ревью",
   deep_failed: "❌ Глубокий анализ упал",
-  deep_approved: "🔵 Глубокий анализ одобрен",
+  deep_approved: "🟣 Глубокий анализ одобрен",
   final_generating: "⚙️ Финальный анализ собирается…",
   final_ready: "🟢 Финальный анализ готов",
   final_failed: "❌ Финальный анализ упал",
