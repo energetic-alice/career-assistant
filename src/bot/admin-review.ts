@@ -155,21 +155,14 @@ function buildAnalyzeKeyboard(
     if (finalAnalysis?.docUrl) {
       rows.push([Markup.button.url("📄 Открыть Google Doc", finalAnalysis.docUrl)]);
     }
-    // Маркер "отправлено клиенту" - ручное действие куратора.
-    // После sent можно вернуть обратно в "готов" на случай если отправилось
-    // по ошибке или нужно внести правки и переотправить.
+    // Маркер "отправлено клиенту" - ручное действие куратора, необратимое.
+    // После sent кнопка убирается; если анализ надо перегенерировать, куратор
+    // всё равно может нажать "🔁 Перегенерировать" из той же карточки.
     if (stage === "final_ready") {
       rows.push([
         Markup.button.callback(
           "✅ Отметить как отправлен клиенту",
           `deep:mark_sent:${participantId}`,
-        ),
-      ]);
-    } else if (stage === "final_sent") {
-      rows.push([
-        Markup.button.callback(
-          "↩️ Вернуть в 'готов'",
-          `deep:unmark_sent:${participantId}`,
         ),
       ]);
     }

@@ -928,32 +928,6 @@ async function handleMarkSent(
   await ctx.answerCbQuery("✅ Отмечено как отправлено клиенту.");
 }
 
-/**
- * Откат: вернуть стадию из `final_sent` обратно в `final_ready`. Нужно, если
- * куратор нажал mark_sent по ошибке или хочет перегенерировать анализ до
- * того, как он реально ушёл клиенту.
- */
-async function handleUnmarkSent(
-  participantId: string,
-  ctx: Context,
-): Promise<void> {
-  if (!isAdminCtx(ctx)) return;
-  const ps = getPipelineState(participantId);
-  if (!ps) {
-    await ctx.answerCbQuery("Клиент не найден.");
-    return;
-  }
-  if (ps.stage !== "final_sent") {
-    await ctx.answerCbQuery(
-      `Неподходящий статус: ${ps.stage}. Кнопка работает только из final_sent.`,
-      { show_alert: true },
-    );
-    return;
-  }
-  updatePipelineStage(participantId, "final_ready");
-  await ctx.answerCbQuery("↩️ Возвращено в 'готов'.");
-}
-
 async function handleReject(
   participantId: string,
   slotId: string,
@@ -1132,9 +1106,6 @@ export async function dispatchDeepCallback(
       return true;
     case "mark_sent":
       await handleMarkSent(participantId, ctx);
-      return true;
-    case "unmark_sent":
-      await handleUnmarkSent(participantId, ctx);
       return true;
     case "noop":
       await ctx.answerCbQuery();
