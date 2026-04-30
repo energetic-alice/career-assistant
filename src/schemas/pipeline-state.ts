@@ -28,6 +28,8 @@ export const pipelineStageEnum = z.enum([
   "final_generating",
   "final_ready",
   "final_failed",
+  // ── После отправки клиенту (ставится вручную куратором через карточку) ──
+  "final_sent",
 ]);
 
 export type PipelineStage = z.infer<typeof pipelineStageEnum>;

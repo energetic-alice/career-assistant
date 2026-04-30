@@ -372,6 +372,7 @@ export const STAGE_LABELS: Record<PipelineStage, string> = {
   final_generating: "⚙️ Финальный анализ собирается…",
   final_ready: "🟢 Финальный анализ готов",
   final_failed: "❌ Финальный анализ упал",
+  final_sent: "📤 Анализ отправлен клиенту",
 };
 
 function pickResumeUrl(rnv: Record<string, string> | undefined): string | undefined {
@@ -523,20 +524,21 @@ function formatSelectedTargetRoles(
 }
 
 function formatFinalAnalysisBlock(src: ClientCardSource): string {
-  if (src.stage === "final_ready") {
+  if (src.stage === "final_ready" || src.stage === "final_sent") {
     const date = (src.analysisGeneratedAt || "").slice(0, 10);
     const dateLabel = date ? ` · ${escapeHtml(date)}` : "";
+    const sentBadge = src.stage === "final_sent" ? " · 📤 отправлен клиенту" : "";
     if (src.analysisDocUrl) {
       return (
         `<b>📄 Карьерный анализ:</b> ` +
-        `<a href="${escapeHtml(src.analysisDocUrl)}">Google Doc</a>${dateLabel}`
+        `<a href="${escapeHtml(src.analysisDocUrl)}">Google Doc</a>${dateLabel}${sentBadge}`
       );
     }
     // markdown отдан в чат, а Doc упал (квоты Drive и т.п.).
     const errLabel = src.analysisError
       ? ` · ⚠ Doc не создан (${escapeHtml(src.analysisError.slice(0, 120))})`
       : ` · ⚠ Doc не создан`;
-    return `<b>📄 Карьерный анализ:</b> 🟢 готов (.md в чате)${dateLabel}${errLabel}`;
+    return `<b>📄 Карьерный анализ:</b> 🟢 готов (.md в чате)${dateLabel}${errLabel}${sentBadge}`;
   }
   if (src.stage === "final_generating") {
     return `<b>📄 Карьерный анализ:</b> ⚙️ собирается…`;

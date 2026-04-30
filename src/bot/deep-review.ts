@@ -154,20 +154,21 @@ function formatDeepHeader(
   const finalErr = (ps?.stageOutputs as Record<string, unknown> | undefined)
     ?.finalAnalysisError as string | undefined;
 
-  if (stage === "final_ready") {
+  if (stage === "final_ready" || stage === "final_sent") {
     const date = (finalAnalysis?.generatedAt || "").slice(0, 10);
     const dateLabel = date ? ` · ${escapeHtml(date)}` : "";
+    const sentBadge = stage === "final_sent" ? " · 📤 отправлен клиенту" : "";
     if (finalAnalysis?.docUrl) {
       lines.push(
         `\n<b>📄 Карьерный анализ:</b> ` +
-          `<a href="${escapeHtml(finalAnalysis.docUrl)}">Google Doc</a>${dateLabel} · HTML — выше в чате`,
+          `<a href="${escapeHtml(finalAnalysis.docUrl)}">Google Doc</a>${dateLabel} · HTML — выше в чате${sentBadge}`,
       );
     } else {
       const err = finalAnalysis?.docError
         ? ` · ⚠ Doc не создан (${escapeHtml(finalAnalysis.docError.slice(0, 120))})`
         : ` · ⚠ Doc не создан`;
       lines.push(
-        `\n<b>📄 Карьерный анализ:</b> 🟢 готов · HTML — выше в чате${dateLabel}${err}`,
+        `\n<b>📄 Карьерный анализ:</b> 🟢 готов · HTML — выше в чате${dateLabel}${err}${sentBadge}`,
       );
     }
   } else if (stage === "final_generating") {
@@ -197,12 +198,19 @@ function deepHeaderKeyboard(
   const stage = ps?.stage;
   const finalAnalysis = (ps?.stageOutputs as Record<string, unknown> | undefined)
     ?.finalAnalysis as { docUrl?: string } | undefined;
-  const isApproved = stage === "deep_approved" || stage === "final_ready" || stage === "final_failed";
+  const isApproved =
+    stage === "deep_approved" ||
+    stage === "final_ready" ||
+    stage === "final_sent" ||
+    stage === "final_failed";
   const isGenerating = stage === "final_generating";
 
   // Если уже есть Google Doc — отдельная URL-кнопка сверху, чтобы куратор
   // мог открыть финал прямо из шапки, не листая чат.
-  if (stage === "final_ready" && finalAnalysis?.docUrl) {
+  if (
+    (stage === "final_ready" || stage === "final_sent") &&
+    finalAnalysis?.docUrl
+  ) {
     rows.push([Markup.button.url("📄 Открыть Google Doc", finalAnalysis.docUrl)]);
   }
 
@@ -211,7 +219,7 @@ function deepHeaderKeyboard(
       Markup.button.callback("⚙️ Финальный анализ собирается…", `deep:noop:${participantId}`),
     ]);
   } else if (isApproved) {
-    const label = stage === "final_ready"
+    const label = stage === "final_ready" || stage === "final_sent"
       ? "🔁 Перегенерировать финальный анализ"
       : stage === "final_failed"
       ? "🔁 Повторить финальный анализ"
@@ -889,6 +897,63 @@ async function handleResendHtml(
   }
 }
 
+/**
+ * Отметить анализ как отправленный клиенту. Ручное действие куратора —
+ * после того, как она переслала файл/ссылку клиенту лично, жмёт кнопку и
+ * статус клиента в списке становится "📤 Анализ отправлен клиенту". Stage
+ * меняется с `final_ready` на `final_sent`, `updatePipelineStage` сам
+ * перерисует карточку клиента в чате.
+ *
+ * Разрешаем только из стадии `final_ready` — из `final_sent` уже ничего не
+ * делаем (для возврата есть отдельная `handleUnmarkSent`).
+ */
+async function handleMarkSent(
+  participantId: string,
+  ctx: Context,
+): Promise<void> {
+  if (!isAdminCtx(ctx)) return;
+  const ps = getPipelineState(participantId);
+  if (!ps) {
+    await ctx.answerCbQuery("Клиент не найден.");
+    return;
+  }
+  if (ps.stage !== "final_ready") {
+    await ctx.answerCbQuery(
+      `Неподходящий статус: ${ps.stage}. Кнопка работает только из final_ready.`,
+      { show_alert: true },
+    );
+    return;
+  }
+  updatePipelineStage(participantId, "final_sent");
+  await ctx.answerCbQuery("✅ Отмечено как отправлено клиенту.");
+}
+
+/**
+ * Откат: вернуть стадию из `final_sent` обратно в `final_ready`. Нужно, если
+ * куратор нажал mark_sent по ошибке или хочет перегенерировать анализ до
+ * того, как он реально ушёл клиенту.
+ */
+async function handleUnmarkSent(
+  participantId: string,
+  ctx: Context,
+): Promise<void> {
+  if (!isAdminCtx(ctx)) return;
+  const ps = getPipelineState(participantId);
+  if (!ps) {
+    await ctx.answerCbQuery("Клиент не найден.");
+    return;
+  }
+  if (ps.stage !== "final_sent") {
+    await ctx.answerCbQuery(
+      `Неподходящий статус: ${ps.stage}. Кнопка работает только из final_sent.`,
+      { show_alert: true },
+    );
+    return;
+  }
+  updatePipelineStage(participantId, "final_ready");
+  await ctx.answerCbQuery("↩️ Возвращено в 'готов'.");
+}
+
 async function handleReject(
   participantId: string,
   slotId: string,
@@ -1064,6 +1129,12 @@ export async function dispatchDeepCallback(
       return true;
     case "html":
       await handleResendHtml(participantId, ctx);
+      return true;
+    case "mark_sent":
+      await handleMarkSent(participantId, ctx);
+      return true;
+    case "unmark_sent":
+      await handleUnmarkSent(participantId, ctx);
       return true;
     case "noop":
       await ctx.answerCbQuery();

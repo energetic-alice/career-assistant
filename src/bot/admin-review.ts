@@ -118,15 +118,17 @@ function buildAnalyzeKeyboard(
     ]);
   }
 
-  // Финальный анализ: на стадиях final_ready / final_failed / final_generating /
-  // deep_approved дать прямой доступ к "перегенерировать финал" и
-  // "переслать HTML" из карточки клиента, не заставляя открывать deep-обзор.
+  // Финальный анализ: на стадиях final_ready / final_sent / final_failed /
+  // final_generating / deep_approved дать прямой доступ к "перегенерировать
+  // финал", "переслать HTML" и "отметить отправленным клиенту" прямо из
+  // карточки, не заставляя открывать deep-обзор.
   const finalAnalysis = outputs.finalAnalysis as
     | { docUrl?: string; markdown?: string; generatedAt?: string }
     | undefined;
   const hasFinalMarkdown = !!finalAnalysis?.markdown;
   const isFinalStage =
     stage === "final_ready" ||
+    stage === "final_sent" ||
     stage === "final_failed" ||
     stage === "final_generating" ||
     stage === "deep_approved";
@@ -138,7 +140,7 @@ function buildAnalyzeKeyboard(
       ]);
     } else {
       const label =
-        stage === "final_ready"
+        stage === "final_ready" || stage === "final_sent"
           ? "🔁 Перегенерировать финальный анализ"
           : stage === "final_failed"
             ? "🔁 Повторить финальный анализ"
@@ -152,6 +154,24 @@ function buildAnalyzeKeyboard(
     }
     if (finalAnalysis?.docUrl) {
       rows.push([Markup.button.url("📄 Открыть Google Doc", finalAnalysis.docUrl)]);
+    }
+    // Маркер "отправлено клиенту" - ручное действие куратора.
+    // После sent можно вернуть обратно в "готов" на случай если отправилось
+    // по ошибке или нужно внести правки и переотправить.
+    if (stage === "final_ready") {
+      rows.push([
+        Markup.button.callback(
+          "✅ Отметить как отправлен клиенту",
+          `deep:mark_sent:${participantId}`,
+        ),
+      ]);
+    } else if (stage === "final_sent") {
+      rows.push([
+        Markup.button.callback(
+          "↩️ Вернуть в 'готов'",
+          `deep:unmark_sent:${participantId}`,
+        ),
+      ]);
     }
   }
 
@@ -209,12 +229,13 @@ export async function sendClientCard(
     | { docUrl?: string; docError?: string; generatedAt?: string }
     | undefined;
   const finalAnalysisError = outputs.finalAnalysisError as string | undefined;
-  // Для карточки: при final_failed → ошибка Phase 3/4, при final_ready без doc
-  // → ошибка createGoogleDoc (квоты Drive и т.п.).
+  // Для карточки: при final_failed → ошибка Phase 3/4, при final_ready/final_sent
+  // без doc → ошибка createGoogleDoc (квоты Drive и т.п.).
   const cardAnalysisError =
     state.stage === "final_failed"
       ? finalAnalysisError
-      : state.stage === "final_ready" && !finalAnalysis?.docUrl
+      : (state.stage === "final_ready" || state.stage === "final_sent") &&
+          !finalAnalysis?.docUrl
         ? finalAnalysis?.docError
         : undefined;
 
@@ -375,7 +396,8 @@ export async function refreshClientCard(participantId: string): Promise<void> {
   const cardAnalysisError =
     state.stage === "final_failed"
       ? finalAnalysisError
-      : state.stage === "final_ready" && !finalAnalysis?.docUrl
+      : (state.stage === "final_ready" || state.stage === "final_sent") &&
+          !finalAnalysis?.docUrl
         ? finalAnalysis?.docError
         : undefined;
 
