@@ -730,14 +730,7 @@ async function handleFinalLocked(
       `(md=${markdown.length}c), sending HTML to TG…`,
   );
 
-  const title = `Карьерный анализ: ${candidateName}`;
-  const safeTitle = title.replace(/[^a-zA-Zа-яА-ЯёЁ0-9_\- ]/g, "_");
-  const htmlBody = await marked(markdown);
-  const htmlFile = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${title}</title>
-<style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6}
-h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:8px;text-align:left}</style>
-</head><body>${htmlBody}</body></html>`;
+  const { htmlFile, safeTitle, title } = await renderFinalAnalysisHtml(markdown, candidateName);
 
   const out: FinalAnalysisOutput = {
     generatedAt: new Date().toISOString(),
@@ -812,6 +805,86 @@ h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border
     await replyText(
       `Google Doc не удалось создать (квота/Apps Script). HTML-файл выше содержит полный анализ.\n` +
         `<code>${escapeHtml(msg).slice(0, 400)}</code>`,
+    );
+  }
+}
+
+/**
+ * Рендер финального markdown в самодостаточный HTML-файл (тот же шаблон что
+ * шлёт `handleFinalLocked` сразу после генерации). Вынесен отдельно чтобы
+ * `handleResendHtml` мог переиспользовать формат без перегенерации анализа.
+ */
+async function renderFinalAnalysisHtml(
+  markdown: string,
+  candidateName: string,
+): Promise<{ htmlFile: string; safeTitle: string; title: string }> {
+  const title = `Карьерный анализ: ${candidateName}`;
+  const safeTitle = title.replace(/[^a-zA-Zа-яА-ЯёЁ0-9_\- ]/g, "_");
+  const htmlBody = await marked(markdown);
+  const htmlFile = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${title}</title>
+<style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6}
+h1,h2,h3{margin-top:1.5em}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:8px;text-align:left}</style>
+</head><body>${htmlBody}</body></html>`;
+  return { htmlFile, safeTitle, title };
+}
+
+/**
+ * Достаёт сохранённый markdown из state (поле `finalAnalysis.markdown`,
+ * добавлено в commit 038fde3) и присылает его как HTML-файл в чат.
+ * Если markdown'а нет (старые клиенты, сгенерённые до 038fde3) — отвечает
+ * подсказкой нажать «Перегенерировать».
+ */
+async function handleResendHtml(
+  participantId: string,
+  ctx: Context,
+): Promise<void> {
+  if (!isAdminCtx(ctx)) return;
+
+  const ps = getPipelineState(participantId);
+  const finalAnalysis = (ps?.stageOutputs as Record<string, unknown> | undefined)
+    ?.finalAnalysis as
+    | { markdown?: string; generatedAt?: string }
+    | undefined;
+  const markdown = finalAnalysis?.markdown;
+
+  const chatId = ctx.chat?.id;
+  if (chatId == null) return;
+
+  if (!markdown) {
+    await ctx.answerCbQuery(
+      "HTML недоступен (старый анализ без сохранённого markdown). Перегенерируй.",
+      { show_alert: true },
+    );
+    return;
+  }
+
+  await ctx.answerCbQuery("Отправляю HTML…");
+
+  const cs = (ps?.stageOutputs as Record<string, unknown> | undefined)
+    ?.clientSummary as { firstNameLatin?: string; lastNameLatin?: string } | undefined;
+  const nameFromSummary = cs?.firstNameLatin
+    ? `${cs.firstNameLatin}${cs.lastNameLatin ? ` ${cs.lastNameLatin}` : ""}`.trim()
+    : null;
+  const nickName = ps?.telegramNick ? normalizeNick(ps.telegramNick) : null;
+  const candidateName = nameFromSummary ?? nickName ?? participantId;
+
+  try {
+    const { htmlFile, safeTitle } = await renderFinalAnalysisHtml(markdown, candidateName);
+    const date = (finalAnalysis?.generatedAt || "").slice(0, 10);
+    const caption = date
+      ? `Карьерный анализ (HTML) · сгенерён ${date}`
+      : `Карьерный анализ (HTML)`;
+    await getBot().telegram.sendDocument(
+      chatId,
+      Input.fromBuffer(Buffer.from(htmlFile, "utf-8"), `${safeTitle}.html`),
+      { caption },
+    );
+  } catch (err) {
+    console.error(`[deep:html] ${participantId}: failed`, err);
+    await getBot().telegram.sendMessage(
+      chatId,
+      `⚠ Не получилось отправить HTML: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
 }
@@ -988,6 +1061,9 @@ export async function dispatchDeepCallback(
       return true;
     case "final":
       await handleFinal(participantId, ctx);
+      return true;
+    case "html":
+      await handleResendHtml(participantId, ctx);
       return true;
     case "noop":
       await ctx.answerCbQuery();

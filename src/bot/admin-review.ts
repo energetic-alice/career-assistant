@@ -69,7 +69,9 @@ function buildAnalyzeKeyboard(
   stage: string,
   outputs: Record<string, unknown>,
 ): InlineKeyboardMarkup | undefined {
-  const rows: ReturnType<typeof Markup.button.callback>[][] = [];
+  type CallbackBtn = ReturnType<typeof Markup.button.callback>;
+  type UrlBtn = ReturnType<typeof Markup.button.url>;
+  const rows: Array<Array<CallbackBtn | UrlBtn>> = [];
 
   // Если уже есть сохранённый shortlist — приоритетная кнопка «открыть
   // существующий» (re-render из state, без перезапуска анализа).
@@ -114,6 +116,43 @@ function buildAnalyzeKeyboard(
         `analyze_deep:${participantId}`,
       ),
     ]);
+  }
+
+  // Финальный анализ: на стадиях final_ready / final_failed / final_generating /
+  // deep_approved дать прямой доступ к "перегенерировать финал" и
+  // "переслать HTML" из карточки клиента, не заставляя открывать deep-обзор.
+  const finalAnalysis = outputs.finalAnalysis as
+    | { docUrl?: string; markdown?: string; generatedAt?: string }
+    | undefined;
+  const hasFinalMarkdown = !!finalAnalysis?.markdown;
+  const isFinalStage =
+    stage === "final_ready" ||
+    stage === "final_failed" ||
+    stage === "final_generating" ||
+    stage === "deep_approved";
+
+  if (isFinalStage) {
+    if (stage === "final_generating") {
+      rows.push([
+        Markup.button.callback("⚙️ Финальный анализ собирается…", `deep:noop:${participantId}`),
+      ]);
+    } else {
+      const label =
+        stage === "final_ready"
+          ? "🔁 Перегенерировать финальный анализ"
+          : stage === "final_failed"
+            ? "🔁 Повторить финальный анализ"
+            : "📄 Сгенерировать финальный анализ";
+      rows.push([Markup.button.callback(label, `deep:final:${participantId}`)]);
+    }
+    if (hasFinalMarkdown) {
+      rows.push([
+        Markup.button.callback("📝 Прислать HTML с анализом", `deep:html:${participantId}`),
+      ]);
+    }
+    if (finalAnalysis?.docUrl) {
+      rows.push([Markup.button.url("📄 Открыть Google Doc", finalAnalysis.docUrl)]);
+    }
   }
 
   return Markup.inlineKeyboard(rows).reply_markup;
