@@ -121,6 +121,33 @@ export async function postValidateDirections(
 
     if (knownSet.has(slug)) {
       d.offIndex = false;
+
+      // Cross-check title ↔ slug: Claude иногда подставляет "ближайший по
+      // смыслу" KNOWN_ROLES-slug для незнакомой роли (Event Manager →
+      // marketing_manager, Customer Success → marketing_manager). После
+      // этого enricher тянет ЧУЖИЕ цифры vacancies/salary из market-index
+      // и шортлист показывает дубли. Пропускаем title через matcher:
+      //  - hit с conf≥0.85 и тем же slug → OK
+      //  - hit с conf≥0.85 и ДРУГИМ slug → заменяем на правильный
+      //  - null/<0.85 → slug подозрителен, помечаем off-index без
+      //    market-данных (shortlist покажет "⚠ нет данных рынка").
+      const titleMatch = await matchRoleToSlug(d.title);
+      if (titleMatch && titleMatch.confidence >= 0.85 && knownSet.has(titleMatch.slug)) {
+        if (titleMatch.slug !== slug) {
+          console.log(
+            `[postValidate] title-slug mismatch "${d.title}": ${slug} → ${titleMatch.slug} ` +
+              `(matcher conf ${titleMatch.confidence}, alias "${titleMatch.matchedAlias}")`,
+          );
+          slug = titleMatch.slug;
+          d.roleSlug = titleMatch.slug;
+        }
+      } else {
+        console.log(
+          `[postValidate] title-slug uncertain "${d.title}" (slug=${slug}, matcher=${titleMatch?.slug ?? "null"}, conf=${titleMatch?.confidence ?? 0}) → off-index`,
+        );
+        d.offIndex = true;
+        d.marketEvidence = d.marketEvidence ?? "Slug не подтверждён matcher'ом — проверить вручную.";
+      }
     } else if (d.offIndex && d.marketEvidence && d.marketEvidence.trim().length > 0) {
       console.log(`[postValidate] off-index OK: ${slug} ("${d.title}")`);
     } else {
@@ -271,8 +298,12 @@ export async function enrichDirections(
   return directions.map((d, i) => {
     const rawSlug = d.roleSlug?.trim() ?? "";
     const slug = canonicalizeRoleSlug(rawSlug) ?? rawSlug;
-    const entry = slug && index[slug] ? index[slug] : null;
-    const known = knownSet.has(slug);
+    // Уважаем d.offIndex=true даже когда slug валидный: postValidate ставит
+    // этот флаг когда matcher не подтвердил slug по title (Event Manager с
+    // slug=marketing_manager и т.п.). В таких случаях НЕ тянем market-index,
+    // чтобы не подмешать чужие цифры.
+    const known = knownSet.has(slug) && !d.offIndex;
+    const entry = known && slug && index[slug] ? index[slug] : null;
     const offIndex = known ? false : Boolean(d.offIndex);
 
     let source: EnrichSource;
@@ -471,6 +502,13 @@ export function formatTableHints(params: {
     medianSalaryMid: number | null;
     bucket: EnrichBucket;
   } | null;
+  /**
+   * True если клиент выбрал только RU/CIS в `targetMarketRegions`, но его
+   * английский ≥ B2 — технически для него открыт EU/UK remote B2B. Мы не
+   * расширяем `accessibleMarkets` автоматически (это меняет скоринг и
+   * bucket'ы), но в Стратегическом алерте финала предлагаем как опцию.
+   */
+  shouldMentionEuB2B?: boolean;
 }): string {
   const lines: string[] = [];
   lines.push("# Готовые значения для сравнительных таблиц Phase 4");
@@ -501,31 +539,46 @@ export function formatTableHints(params: {
   }
   lines.push("");
 
-  lines.push("## Таблица 3 (Зарплатные ожидания) - вспомогательные данные");
+  lines.push("## Якорь текущей роли кандидата (для прозы)");
   lines.push("");
   if (params.candidateCurrentRole && params.candidateCurrentRole.medianSalaryMid !== null) {
     const b = params.candidateCurrentRole.bucket;
     const sal = params.candidateCurrentRole.medianSalaryMid;
     lines.push(
-      `- Медиана рынка для текущей роли кандидата (slug: \`${params.candidateCurrentRole.roleSlug}\`, bucket: ${b}): **${sal}** (моб/годовая в валюте рынка; см. marketData для уточнения).`,
+      `- Медиана рынка для текущей роли кандидата (slug: \`${params.candidateCurrentRole.roleSlug}\`, bucket: ${b}): **${sal}** (годовая в валюте рынка; см. marketData для уточнения).`,
     );
     lines.push(
-      "- Эту цифру используй в колонке «Senior в твоей текущей роли сейчас» Таблицы 3 как базу " +
-        "для сравнения с желаемой зп. Не округляй, не конвертируй.",
+      "- Используй эту цифру в прозе (Стратегический алерт / Итоговая рекомендация) как базу " +
+        "для сравнения с желаемой зп. Не округляй, не конвертируй. В таблицы не выноси — там " +
+        "её отдельной колонки нет.",
     );
   } else {
     lines.push(
       "- Медиана рынка для текущей роли кандидата: **нет точной цифры в market-index**. " +
-        "В колонке «Senior в текущей роли» поставь прочерк, без выдуманных цифр.",
+        "В прозе не выдумывай базовую цифру — пиши о текущей роли качественно.",
     );
   }
   lines.push("");
   lines.push(
-    "Для каждого топ-3 направления колонку «Senior в целевой роли» бери из marketData " +
-      "(поле medianSalaryMid соответствующего bucket'а и/или seniorityCurve.senior). " +
+    "Для каждого топ-3 направления колонку «Senior сейчас в этой роли» Таблицы 3 бери из " +
+      "marketData (поле medianSalaryMid соответствующего bucket'а и/или seniorityCurve.senior). " +
       "Если в данных только UK-цифра, а клиент ищет в EU/US — пиши UK-цифру и в примечании " +
       "делай пометку «UK proxy», без арифметики ×1.5 для US.",
   );
+
+  if (params.shouldMentionEuB2B) {
+    lines.push("");
+    lines.push("## Опция EU/UK B2B (обязательно упомянуть в Стратегическом алерте)");
+    lines.push("");
+    lines.push(
+      "Клиент выбрал только RU/CIS рынок, но его английский ≥ B2. Это значит технически " +
+        "ему открыт формат EU/UK remote B2B (виза не нужна, работодатель оформляет через " +
+        "юрлицо клиента). В секции «Стратегический алерт» финального документа одним абзацем " +
+        "аккуратно упомяни эту опцию как альтернативу: «если захочешь — B2B-контракты с " +
+        "EU/UK работодателями реалистичны, можем проработать отдельно». Без давления, как " +
+        "справку. Основной анализ (направления, зп, рынок) оставляй по текущему выбору клиента.",
+    );
+  }
 
   return lines.join("\n");
 }

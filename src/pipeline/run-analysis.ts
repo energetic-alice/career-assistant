@@ -1016,13 +1016,25 @@ export async function runAnalysisPhase4(
         );
       }
     }
+    // EU/UK B2B подсказка: клиент выбрал только ru/cis, но с B2+ английским
+    // это реалистичная опция. В Стратегическом алерте финала упомянем
+    // аккуратно, без расширения accessibleMarkets (это меняло бы весь
+    // анализ и направления).
+    const targets = opts.clientSummary?.targetMarketRegions ?? [];
+    const onlyRuCis =
+      targets.length > 0 && targets.every((r) => r === "ru" || r === "cis");
+    const eng = (opts.clientSummary?.englishLevel ?? "").toUpperCase();
+    const hasB2PlusEnglish = /\b(B2|C1|C2)\b/.test(eng);
+    const shouldMentionEuB2B = onlyRuCis && hasB2PlusEnglish;
+
     tableHintsText = formatTableHints({
       topDirections: topTitles,
       hints,
       candidateCurrentRole: currentRole,
+      shouldMentionEuB2B,
     });
     console.log(
-      `[Step 4] tableHints: ${hints.length} directions, currentRoleMedian=${currentRole?.medianSalaryMid ?? "—"}`,
+      `[Step 4] tableHints: ${hints.length} directions, currentRoleMedian=${currentRole?.medianSalaryMid ?? "—"}, euB2B=${shouldMentionEuB2B}`,
     );
   } else {
     tableHintsText =

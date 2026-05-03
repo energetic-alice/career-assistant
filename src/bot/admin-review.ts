@@ -175,11 +175,15 @@ function buildAnalyzeKeyboard(
 
   // Выбор направления для упаковки: одна кнопка → подменю с top-N + "Своё".
   // Клики по направлениям идут в существующий `deep:target:<slotId>`.
+  // Показываем ТОЛЬКО когда финал реально готов (markdown существует),
+  // а не просто "стадия финальная" - на generating/failed/deep_approved
+  // упаковывать нечего.
   const hasFinalTop3 =
     Array.isArray((finalAnalysis as { top3Titles?: unknown })?.top3Titles) &&
     ((finalAnalysis as { top3Titles?: unknown }).top3Titles as unknown[])
       .some((t) => typeof t === "string" && t.length > 0);
-  if (isFinalStage && hasFinalTop3 && deep?.slots && deep.slots.length > 0) {
+  const finalReady = hasFinalMarkdown && (stage === "final_ready" || stage === "final_sent");
+  if (finalReady && hasFinalTop3 && deep?.slots && deep.slots.length > 0) {
     rows.push([
       Markup.button.callback(
         "🎯 Выбрать направление для упаковки",
