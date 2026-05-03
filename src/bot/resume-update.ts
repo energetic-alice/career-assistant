@@ -298,22 +298,39 @@ export async function handleResumeUpdateMessage(
 
     const roleMatch = await matchRoleToSlug(source.text.slice(0, 5000));
     if (roleMatch && roleMatch.confidence >= 0.85) {
-      await ctx.reply(
-        `Похоже, резюме уже упаковано под <code>${roleMatch.slug}</code>. Добавить это направление в clientSummary.selectedTargetRoles?`,
-        {
-          parse_mode: "HTML",
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: `🎯 Добавить ${roleMatch.slug}`,
-                  callback_data: `resume_target:${participant.participantId}:${roleMatch.slug}`,
-                },
+      // Telegram callback_data ограничен 64 байтами. UUID (36) + slug
+      // (до 25) + префикс вылезают за лимит, от чего API роняет весь
+      // ctx.reply c BUTTON_DATA_INVALID. Укорачиваем префикс до `rt:` и
+      // participantId до первых 8 hex-символов — лукап ниже идёт по
+      // `startsWith`, и коллизий не случится при <1k клиентах.
+      const shortId = participant.participantId.slice(0, 8);
+      const callbackData = `rt:${shortId}:${roleMatch.slug}`;
+      if (Buffer.byteLength(callbackData, "utf8") <= 64) {
+        await ctx.reply(
+          `Похоже, резюме уже упаковано под <code>${roleMatch.slug}</code>. Добавить это направление в clientSummary.selectedTargetRoles?`,
+          {
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: `🎯 Добавить ${roleMatch.slug}`,
+                    callback_data: callbackData,
+                  },
+                ],
               ],
-            ],
+            },
           },
-        },
-      );
+        );
+      } else {
+        console.warn(
+          `[resume-update] skip inline-button for slug="${roleMatch.slug}" — callback_data would be ${Buffer.byteLength(callbackData, "utf8")} bytes`,
+        );
+        await ctx.reply(
+          `Похоже, резюме уже упаковано под <code>${roleMatch.slug}</code>. Добавь вручную через карточку клиента, если нужно.`,
+          { parse_mode: "HTML" },
+        );
+      }
     }
     return true;
   } catch (err) {
@@ -326,14 +343,24 @@ export async function handleResumeUpdateMessage(
 }
 
 export function registerResumeUpdate(bot: Telegraf): void {
-  bot.action(/^resume_target:([^:]+):([^:]+)$/, async (ctx) => {
-    const [, participantId, roleSlug] = (ctx.match as RegExpExecArray);
+  // `rt:<shortId>:<slug>` — короткий callback-префикс, shortId = первые 8
+  // hex-символов UUID клиента. Ищем клиента по `startsWith(shortId)`.
+  bot.action(/^rt:([a-f0-9]{6,12}):([^:]+)$/, async (ctx) => {
+    const [, shortId, roleSlug] = (ctx.match as RegExpExecArray);
+    const match = getAllPipelineStates().find((s) =>
+      s.participantId.startsWith(shortId!),
+    );
+    if (!match) {
+      await ctx.answerCbQuery("Клиент не найден.");
+      return;
+    }
+
     let result: ReturnType<typeof addSelectedTargetRole>;
     try {
       result = addSelectedTargetRole({
-        participantId,
-        roleSlug,
-        title: roleSlug,
+        participantId: match.participantId,
+        roleSlug: roleSlug!,
+        title: roleSlug!,
         source: "resume",
       });
     } catch (err) {
