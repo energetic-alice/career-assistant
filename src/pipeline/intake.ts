@@ -414,7 +414,7 @@ export function saveIdealResumeArtifact(
 export interface CachedLinkedinProfile {
   url: string;
   fetchedAt: string;
-  source: "direct_cookie" | "perplexity";
+  source: "apify";
   text: string;
   headline: string;
   location: string;

@@ -15,6 +15,10 @@ import {
 } from "./shortlist-review.js";
 import { dispatchDeepCallback, resendDeep } from "./deep-review.js";
 import {
+  dispatchLinkedinCallback,
+  linkedinPackKeyboardRows,
+} from "./linkedin-pack.js";
+import {
   formatQuestionnaireForTelegram,
   formatClientCardForTelegram,
   formatResumeForTelegram,
@@ -190,6 +194,13 @@ function buildAnalyzeKeyboard(
         `prog:target_menu:${participantId}`,
       ),
     ]);
+  }
+
+  // LinkedIn-пак (MVP: аудит + 5 headline). Показываем, как только есть
+  // clientSummary + (LinkedIn URL И/ИЛИ резюме). Внутри linkedinPackKeyboardRows
+  // решает, какие кнопки (run / open doc / mark sent) показать по stage.
+  for (const row of linkedinPackKeyboardRows(participantId, stage, outputs)) {
+    rows.push(row);
   }
 
   // Программа: 4 маленькие кнопки в ряду, у активной стоит галочка.
@@ -925,6 +936,10 @@ export function registerAdminReview(bot: Telegraf): void {
     }
     if (data.startsWith("deep:")) {
       const handled = await dispatchDeepCallback(data, ctx);
+      if (handled) return;
+    }
+    if (data.startsWith("linkedin:")) {
+      const handled = await dispatchLinkedinCallback(data, ctx);
       if (handled) return;
     }
     if (data.startsWith("prog:")) {

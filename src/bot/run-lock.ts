@@ -37,6 +37,7 @@ export const RUN_KINDS = {
   deep: "глубокий анализ (Phase 2)",
   final: "финальный анализ",
   idealResume: "генерация идеального резюме",
+  linkedin: "LinkedIn-пак",
 } as const;
 
 export type RunKind = keyof typeof RUN_KINDS;

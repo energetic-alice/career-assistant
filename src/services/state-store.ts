@@ -32,6 +32,22 @@ export function saveDocument(participantId: string, filename: string, content: s
   return fp;
 }
 
+export function loadDocument(
+  participantId: string,
+  filename: string,
+): { content: string; mtime: Date } | null {
+  const fp = path.join(DOCS_DIR, participantId, filename);
+  if (!fs.existsSync(fp)) return null;
+  try {
+    const content = fs.readFileSync(fp, "utf-8");
+    const { mtime } = fs.statSync(fp);
+    return { content, mtime };
+  } catch (err) {
+    console.warn(`[StateStore] loadDocument failed for ${fp}:`, err);
+    return null;
+  }
+}
+
 export function saveMap<V>(name: string, map: Map<string, V>): void {
   try {
     ensureDir();

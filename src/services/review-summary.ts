@@ -382,6 +382,10 @@ export const STAGE_LABELS: Record<PipelineStage, string> = {
   final_ready: "🟢 Финальный анализ готов",
   final_failed: "❌ Финальный анализ упал",
   final_sent: "📤 Анализ отправлен клиенту",
+  linkedin_generating: "⚙️ LinkedIn-пак собирается…",
+  linkedin_ready: "🔵 LinkedIn-пак готов",
+  linkedin_failed: "❌ LinkedIn-пак упал",
+  linkedin_sent: "🚀 LinkedIn-пак отправлен клиенту",
 };
 
 function pickResumeUrl(rnv: Record<string, string> | undefined): string | undefined {

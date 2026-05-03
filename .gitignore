@@ -1,6 +1,7 @@
 node_modules/
 dist/
 test-output/
+probe-output/
 # Runtime data (pipelineStates, logs, local payloads). Source code lives
 # in src/data/ and must NOT be ignored, plus market-index.json is a
 # pre-built catalog shipped to prod.

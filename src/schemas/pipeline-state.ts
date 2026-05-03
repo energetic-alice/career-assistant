@@ -30,6 +30,11 @@ export const pipelineStageEnum = z.enum([
   "final_failed",
   // ── После отправки клиенту (ставится вручную куратором через карточку) ──
   "final_sent",
+  // ── LinkedIn Pack (MVP: аудит + 5 headline вариантов) ───────────────────
+  "linkedin_generating",
+  "linkedin_ready",
+  "linkedin_failed",
+  "linkedin_sent",
 ]);
 
 export type PipelineStage = z.infer<typeof pipelineStageEnum>;

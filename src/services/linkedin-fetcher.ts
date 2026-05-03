@@ -1,35 +1,36 @@
-import { load } from "cheerio";
-
 /**
- * Public-LinkedIn-profile fetcher with two-tier strategy:
+ * LinkedIn profile fetcher.
  *
- *   1. Direct GET with operator's `LINKEDIN_COOKIE` (li_at + JSESSIONID etc.) —
- *      bypasses LinkedIn's auth wall using the operator's logged-in session.
- *      Cookie typically lives ~1-2 months; refresh from browser when stale.
+ * Единственный источник данных — Apify (`APIFY_API_TOKEN` +
+ * `APIFY_LINKEDIN_ACTOR`). Прямой скрейп через cookie больше не используем:
+ * LinkedIn сломал старый `/voyager/api/identity/profiles/<slug>/profileView`
+ * (410 Gone), а новые Voyager-эндпоинты требуют ~5 AJAX-вызовов и частых
+ * правок под смену decorationId. Apify стабильно отдаёт готовый
+ * `{ basic_info, experience, education, languages }` одним запросом.
  *
- *   2. Fallback to Perplexity Sonar — asks the model to summarise the public
- *      profile by URL. Less precise but works without LinkedIn auth.
+ * Никакого Perplexity: он отдаёт закешированный профиль (часто несколько
+ * месяцев старый), а для LinkedIn-аудита нам нужна СВЕЖАЯ страница — клиент
+ * мог вчера поменять headline/опыт, и анализировать устаревшие данные
+ * бессмысленно.
  *
- * Returns null if both paths fail or url is empty/invalid. Callers should treat
- * null as "no LinkedIn enrichment available" and proceed with the rest of the
- * data (the resume + clientSummary remain the primary source).
+ * Результат кешируется на диск на уровне `linkedin-pack/build-inputs.ts`
+ * (`data/documents/<pid>/linkedin-profile.json`, TTL 180 дней), так что
+ * платный Apify-запуск за одного клиента делается максимум раз в полгода.
  *
- * Output is a plain text summary (~1-3 KB) with sections:
- *   - headline / current title
- *   - location, summary
- *   - experience (company, role, dates, bullets when available)
- *   - education
- *   - skills
- *   - certifications
+ * Возвращает null если Apify не сработал или URL пустой/некорректный.
+ * Вызыватели трактуют null как "LinkedIn недоступен" — пайплайн продолжается
+ * на резюме + clientSummary, а LinkedIn-only пункты аудита помечаются
+ * "проверь руками".
  *
- * Does NOT raise — errors are logged and converted to null.
+ * Не кидает: все ошибки логируются и конвертируются в null.
  */
 export interface LinkedinProfile {
   url: string;
   fetchedAt: string;
-  source: "direct_cookie" | "perplexity";
+  source: "apify";
+  /** Pretty-printed JSON от Apify actor'а — сразу скармливаем в промпт. */
   text: string;
-  /** Quick parsed bits (best-effort, may be empty). */
+  /** Quick parsed bits для UI/лог-префиксов (best-effort, могут быть пустыми). */
   headline: string;
   location: string;
 }
@@ -41,26 +42,14 @@ export async function fetchLinkedinProfile(
   if (!url) return null;
 
   try {
-    const direct = await fetchWithCookie(url);
-    if (direct) {
-      console.log(`[LinkedIn] direct fetch OK for ${url}`);
-      return direct;
+    const viaApify = await fetchWithApify(url);
+    if (viaApify) {
+      console.log(`[LinkedIn] Apify fetch OK for ${url}`);
+      return viaApify;
     }
   } catch (err) {
     console.warn(
-      `[LinkedIn] direct fetch failed: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
-
-  try {
-    const viaSonar = await fetchWithPerplexity(url);
-    if (viaSonar) {
-      console.log(`[LinkedIn] perplexity fallback OK for ${url}`);
-      return viaSonar;
-    }
-  } catch (err) {
-    console.warn(
-      `[LinkedIn] perplexity fallback failed: ${err instanceof Error ? err.message : String(err)}`,
+      `[LinkedIn] Apify failed: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
 
@@ -86,177 +75,74 @@ function normalizeLinkedinUrl(raw: string): string | null {
   }
 }
 
-async function fetchWithCookie(url: string): Promise<LinkedinProfile | null> {
-  const cookie = process.env.LINKEDIN_COOKIE;
-  if (!cookie) {
-    console.log("[LinkedIn] LINKEDIN_COOKIE not set, skipping direct fetch");
+// ── Apify ──────────────────────────────────────────────────────────────────
+//
+// Актор принимает `{ username: <profile-url-or-slug>, includeEmail: false }`
+// и возвращает массив с одним объектом формата
+// `{ basic_info, experience, education, languages }`.
+//
+// Парсить этот JSON не нужно: скармливаем модели сырой pretty-printed JSON —
+// там уже вся разметка (полные поля headline, about, experience[].description
+// и т.д.), плюс бонус: `basic_info.profile_picture_url` и
+// `basic_info.background_picture_url` позволяют автоматом проверить пункты
+// чеклиста про фото и баннер, без "проверь руками".
+
+const APIFY_TIMEOUT_MS = 180_000;
+
+async function fetchWithApify(url: string): Promise<LinkedinProfile | null> {
+  const token = process.env.APIFY_API_TOKEN;
+  const actorId = process.env.APIFY_LINKEDIN_ACTOR;
+  if (!token || !actorId) {
+    console.log(
+      "[LinkedIn] APIFY_API_TOKEN / APIFY_LINKEDIN_ACTOR not set, skipping Apify",
+    );
     return null;
   }
 
-  const resp = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
-        "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
-      "Accept-Language": "en-US,en;q=0.9,ru;q=0.8",
-      Accept:
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-      Cookie: cookie,
-      Referer: "https://www.linkedin.com/feed/",
-    },
-    redirect: "follow",
-  });
+  const endpoint =
+    `https://api.apify.com/v2/acts/${encodeURIComponent(actorId)}/run-sync-get-dataset-items` +
+    `?token=${encodeURIComponent(token)}&timeout=${Math.floor(APIFY_TIMEOUT_MS / 1000)}`;
 
-  if (resp.status === 999) {
-    throw new Error("LinkedIn returned 999 — cookie likely expired or rate-limited");
-  }
-  if (resp.status >= 400) {
-    throw new Error(`LinkedIn HTTP ${resp.status}`);
-  }
-
-  const html = await resp.text();
-  if (
-    html.length < 5000 ||
-    /Sign in to view|join LinkedIn to/i.test(html.slice(0, 4000))
-  ) {
-    throw new Error("LinkedIn returned auth wall (cookie not effective)");
-  }
-
-  const parsed = parseLinkedinHtml(html);
-  if (!parsed.text || parsed.text.length < 200) {
-    throw new Error(`parsed too short (${parsed.text.length} chars)`);
-  }
-
-  return {
-    url,
-    fetchedAt: new Date().toISOString(),
-    source: "direct_cookie",
-    headline: parsed.headline,
-    location: parsed.location,
-    text: parsed.text,
-  };
-}
-
-function parseLinkedinHtml(html: string): {
-  headline: string;
-  location: string;
-  text: string;
-} {
-  const $ = load(html);
-
-  $("script, style, noscript").remove();
-
-  const ogTitle = $('meta[property="og:title"]').attr("content") || "";
-  const ogDescription =
-    $('meta[property="og:description"]').attr("content") || "";
-
-  let headline = "";
-  let location = "";
-
-  const headlineCandidate = $(".text-body-medium.break-words").first().text().trim();
-  if (headlineCandidate) headline = headlineCandidate;
-  if (!headline && ogDescription) {
-    headline = ogDescription.split("·")[0].trim();
-  }
-
-  const locationCandidate = $(".text-body-small.inline.t-black--light.break-words")
-    .first()
-    .text()
-    .trim();
-  if (locationCandidate) location = locationCandidate;
-
-  // Sections — main, code-fenced JSON-LD won't always be there for /in/
-  // pages, so fall back to flattened body text.
-  const lines: string[] = [];
-  if (ogTitle) lines.push(`# ${ogTitle.replace(/\s*\|\s*LinkedIn$/i, "")}`);
-  if (headline) lines.push(`Headline: ${headline}`);
-  if (location) lines.push(`Location: ${location}`);
-  lines.push("");
-
-  const flat = $("main, .pv-profile-section, body")
-    .first()
-    .text()
-    .replace(/\u00A0/g, " ")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .join("\n");
-
-  if (flat) lines.push(flat);
-
-  return {
-    headline,
-    location,
-    text: lines.join("\n").slice(0, 12000),
-  };
-}
-
-const PERPLEXITY_URL = "https://api.perplexity.ai/chat/completions";
-
-async function fetchWithPerplexity(url: string): Promise<LinkedinProfile | null> {
-  const apiKey = process.env.PERPLEXITY_API_KEY;
-  if (!apiKey) {
-    console.log("[LinkedIn] PERPLEXITY_API_KEY not set, skipping fallback");
-    return null;
-  }
-
-  const prompt = `Открой публичный профиль LinkedIn: ${url}
-
-Верни сводку ТОЛЬКО на основе того, что есть на самой странице (не выдумывай). Структура:
-
-Headline: <текущая должность и компания, одной строкой>
-Location: <город, страна>
-Summary: <раздел About, 2-5 предложений>
-
-Experience:
-- Компания, Должность, Период (mm.yyyy – mm.yyyy / present), Локация
-  Краткое описание роли + ключевые буллеты, если они опубликованы
-
-Education:
-- Учебное заведение, степень, специальность, годы
-
-Skills: <топ 10-20 опубликованных скиллов через запятую>
-Certifications: <список с датами>
-
-Если страница недоступна или поля не указаны — пиши "не указано". Никаких преамбул, только структурированный текст.`;
-
-  const resp = await fetch(PERPLEXITY_URL, {
+  const resp = await fetch(endpoint, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "sonar",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 1500,
-      temperature: 0.1,
-    }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: url, includeEmail: false }),
   });
 
   if (!resp.ok) {
-    throw new Error(`Perplexity HTTP ${resp.status}: ${await resp.text()}`);
+    throw new Error(`Apify HTTP ${resp.status}: ${await resp.text()}`);
   }
 
-  const data = (await resp.json()) as {
-    choices?: { message?: { content?: string } }[];
-  };
-  const text = data.choices?.[0]?.message?.content?.trim() ?? "";
+  const items = (await resp.json()) as unknown;
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new Error("Apify returned empty dataset");
+  }
+  const item = items[0] as Record<string, unknown>;
+
+  const basic =
+    typeof item["basic_info"] === "object" && item["basic_info"] !== null
+      ? (item["basic_info"] as Record<string, unknown>)
+      : {};
+
+  const headline =
+    typeof basic["headline"] === "string" ? basic["headline"] : "";
+  const loc =
+    typeof basic["location"] === "object" && basic["location"] !== null
+      ? (basic["location"] as Record<string, unknown>)
+      : {};
+  const location = typeof loc["full"] === "string" ? loc["full"] : "";
+
+  const text = JSON.stringify(item, null, 2);
   if (text.length < 200) {
-    throw new Error(`Perplexity returned too little content (${text.length} chars)`);
+    throw new Error(`Apify item too short (${text.length} chars)`);
   }
-
-  const headlineMatch = text.match(/Headline:\s*([^\n]+)/i);
-  const locationMatch = text.match(/Location:\s*([^\n]+)/i);
 
   return {
     url,
     fetchedAt: new Date().toISOString(),
-    source: "perplexity",
-    headline: headlineMatch?.[1]?.trim() ?? "",
-    location: locationMatch?.[1]?.trim() ?? "",
+    source: "apify",
+    headline,
+    location,
     text,
   };
 }
