@@ -1033,6 +1033,18 @@ async function handleTarget(
     return;
   }
   await refreshDeepNumbers(participantId, state);
+  // Обновляем основную карточку клиента, чтобы галочка на кнопке "🎯 ..."
+  // (если клик пришёл из компактного UI в карточке) сразу отобразилась.
+  // Динамический импорт из-за цикла admin-review ↔ deep-review.
+  try {
+    const { refreshClientCard } = await import("./admin-review.js");
+    await refreshClientCard(participantId);
+  } catch (err) {
+    console.warn(
+      `[deep:target] refreshClientCard failed for ${participantId}:`,
+      err,
+    );
+  }
   await ctx.answerCbQuery(
     result.selected
       ? `Добавлено в упаковку: ${slot.direction.roleSlug}`

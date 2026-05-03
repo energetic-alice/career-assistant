@@ -248,6 +248,15 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
   bot.on("text", async (ctx, next) => {
     const text = (ctx.message as { text?: string })?.text ?? "";
 
+    // 0) Свободный ввод «направления для упаковки» из карточки клиента
+    //    (prog:target_custom → текст в том же чате админа без reply).
+    //    Если pending нет — просто возвращаем управление дальше.
+    if (ctx.chat?.id != null && text.trim().length > 0 && !text.startsWith("/")) {
+      const { handleTargetCustomReply } = await import("./admin-review.js");
+      const handled = await handleTargetCustomReply(ctx.chat.id, text);
+      if (handled) return;
+    }
+
     // 1) Reject-reason reply (ForceReply из shortlist/deep review).
     const reply = (ctx.message as {
       reply_to_message?: { message_id?: number };

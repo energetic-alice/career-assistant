@@ -2,7 +2,12 @@ import type { Telegraf, Context } from "telegraf";
 import { Markup } from "telegraf";
 import { Input } from "telegraf";
 import { getAdminChatId, getBot } from "./bot-instance.js";
-import { getPipelineState, persistPipelineStatesPublic } from "../pipeline/intake.js";
+import {
+  getPipelineState,
+  persistPipelineStatesPublic,
+  updatePipelineStage,
+} from "../pipeline/intake.js";
+import { PROGRAM_LABELS, type ProgramLabel } from "../schemas/pipeline-state.js";
 import {
   dispatchShortlistCallback,
   resendShortlist,
@@ -167,6 +172,68 @@ function buildAnalyzeKeyboard(
       ]);
     }
   }
+
+  // Выбор направления для упаковки: показываем сразу кнопки-toggle по
+  // топ-3 из финала (+ "✨ Своё" на edge case, когда нужно вне топ-3).
+  // Под капотом используем тот же `deep:target:<slotId>` хендлер, что уже
+  // работает в `deep-review.ts` (буквально "та же кнопка, только удобно
+  // расположенная"). Slot'ы берём из `deepReview.slots`, матчим по
+  // title с тем, что Phase 3 записал в `finalAnalysis.top3Titles`.
+  const deepSlots = (deep?.slots as
+    | Array<{
+        slotId?: string;
+        direction?: { title?: string; roleSlug?: string; bucket?: string };
+      }>
+    | undefined) ?? [];
+  const finalTop3: string[] = Array.isArray(
+    (finalAnalysis as { top3Titles?: unknown })?.top3Titles,
+  )
+    ? ((finalAnalysis as { top3Titles?: unknown }).top3Titles as unknown[])
+        .filter((t): t is string => typeof t === "string" && t.length > 0)
+    : [];
+  if (isFinalStage && finalTop3.length > 0 && deepSlots.length > 0) {
+    const targetButtons: Array<ReturnType<typeof Markup.button.callback>> = [];
+    for (const title of finalTop3) {
+      // Подбираем slot по title. Phase 3 может переименовать direction
+      // (добавить "(senior)" и т.п.), поэтому пробуем exact → startsWith → substring.
+      const slot = pickSlotByTitle(deepSlots, title);
+      if (!slot || !slot.slotId || !slot.direction?.roleSlug) continue;
+      const isSelected = isSelectedTargetRoleLight(
+        outputs,
+        slot.direction as { roleSlug: string; bucket?: string },
+        slot.slotId,
+      );
+      const label =
+        (isSelected ? "✅ 🎯 " : "🎯 ") + truncateBtn(title, 32);
+      targetButtons.push(
+        Markup.button.callback(label, `deep:target:${participantId}:${slot.slotId}`),
+      );
+    }
+    if (targetButtons.length > 0) {
+      // По одной кнопке на строку — иначе длинные заголовки режутся.
+      for (const btn of targetButtons) {
+        rows.push([btn]);
+      }
+      rows.push([
+        Markup.button.callback(
+          "✨ Своё направление для упаковки",
+          `prog:target_custom:${participantId}`,
+        ),
+      ]);
+    }
+  }
+
+  // Программа: 4 маленькие кнопки в ряду, у активной стоит галочка.
+  // Всегда видимый ряд, чтобы куратор мог как назначить, так и поменять
+  // метку на любом этапе (кроме intake, где карточка минимальная).
+  const currentProgram = outputs.program as string | undefined;
+  const programRow = PROGRAM_LABELS.map((label) =>
+    Markup.button.callback(
+      currentProgram === label ? `✅ ${label}` : label,
+      `prog:set:${participantId}:${label}`,
+    ),
+  );
+  rows.push(programRow);
 
   return Markup.inlineKeyboard(rows).reply_markup;
 }
@@ -669,6 +736,222 @@ async function handleAnalyzeDeep(participantId: string, ctx: Context): Promise<v
   })();
 }
 
+// ─── Program & Target-role callbacks (prog:…) ──────────────────────────────
+//
+// Отдельный dispatcher для UI-фич в карточке клиента:
+//   prog:set:<id>:<label>     — выставить/сменить метку программы (КА1/КА2/...)
+//   prog:target_custom:<id>   — запросить ввод своего направления (вне топ-3)
+//
+// Клик по самим кнопкам "🎯 <title>" обрабатывается старым `deep:target:...`
+// хендлером внутри `dispatchDeepCallback` — мы просто переиспользуем тот же
+// toggle, но теперь кнопки видны сразу в основной карточке, а не внутри
+// deep-review (пользователь: "кнопка уже была, просто располагалась неудобно").
+
+const PROG_TARGET_PROMPT = new Map<string, { chatId: number | string; participantId: string }>();
+
+async function dispatchProgramCallback(
+  data: string,
+  ctx: Context,
+): Promise<boolean> {
+  const [ns, action, participantId, payload] = data.split(":");
+  if (ns !== "prog" || !action || !participantId) return false;
+
+  switch (action) {
+    case "set":
+      if (!payload) return false;
+      await handleSetProgram(participantId, payload, ctx);
+      return true;
+    case "target_custom":
+      await handleTargetCustomPrompt(participantId, ctx);
+      return true;
+    default:
+      return false;
+  }
+}
+
+async function handleSetProgram(
+  participantId: string,
+  rawLabel: string,
+  ctx: Context,
+): Promise<void> {
+  const state = getPipelineState(participantId);
+  if (!state) {
+    await ctx.answerCbQuery("Клиент не найден.");
+    return;
+  }
+  const allowed: readonly string[] = PROGRAM_LABELS;
+  if (!allowed.includes(rawLabel)) {
+    await ctx.answerCbQuery(`Неизвестная метка: ${rawLabel}`);
+    return;
+  }
+  const label = rawLabel as ProgramLabel;
+  const currentProgram = (state.stageOutputs as { program?: string } | undefined)?.program;
+  // Toggle: повторный клик по уже активной метке снимает её (на случай когда
+  // куратор проставил случайно).
+  const nextValue: string | undefined = currentProgram === label ? undefined : label;
+  updatePipelineStage(participantId, state.stage, { program: nextValue });
+  await ctx.answerCbQuery(
+    nextValue ? `📚 Программа: ${nextValue}` : "Метка программы снята",
+  );
+  await refreshClientCard(participantId);
+}
+
+function truncateBtn(s: string, maxLen: number): string {
+  return s.length <= maxLen ? s : s.slice(0, maxLen - 1) + "…";
+}
+
+/**
+ * Находит slot в `deepReview.slots` по title финального топ-3. Phase 3
+ * часто переименовывает direction ("AppSec Engineer" → "Security Engineer,
+ * AppSec (senior)"), поэтому пробуем несколько стратегий:
+ *   1. exact match (case-insensitive)
+ *   2. deep-title starts with finalTop3-title (или наоборот)
+ *   3. существенная substring-пересечение (первые 4 слова)
+ */
+function pickSlotByTitle<T extends { direction?: { title?: string } }>(
+  slots: T[],
+  title: string,
+): T | undefined {
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+  const tNorm = norm(title);
+  let hit = slots.find((s) => s.direction?.title && norm(s.direction.title) === tNorm);
+  if (hit) return hit;
+  hit = slots.find((s) => {
+    const dt = s.direction?.title ? norm(s.direction.title) : "";
+    return dt && (dt.startsWith(tNorm) || tNorm.startsWith(dt));
+  });
+  if (hit) return hit;
+  const firstWords = tNorm.split(" ").slice(0, 4).join(" ");
+  if (firstWords.length < 8) return undefined;
+  return slots.find((s) => {
+    const dt = s.direction?.title ? norm(s.direction.title) : "";
+    return dt.includes(firstWords) || firstWords.includes(dt);
+  });
+}
+
+/**
+ * Lightweight проверка selectedTargetRoles без динамического импорта
+ * `intake.js` (тот модуль тянет много лишнего, а `buildAnalyzeKeyboard`
+ * вызывается синхронно при каждом refresh карточки).
+ */
+function isSelectedTargetRoleLight(
+  outputs: Record<string, unknown>,
+  direction: { roleSlug: string; bucket?: string },
+  slotId: string,
+): boolean {
+  const clientSummary = outputs.clientSummary as
+    | { selectedTargetRoles?: Array<{ id?: string; slotId?: string; roleSlug?: string; bucket?: string }> }
+    | undefined;
+  const rolesRaw = clientSummary?.selectedTargetRoles ??
+    (Array.isArray(outputs.selectedTargetRoles) ? outputs.selectedTargetRoles : []);
+  const roles = rolesRaw as Array<{
+    id?: string;
+    slotId?: string;
+    roleSlug?: string;
+    bucket?: string;
+  }>;
+  return roles.some((r) => {
+    if (r.slotId && r.slotId === slotId) return true;
+    // legacy: запись без slotId (resume-flow / старые state) — сравниваем
+    // по roleSlug|bucket.
+    if (!r.slotId && r.roleSlug === direction.roleSlug && r.bucket === (direction.bucket ?? "abroad")) {
+      return true;
+    }
+    return false;
+  });
+}
+
+async function handleTargetCustomPrompt(
+  participantId: string,
+  ctx: Context,
+): Promise<void> {
+  const chatId = ctx.chat?.id ?? getAdminChatId();
+  if (!chatId) {
+    await ctx.answerCbQuery("Нет admin-чата.");
+    return;
+  }
+  PROG_TARGET_PROMPT.set(String(chatId), { chatId, participantId });
+  await ctx.answerCbQuery();
+  await getBot().telegram.sendMessage(
+    chatId,
+    "Ответь <b>реплаем</b> на это сообщение свободным текстом с названием направления.\n" +
+      "Формат: <code>slug | Title</code> (например <code>ml_engineer | ML Engineer (CV)</code>).\n" +
+      "Если slug не знаешь — можно одной строкой название, и я попытаюсь сама.",
+    { parse_mode: "HTML" },
+  );
+}
+
+/**
+ * Обрабатывает реплай-текст с свободным названием направления после
+ * `prog:target_custom`. Вызывается из `admin-review` message-хендлера.
+ * Возвращает true если сообщение было нашим реплаем и обработано.
+ */
+export async function handleTargetCustomReply(
+  chatId: number | string,
+  text: string,
+): Promise<boolean> {
+  const key = String(chatId);
+  const pending = PROG_TARGET_PROMPT.get(key);
+  if (!pending) return false;
+  PROG_TARGET_PROMPT.delete(key);
+
+  const bot = getBot();
+  const trimmed = text.trim();
+  let roleSlug: string | undefined;
+  let title: string | undefined;
+  if (trimmed.includes("|")) {
+    const [slugPart, titlePart] = trimmed.split("|").map((s) => s.trim());
+    roleSlug = slugPart;
+    title = titlePart || slugPart;
+  } else {
+    // Пытаемся смапить в канонический slug по тексту. matchRoleToSlug живёт
+    // в services, берём через динамический импорт - чтобы не тащить в топ
+    // admin-review.
+    const { matchRoleToSlug } = await import("../services/role-matcher.js");
+    const hit = await matchRoleToSlug(trimmed);
+    if (hit && hit.confidence >= 0.7) {
+      roleSlug = hit.slug;
+      title = trimmed;
+    }
+  }
+
+  if (!roleSlug) {
+    await bot.telegram.sendMessage(
+      chatId,
+      "Не поняла направление. Попробуй формат <code>slug | Title</code> (slug из KNOWN_ROLES).",
+      { parse_mode: "HTML" },
+    );
+    return true;
+  }
+
+  const { addSelectedTargetRole } = await import("../pipeline/intake.js");
+  try {
+    const result = addSelectedTargetRole({
+      participantId: pending.participantId,
+      roleSlug,
+      title: title || roleSlug,
+      source: "deep",
+    });
+    if (!result) {
+      await bot.telegram.sendMessage(chatId, "Клиент не найден.");
+      return true;
+    }
+    await bot.telegram.sendMessage(
+      chatId,
+      `${result.added ? "🎯 Добавлено" : "Уже было выбрано"} для упаковки: <code>${roleSlug}</code>`,
+      { parse_mode: "HTML" },
+    );
+    await refreshClientCard(pending.participantId);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await bot.telegram.sendMessage(
+      chatId,
+      `❌ Не получилось добавить: ${msg}\nДля off-index slug нужно markentEvidence - сделай это через meню deep-review.`,
+    );
+  }
+  return true;
+}
+
 export function registerAdminReview(bot: Telegraf): void {
   bot.on("callback_query", async (ctx) => {
     const data = (ctx.callbackQuery as { data?: string })?.data;
@@ -685,6 +968,10 @@ export function registerAdminReview(bot: Telegraf): void {
     }
     if (data.startsWith("deep:")) {
       const handled = await dispatchDeepCallback(data, ctx);
+      if (handled) return;
+    }
+    if (data.startsWith("prog:")) {
+      const handled = await dispatchProgramCallback(data, ctx);
       if (handled) return;
     }
 
