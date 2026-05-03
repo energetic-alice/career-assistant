@@ -11,7 +11,6 @@ type InlineKeyboardMarkup = ReturnType<typeof Markup.inlineKeyboard>["reply_mark
 import { getBot } from "./bot-instance.js";
 import {
   getPipelineState,
-  isSelectedTargetRole,
   toggleSelectedTargetRole,
   updatePipelineStage,
 } from "../pipeline/intake.js";
@@ -244,20 +243,17 @@ function deepDirectionKeyboard(
 ): InlineKeyboardMarkup {
   const slotId = slot.slotId;
   const recommended = isRecommended(slot.direction);
-  const selected = isSelectedTargetRole(participantId, slot.direction, slotId);
   const rejectBtn = recommended
     ? Markup.button.callback("🚫 Отклонить", `deep:reject:${participantId}:${slotId}`)
     : Markup.button.callback("✅ Вернуть", `deep:unreject:${participantId}:${slotId}`);
+  // Кнопка "🎯 Выбрать для упаковки" живёт ТОЛЬКО в карточке клиента
+  // (admin-review → handleTargetMenu), на карточках Gate 2 её нет.
+  // `deep:target:<pid>:<slotId>` callback всё ещё обрабатывается ради
+  // сабменю из карточки клиента.
   return Markup.inlineKeyboard([
     [
       Markup.button.callback("🗑 Удалить", `deep:del:${participantId}:${slotId}`),
       rejectBtn,
-    ],
-    [
-      Markup.button.callback(
-        selected ? "🎯 Убрать из упаковки" : "🎯 Выбрать для упаковки",
-        `deep:target:${participantId}:${slotId}`,
-      ),
     ],
   ]).reply_markup;
 }
@@ -361,34 +357,56 @@ async function deleteDeepMessage(slot: DeepDirectionSlot): Promise<void> {
   slot.messageId = undefined;
 }
 
+/**
+ * Обновить содержимое ОДНОГО direction-сообщения. Используется для
+ * точечных изменений (reject/unreject/target), когда нумерация не
+ * меняется — гонять editMessageText по всем 10 слотам ради одной карточки
+ * бессмысленно (Telegram отвечает "message is not modified" и это выглядит
+ * как артефакты в логах).
+ */
+async function editOneDeepDirection(
+  participantId: string,
+  state: DeepReviewState,
+  idx: number,
+): Promise<void> {
+  const slot = state.slots[idx];
+  if (!slot || slot.messageChatId == null || slot.messageId == null) return;
+  const bot = getBot();
+  const total = state.slots.length;
+  try {
+    await bot.telegram.editMessageText(
+      slot.messageChatId,
+      slot.messageId,
+      undefined,
+      formatDirection(
+        { direction: slot.direction, enriched: slot.enriched },
+        idx,
+        total,
+      ),
+      {
+        parse_mode: "HTML",
+        link_preview_options: { is_disabled: true },
+        reply_markup: deepDirectionKeyboard(participantId, slot),
+      },
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/message is not modified/i.test(msg)) return;
+    if (/message to edit not found|message can't be edited/i.test(msg)) {
+      slot.messageChatId = undefined;
+      slot.messageId = undefined;
+      return;
+    }
+    console.error("[Deep] editOneDirection failed:", err);
+  }
+}
+
 async function refreshDeepNumbers(
   participantId: string,
   state: DeepReviewState,
 ): Promise<void> {
-  const bot = getBot();
-  const total = state.slots.length;
   for (let i = 0; i < state.slots.length; i += 1) {
-    const slot = state.slots[i];
-    if (slot.messageChatId == null || slot.messageId == null) continue;
-    try {
-      await bot.telegram.editMessageText(
-        slot.messageChatId,
-        slot.messageId,
-        undefined,
-        formatDirection(
-          { direction: slot.direction, enriched: slot.enriched },
-          i,
-          total,
-        ),
-        {
-          parse_mode: "HTML",
-          link_preview_options: { is_disabled: true },
-          reply_markup: deepDirectionKeyboard(participantId, slot),
-        },
-      );
-    } catch {
-      // ignore "message is not modified"
-    }
+    await editOneDeepDirection(participantId, state, i);
   }
 }
 
@@ -525,12 +543,14 @@ async function handleDelete(
     return;
   }
   const slot = state.slots[idx];
+
+  await ctx.answerCbQuery("Удалено.").catch(() => undefined);
+
   await deleteDeepMessage(slot);
   state.slots.splice(idx, 1);
   saveDeep(participantId, state);
   await refreshDeepNumbers(participantId, state);
   await editDeepHeader(participantId, state);
-  await ctx.answerCbQuery("Удалено.");
 }
 
 async function handleApprove(
@@ -955,7 +975,10 @@ async function handleReject(
     slot.direction.rejectionReason = "Отклонено куратором при ревью.";
   }
   saveDeep(participantId, state);
-  await refreshDeepNumbers(participantId, state);
+
+  await ctx.answerCbQuery("🚫 Отклонено. Введи причину в ответ.").catch(() => undefined);
+
+  await editOneDeepDirection(participantId, state, idx);
   await editDeepHeader(participantId, state);
 
   const chatId = ctx.chat?.id;
@@ -975,7 +998,6 @@ async function handleReject(
       slotId,
     });
   }
-  await ctx.answerCbQuery("🚫 Отклонено. Введи причину в ответ.");
 }
 
 async function handleUnreject(
@@ -998,9 +1020,11 @@ async function handleUnreject(
   slot.direction.recommended = true;
   slot.direction.rejectionReason = undefined;
   saveDeep(participantId, state);
-  await refreshDeepNumbers(participantId, state);
+
+  await ctx.answerCbQuery("✅ Возвращено в рекомендуемые.").catch(() => undefined);
+
+  await editOneDeepDirection(participantId, state, idx);
   await editDeepHeader(participantId, state);
-  await ctx.answerCbQuery("✅ Возвращено в рекомендуемые.");
 }
 
 async function handleTarget(
@@ -1037,10 +1061,13 @@ async function handleTarget(
     await ctx.answerCbQuery("Клиент не найден.");
     return;
   }
-  await refreshDeepNumbers(participantId, state);
+  await ctx.answerCbQuery(
+    result.selected
+      ? `Добавлено в упаковку: ${slot.direction.roleSlug}`
+      : `Убрано из упаковки: ${slot.direction.roleSlug}`,
+  ).catch(() => undefined);
   // Обновляем основную карточку клиента, чтобы галочка на кнопке "🎯 ..."
-  // (если клик пришёл из компактного UI в карточке) сразу отобразилась.
-  // Динамический импорт из-за цикла admin-review ↔ deep-review.
+  // сразу отобразилась. Динамический импорт из-за цикла admin-review ↔ deep-review.
   try {
     const { refreshClientCard } = await import("./admin-review.js");
     await refreshClientCard(participantId);
@@ -1050,11 +1077,6 @@ async function handleTarget(
       err,
     );
   }
-  await ctx.answerCbQuery(
-    result.selected
-      ? `Добавлено в упаковку: ${slot.direction.roleSlug}`
-      : `Убрано из упаковки: ${slot.direction.roleSlug}`,
-  );
   await ctx.reply(
     `${result.selected ? "🎯 Выбрано" : "Убрано"} для упаковки: <b>${escapeHtml(slot.direction.title)}</b>\n` +
       `Всего выбранных направлений: <b>${result.roles.length}</b>.`,

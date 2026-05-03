@@ -7,7 +7,6 @@ type InlineKeyboardMarkup = ReturnType<typeof Markup.inlineKeyboard>["reply_mark
 import { getAdminChatId, getBot } from "./bot-instance.js";
 import {
   getPipelineState,
-  isSelectedTargetRole,
   toggleSelectedTargetRole,
   updatePipelineStage,
 } from "../pipeline/intake.js";
@@ -235,21 +234,17 @@ function directionKeyboard(
 ): InlineKeyboardMarkup {
   const slotId = slot.slotId;
   const recommended = isRecommended(slot.direction);
-  const selected = isSelectedTargetRole(participantId, slot.direction, slotId);
   const rejectBtn = recommended
     ? Markup.button.callback("🚫 Отклонить", `shortlist:reject:${participantId}:${slotId}`)
     : Markup.button.callback("✅ Вернуть", `shortlist:unreject:${participantId}:${slotId}`);
+  // Кнопка "🎯 Выбрать для упаковки" живёт ТОЛЬКО в карточке клиента
+  // (admin-review → handleTargetMenu). На карточках Gate 1 она не нужна —
+  // упаковка выбирается один раз после final_ready.
   return Markup.inlineKeyboard([
     [
       Markup.button.callback("🗑 Удалить", `shortlist:del:${participantId}:${slotId}`),
       rejectBtn,
       Markup.button.callback("↻ Заменить", `shortlist:regen:${participantId}:${slotId}`),
-    ],
-    [
-      Markup.button.callback(
-        selected ? "🎯 Убрать из упаковки" : "🎯 Выбрать для упаковки",
-        `shortlist:target:${participantId}:${slotId}`,
-      ),
     ],
   ]).reply_markup;
 }
@@ -366,36 +361,60 @@ async function deleteDirectionMessage(slot: DirectionSlot): Promise<void> {
 }
 
 /**
+ * Безопасно обновить содержимое одного direction-сообщения.
+ * Игнорируем "message is not modified" (Telegram так отвечает когда контент
+ * идентичен — штатная ситуация при точечных апдейтах). Привязку слота
+ * (messageChatId/messageId) сбрасываем только если сообщение реально
+ * пропало ("message to edit not found") — иначе следующая кнопка решит что
+ * слот отвязан и ничего не обновится.
+ */
+async function editDirectionMessage(
+  participantId: string,
+  state: ShortlistState,
+  idx: number,
+): Promise<void> {
+  const slot = state.slots[idx];
+  if (!slot || slot.messageChatId == null || slot.messageId == null) return;
+  const bot = getBot();
+  const total = state.slots.length;
+  try {
+    await bot.telegram.editMessageText(
+      slot.messageChatId,
+      slot.messageId,
+      undefined,
+      formatDirection(slot, idx, total),
+      {
+        parse_mode: "HTML",
+        link_preview_options: { is_disabled: true },
+        reply_markup: directionKeyboard(participantId, slot),
+      },
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/message is not modified/i.test(msg)) return;
+    if (/message to edit not found|message can't be edited/i.test(msg)) {
+      console.warn("[Shortlist] edit: message gone, clearing link:", msg);
+      slot.messageChatId = undefined;
+      slot.messageId = undefined;
+      return;
+    }
+    console.error("[Shortlist] editDirection failed:", err);
+  }
+}
+
+/**
  * Перерисовать все direction-сообщения (нужно чтобы нумерация "N/total"
  * не устаревала). Редактируем in-place, id сообщений не меняются.
+ * Используется ТОЛЬКО после операций, меняющих длину списка (delete/regen).
+ * Для reject/unreject/target используй `editDirectionMessage` — там
+ * меняется один слот, а не нумерация.
  */
 async function refreshDirectionNumbers(
   participantId: string,
   state: ShortlistState,
 ): Promise<void> {
-  const bot = getBot();
-  const total = state.slots.length;
   for (let i = 0; i < state.slots.length; i += 1) {
-    const slot = state.slots[i];
-    if (slot.messageChatId == null || slot.messageId == null) continue;
-    try {
-      await bot.telegram.editMessageText(
-        slot.messageChatId,
-        slot.messageId,
-        undefined,
-        formatDirection(slot, i, total),
-        {
-          parse_mode: "HTML",
-          link_preview_options: { is_disabled: true },
-          reply_markup: directionKeyboard(participantId, slot),
-        },
-      );
-    } catch (err) {
-      // если сообщение удалено вручную — ок, просто очищаем
-      console.error("[Shortlist] editDirection failed:", err);
-      slot.messageChatId = undefined;
-      slot.messageId = undefined;
-    }
+    await editDirectionMessage(participantId, state, i);
   }
 }
 
@@ -566,6 +585,13 @@ async function handleDelete(
     await ctx.answerCbQuery("Уже удалено.");
     return;
   }
+
+  // Отвечаем ДО тяжёлой работы: refreshDirectionNumbers + editHeader делают
+  // N последовательных editMessageText и могут занять > 15 секунд. Если
+  // ответить в конце — Telegram выдаст "query is too old", и для админа это
+  // выглядит как "кнопка не сработала".
+  await ctx.answerCbQuery("🗑 Удалено.").catch(() => undefined);
+
   const [removed] = shortlist.slots.splice(idx, 1);
   saveShortlist(participantId, shortlist);
   console.log(
@@ -575,11 +601,6 @@ async function handleDelete(
   await refreshDirectionNumbers(participantId, shortlist);
   await editHeader(participantId, shortlist);
   saveShortlist(participantId, shortlist);
-  try {
-    await ctx.answerCbQuery("🗑 Удалено.");
-  } catch {
-    // already answered by upstream dispatcher — ok
-  }
 }
 
 /**
@@ -845,7 +866,9 @@ async function handleReject(
   }
   saveShortlist(participantId, shortlist);
 
-  await refreshDirectionNumbers(participantId, shortlist);
+  await ctx.answerCbQuery("🚫 Отклонено. Введи причину в ответ.").catch(() => undefined);
+
+  await editDirectionMessage(participantId, shortlist, idx);
   await editHeader(participantId, shortlist);
 
   const chatId = ctx.chat?.id;
@@ -865,7 +888,6 @@ async function handleReject(
       slotId,
     });
   }
-  await ctx.answerCbQuery("🚫 Отклонено. Введи причину в ответ.");
 }
 
 async function handleUnreject(
@@ -888,9 +910,11 @@ async function handleUnreject(
   slot.direction.recommended = true;
   slot.direction.rejectionReason = undefined;
   saveShortlist(participantId, shortlist);
-  await refreshDirectionNumbers(participantId, shortlist);
+
+  await ctx.answerCbQuery("✅ Возвращено в рекомендуемые.").catch(() => undefined);
+
+  await editDirectionMessage(participantId, shortlist, idx);
   await editHeader(participantId, shortlist);
-  await ctx.answerCbQuery("✅ Возвращено в рекомендуемые.");
 }
 
 async function handleTarget(
@@ -927,12 +951,12 @@ async function handleTarget(
     await ctx.answerCbQuery("Клиент не найден.");
     return;
   }
-  await refreshDirectionNumbers(participantId, shortlist);
   await ctx.answerCbQuery(
     result.selected
       ? `Добавлено в упаковку: ${slot.direction.roleSlug}`
       : `Убрано из упаковки: ${slot.direction.roleSlug}`,
-  );
+  ).catch(() => undefined);
+  await editDirectionMessage(participantId, shortlist, idx);
   await ctx.reply(
     `${result.selected ? "🎯 Выбрано" : "Убрано"} для упаковки: <b>${escapeHtml(slot.direction.title)}</b>\n` +
       `Всего выбранных направлений: <b>${result.roles.length}</b>.\n` +
@@ -962,7 +986,7 @@ export async function applyShortlistRejectReason(
   }
   slot.direction.recommended = false;
   saveShortlist(participantId, shortlist);
-  await refreshDirectionNumbers(participantId, shortlist);
+  await editDirectionMessage(participantId, shortlist, idx);
   await editHeader(participantId, shortlist);
   return true;
 }
