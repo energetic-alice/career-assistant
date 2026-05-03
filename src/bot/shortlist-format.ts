@@ -12,6 +12,7 @@
 
 import type { Direction } from "../schemas/analysis-outputs.js";
 import type { EnrichedDirection } from "../services/direction-enricher.js";
+import { competitionLabel } from "../schemas/market-index.js";
 
 export interface DirectionSlotLike {
   direction: Direction;
@@ -127,10 +128,11 @@ export function formatMarketLine(d: Direction, enriched?: EnrichedDirection): st
       parts.push(formatMoney(enriched.medianSalaryMid, d.bucket));
     }
     if (enriched.aiRisk) parts.push(`AI ${enriched.aiRisk}`);
-    if (enriched.competitionPer100 != null) {
-      const c = enriched.competitionPer100;
-      const label = c >= 10 ? "низк" : c >= 3 ? "средн" : "высок";
-      parts.push(`конк ${c.toFixed(1)}/100 (${label})`);
+    // Метка считается детерминированно в `competitionLabel()` из
+    // market-index.ts (единая шкала: >=8 низк / 3-8 средн / <3 высок).
+    const compLabel = competitionLabel(enriched.competitionPer100);
+    if (enriched.competitionPer100 != null && compLabel !== null) {
+      parts.push(`конк ${enriched.competitionPer100.toFixed(1)}/100 (${compLabel})`);
     }
     if (enriched.trendRatio != null && enriched.trendRatio > 0) {
       // trendRatio = now / twoYearsAgo (например 1.75 = +75%, 0.75 = -25%).

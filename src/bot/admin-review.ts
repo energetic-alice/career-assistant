@@ -173,54 +173,19 @@ function buildAnalyzeKeyboard(
     }
   }
 
-  // Выбор направления для упаковки: показываем сразу кнопки-toggle по
-  // топ-3 из финала (+ "✨ Своё" на edge case, когда нужно вне топ-3).
-  // Под капотом используем тот же `deep:target:<slotId>` хендлер, что уже
-  // работает в `deep-review.ts` (буквально "та же кнопка, только удобно
-  // расположенная"). Slot'ы берём из `deepReview.slots`, матчим по
-  // title с тем, что Phase 3 записал в `finalAnalysis.top3Titles`.
-  const deepSlots = (deep?.slots as
-    | Array<{
-        slotId?: string;
-        direction?: { title?: string; roleSlug?: string; bucket?: string };
-      }>
-    | undefined) ?? [];
-  const finalTop3: string[] = Array.isArray(
-    (finalAnalysis as { top3Titles?: unknown })?.top3Titles,
-  )
-    ? ((finalAnalysis as { top3Titles?: unknown }).top3Titles as unknown[])
-        .filter((t): t is string => typeof t === "string" && t.length > 0)
-    : [];
-  if (isFinalStage && finalTop3.length > 0 && deepSlots.length > 0) {
-    const targetButtons: Array<ReturnType<typeof Markup.button.callback>> = [];
-    for (const title of finalTop3) {
-      // Подбираем slot по title. Phase 3 может переименовать direction
-      // (добавить "(senior)" и т.п.), поэтому пробуем exact → startsWith → substring.
-      const slot = pickSlotByTitle(deepSlots, title);
-      if (!slot || !slot.slotId || !slot.direction?.roleSlug) continue;
-      const isSelected = isSelectedTargetRoleLight(
-        outputs,
-        slot.direction as { roleSlug: string; bucket?: string },
-        slot.slotId,
-      );
-      const label =
-        (isSelected ? "✅ 🎯 " : "🎯 ") + truncateBtn(title, 32);
-      targetButtons.push(
-        Markup.button.callback(label, `deep:target:${participantId}:${slot.slotId}`),
-      );
-    }
-    if (targetButtons.length > 0) {
-      // По одной кнопке на строку — иначе длинные заголовки режутся.
-      for (const btn of targetButtons) {
-        rows.push([btn]);
-      }
-      rows.push([
-        Markup.button.callback(
-          "✨ Своё направление для упаковки",
-          `prog:target_custom:${participantId}`,
-        ),
-      ]);
-    }
+  // Выбор направления для упаковки: одна кнопка → подменю с top-N + "Своё".
+  // Клики по направлениям идут в существующий `deep:target:<slotId>`.
+  const hasFinalTop3 =
+    Array.isArray((finalAnalysis as { top3Titles?: unknown })?.top3Titles) &&
+    ((finalAnalysis as { top3Titles?: unknown }).top3Titles as unknown[])
+      .some((t) => typeof t === "string" && t.length > 0);
+  if (isFinalStage && hasFinalTop3 && deep?.slots && deep.slots.length > 0) {
+    rows.push([
+      Markup.button.callback(
+        "🎯 Выбрать направление для упаковки",
+        `prog:target_menu:${participantId}`,
+      ),
+    ]);
   }
 
   // Программа: 4 маленькие кнопки в ряду, у активной стоит галочка.
@@ -738,14 +703,12 @@ async function handleAnalyzeDeep(participantId: string, ctx: Context): Promise<v
 
 // ─── Program & Target-role callbacks (prog:…) ──────────────────────────────
 //
-// Отдельный dispatcher для UI-фич в карточке клиента:
-//   prog:set:<id>:<label>     — выставить/сменить метку программы (КА1/КА2/...)
-//   prog:target_custom:<id>   — запросить ввод своего направления (вне топ-3)
+//   prog:set:<id>:<label>    — выставить/сменить метку программы
+//   prog:target_menu:<id>    — открыть подменю с top-N + "Своё"
+//   prog:target_custom:<id>  — запросить ввод своего направления реплаем
 //
-// Клик по самим кнопкам "🎯 <title>" обрабатывается старым `deep:target:...`
-// хендлером внутри `dispatchDeepCallback` — мы просто переиспользуем тот же
-// toggle, но теперь кнопки видны сразу в основной карточке, а не внутри
-// deep-review (пользователь: "кнопка уже была, просто располагалась неудобно").
+// Клики по самим direction'ам в подменю идут в `deep:target:<slotId>`
+// (тот же toggle что работает внутри deep-review).
 
 const PROG_TARGET_PROMPT = new Map<string, { chatId: number | string; participantId: string }>();
 
@@ -760,6 +723,9 @@ async function dispatchProgramCallback(
     case "set":
       if (!payload) return false;
       await handleSetProgram(participantId, payload, ctx);
+      return true;
+    case "target_menu":
+      await handleTargetMenu(participantId, ctx);
       return true;
     case "target_custom":
       await handleTargetCustomPrompt(participantId, ctx);
@@ -796,69 +762,56 @@ async function handleSetProgram(
   await refreshClientCard(participantId);
 }
 
-function truncateBtn(s: string, maxLen: number): string {
-  return s.length <= maxLen ? s : s.slice(0, maxLen - 1) + "…";
-}
+async function handleTargetMenu(participantId: string, ctx: Context): Promise<void> {
+  const state = getPipelineState(participantId);
+  if (!state) {
+    await ctx.answerCbQuery("Клиент не найден.");
+    return;
+  }
+  const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
+  const final = outputs.finalAnalysis as { top3Titles?: unknown[] } | undefined;
+  const slots = (outputs.deepReview as { slots?: Array<{ slotId?: string; direction?: { title?: string; roleSlug?: string } }> } | undefined)?.slots ?? [];
+  const titles = Array.isArray(final?.top3Titles)
+    ? (final.top3Titles as unknown[]).filter((t): t is string => typeof t === "string")
+    : [];
 
-/**
- * Находит slot в `deepReview.slots` по title финального топ-3. Phase 3
- * часто переименовывает direction ("AppSec Engineer" → "Security Engineer,
- * AppSec (senior)"), поэтому пробуем несколько стратегий:
- *   1. exact match (case-insensitive)
- *   2. deep-title starts with finalTop3-title (или наоборот)
- *   3. существенная substring-пересечение (первые 4 слова)
- */
-function pickSlotByTitle<T extends { direction?: { title?: string } }>(
-  slots: T[],
-  title: string,
-): T | undefined {
-  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
-  const tNorm = norm(title);
-  let hit = slots.find((s) => s.direction?.title && norm(s.direction.title) === tNorm);
-  if (hit) return hit;
-  hit = slots.find((s) => {
-    const dt = s.direction?.title ? norm(s.direction.title) : "";
-    return dt && (dt.startsWith(tNorm) || tNorm.startsWith(dt));
-  });
-  if (hit) return hit;
-  const firstWords = tNorm.split(" ").slice(0, 4).join(" ");
-  if (firstWords.length < 8) return undefined;
-  return slots.find((s) => {
-    const dt = s.direction?.title ? norm(s.direction.title) : "";
-    return dt.includes(firstWords) || firstWords.includes(dt);
-  });
-}
+  // Название роли берём из market-index.displayTitle по roleSlug (чистое
+  // "Data Engineer" без "(Senior)" / "долгосрочная ставка" - эти суффиксы
+  // Phase 3 дописывает в title для прозы финала).
+  const { loadMarketIndex } = await import("../services/role-scorer.js");
+  const index = await loadMarketIndex();
+  const norm = (s: string) => s.toLowerCase();
 
-/**
- * Lightweight проверка selectedTargetRoles без динамического импорта
- * `intake.js` (тот модуль тянет много лишнего, а `buildAnalyzeKeyboard`
- * вызывается синхронно при каждом refresh карточки).
- */
-function isSelectedTargetRoleLight(
-  outputs: Record<string, unknown>,
-  direction: { roleSlug: string; bucket?: string },
-  slotId: string,
-): boolean {
-  const clientSummary = outputs.clientSummary as
-    | { selectedTargetRoles?: Array<{ id?: string; slotId?: string; roleSlug?: string; bucket?: string }> }
-    | undefined;
-  const rolesRaw = clientSummary?.selectedTargetRoles ??
-    (Array.isArray(outputs.selectedTargetRoles) ? outputs.selectedTargetRoles : []);
-  const roles = rolesRaw as Array<{
-    id?: string;
-    slotId?: string;
-    roleSlug?: string;
-    bucket?: string;
-  }>;
-  return roles.some((r) => {
-    if (r.slotId && r.slotId === slotId) return true;
-    // legacy: запись без slotId (resume-flow / старые state) — сравниваем
-    // по roleSlug|bucket.
-    if (!r.slotId && r.roleSlug === direction.roleSlug && r.bucket === (direction.bucket ?? "abroad")) {
-      return true;
-    }
-    return false;
-  });
+  const rows = titles
+    .map((title) => {
+      const slot = slots.find((s) => {
+        if (!s.direction?.title) return false;
+        const a = norm(s.direction.title);
+        const b = norm(title);
+        return a === b || a.startsWith(b) || b.startsWith(a) || a.includes(b.split(" ")[0] ?? "");
+      });
+      if (!slot?.slotId) return null;
+      const slug = slot.direction?.roleSlug ?? "";
+      const cleanTitle = index[slug]?.displayTitle ?? slot.direction?.title ?? title;
+      return [
+        Markup.button.callback(
+          `🎯 ${cleanTitle}`,
+          `deep:target:${participantId}:${slot.slotId}`,
+        ),
+      ];
+    })
+    .filter((r): r is [ReturnType<typeof Markup.button.callback>] => r !== null);
+
+  rows.push([Markup.button.callback("✨ Своё направление", `prog:target_custom:${participantId}`)]);
+
+  await ctx.answerCbQuery();
+  const chatId = ctx.chat?.id ?? getAdminChatId();
+  if (!chatId) return;
+  await getBot().telegram.sendMessage(
+    chatId,
+    "Выбери направление для упаковки:",
+    { reply_markup: Markup.inlineKeyboard(rows).reply_markup },
+  );
 }
 
 async function handleTargetCustomPrompt(

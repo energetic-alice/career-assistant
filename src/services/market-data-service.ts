@@ -4,6 +4,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CandidateProfile, Direction, Region } from "../schemas/analysis-outputs.js";
 import type { MarketIndex } from "../schemas/market-index.js";
+import { isRuBlockedBySanctions } from "./market-access.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MARKET_DATA_DIR = join(__dirname, "..", "prompts", "market-data");
@@ -512,6 +513,16 @@ export async function buildMarketSummary(
 
   // Explicitly excludes RU → never show RU regardless of accessible
   if (b.explicitlyExcludesRU) showRU = false;
+
+  // Санкционный блок: клиент физически в ЕС/UK/США не может работать на
+  // RU-рынок (банковские ограничения + работодатели не платят резидентам
+  // санкционных стран). Даже если intake-mapper проставил `ru` в targets,
+  // RU-цифры клиенту не нужны - только путают анализ.
+  // Латам/APAC/ME/СНГ - санкциями не ограничены; RU остаётся по выбору
+  // клиента (напр. аргентинка с низким английским ищет remote RU-B2B).
+  if (b.physicalCountry && isRuBlockedBySanctions(b.physicalCountry)) {
+    showRU = false;
+  }
 
   // B2+ without international targets → show UK/EU as opportunity
   if (cefrAtLeast(eng, "B2") && !showUK) {

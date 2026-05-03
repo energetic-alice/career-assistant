@@ -43,7 +43,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 1.5,
+    "trendRatio": 0.73
   },
   "backend_java": {
     "slug": "backend_java",
@@ -85,7 +87,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 1.5,
+    "trendRatio": 0.36
   },
   "backend_go": {
     "slug": "backend_go",
@@ -128,7 +132,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 3,
+    "trendRatio": 0.54
   },
   "backend_nodejs": {
     "slug": "backend_nodejs",
@@ -169,7 +175,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 1.7,
+    "trendRatio": 0.42
   },
   "backend_net": {
     "slug": "backend_net",
@@ -210,7 +218,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 1.4,
+    "trendRatio": 0.29
   },
   "backend_php": {
     "slug": "backend_php",
@@ -250,7 +260,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 1.3,
+    "trendRatio": 0.34
   },
   "backend_ruby": {
     "slug": "backend_ruby",
@@ -290,7 +302,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 5,
+    "trendRatio": 0.27
   },
   "backend_rust": {
     "slug": "backend_rust",
@@ -329,7 +343,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 8,
+    "trendRatio": 0.67
   },
   "backend_cplusplus": {
     "slug": "backend_cplusplus",
@@ -371,7 +387,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": null,
+    "trendRatio": 0.52
   },
   "frontend_react": {
     "slug": "frontend_react",
@@ -413,7 +431,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "high"
+    "aiRisk": "high",
+    "competitionPer100": 1.4,
+    "trendRatio": 0.35
   },
   "frontend_vue": {
     "slug": "frontend_vue",
@@ -453,7 +473,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "high"
+    "aiRisk": "high",
+    "competitionPer100": 2,
+    "trendRatio": 0.2
   },
   "frontend_angular": {
     "slug": "frontend_angular",
@@ -492,7 +514,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "high"
+    "aiRisk": "high",
+    "competitionPer100": 1.9,
+    "trendRatio": 0.14
   },
   "fullstack": {
     "slug": "fullstack",
@@ -530,7 +554,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": null,
+    "trendRatio": 0.46
   },
   "mobileapp_swift": {
     "slug": "mobileapp_swift",
@@ -570,7 +596,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 3,
+    "trendRatio": 0.76
   },
   "mobileapp_kotlin": {
     "slug": "mobileapp_kotlin",
@@ -610,7 +638,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 3,
+    "trendRatio": 0.43
   },
   "mobileapp_flutter": {
     "slug": "mobileapp_flutter",
@@ -649,7 +679,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 2.7,
+    "trendRatio": 0.38
   },
   "mobileapp_react_native": {
     "slug": "mobileapp_react_native",
@@ -689,7 +721,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 2.7,
+    "trendRatio": 0.81
   },
   "devops": {
     "slug": "devops",
@@ -750,7 +784,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "low"
+    "aiRisk": "low",
+    "competitionPer100": 5,
+    "trendRatio": 0.54
   },
   "data_engineer": {
     "slug": "data_engineer",
@@ -787,7 +823,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "low"
+    "aiRisk": "low",
+    "competitionPer100": 3.8,
+    "trendRatio": 0.76
   },
   "ml_engineer": {
     "slug": "ml_engineer",
@@ -832,7 +870,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "low"
+    "aiRisk": "low",
+    "competitionPer100": 1.3,
+    "trendRatio": 0.67
   },
   "data_analyst": {
     "slug": "data_analyst",
@@ -865,7 +905,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 1.5,
+    "trendRatio": 2.13
   },
   "product_analyst": {
     "slug": "product_analyst",
@@ -900,7 +942,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 1.9,
+    "trendRatio": 0.52
   },
   "qa_engineer": {
     "slug": "qa_engineer",
@@ -938,7 +982,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "high"
+    "aiRisk": "high",
+    "competitionPer100": 2.5,
+    "trendRatio": 0.75
   },
   "manual_testing": {
     "slug": "manual_testing",
@@ -975,7 +1021,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "low"
+    "aiRisk": "low",
+    "competitionPer100": 0.6,
+    "trendRatio": 0.38
   },
   "product_manager": {
     "slug": "product_manager",
@@ -1011,7 +1059,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "low"
+    "aiRisk": "low",
+    "competitionPer100": 1.7,
+    "trendRatio": 0.77
   },
   "project_manager": {
     "slug": "project_manager",
@@ -1045,7 +1095,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "low"
+    "aiRisk": "low",
+    "competitionPer100": null,
+    "trendRatio": 0.28
   },
   "tech_lead": {
     "slug": "tech_lead",
@@ -1087,7 +1139,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "low"
+    "aiRisk": "low",
+    "competitionPer100": 3,
+    "trendRatio": 0.85
   },
   "software_architect": {
     "slug": "software_architect",
@@ -1123,7 +1177,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "low"
+    "aiRisk": "low",
+    "competitionPer100": 1.3,
+    "trendRatio": 0.6
   },
   "business_analyst": {
     "slug": "business_analyst",
@@ -1158,7 +1214,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 1.4,
+    "trendRatio": 0.93
   },
   "systems_analyst": {
     "slug": "systems_analyst",
@@ -1191,7 +1249,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "high"
+    "aiRisk": "high",
+    "competitionPer100": 1.8,
+    "trendRatio": 0.53
   },
   "ui_ux_designer": {
     "slug": "ui_ux_designer",
@@ -1232,7 +1292,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "high"
+    "aiRisk": "high",
+    "competitionPer100": 2,
+    "trendRatio": 0.48
   },
   "marketing_manager": {
     "slug": "marketing_manager",
@@ -1269,7 +1331,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": 5,
+    "trendRatio": 6.1
   },
   "recruiter": {
     "slug": "recruiter",
@@ -1302,7 +1366,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "high"
+    "aiRisk": "high",
+    "competitionPer100": 3.5,
+    "trendRatio": null
   },
   "technical_writer": {
     "slug": "technical_writer",
@@ -1336,7 +1402,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "extreme"
+    "aiRisk": "extreme",
+    "competitionPer100": null,
+    "trendRatio": 1.09
   },
   "infosecspec": {
     "slug": "infosecspec",
@@ -1375,7 +1443,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "low"
+    "aiRisk": "low",
+    "competitionPer100": null,
+    "trendRatio": 1.95
   },
   "1c_developer": {
     "slug": "1c_developer",
@@ -1407,7 +1477,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": null,
+    "trendRatio": null
   },
   "gamedev_unity": {
     "slug": "gamedev_unity",
@@ -1444,7 +1516,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": null,
+    "trendRatio": 0.18
   },
   "web3_developer": {
     "slug": "web3_developer",
@@ -1481,7 +1555,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": null,
+    "trendRatio": 0.19
   },
   "system_admin": {
     "slug": "system_admin",
@@ -1518,7 +1594,9 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": null,
+    "trendRatio": 0.57
   },
   "tech_support_manager": {
     "slug": "tech_support_manager",
@@ -1556,6 +1634,8 @@
     },
     "eu": null,
     "us": null,
-    "aiRisk": "medium"
+    "aiRisk": "medium",
+    "competitionPer100": null,
+    "trendRatio": 0.89
   }
 }

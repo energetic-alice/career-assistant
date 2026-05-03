@@ -36,6 +36,9 @@ import {
   enrichDirections,
   formatEnrichedForLog,
   postValidateDirections,
+  buildTableHints,
+  formatTableHints,
+  resolveCandidateCurrentRoleStats,
   type EnrichedDirection,
 } from "../services/direction-enricher.js";
 import { directionKey } from "../services/deep-research-service.js";
@@ -129,6 +132,18 @@ export interface Phase1Result {
   reviewSummaryText: string;
   perplexityMarketData?: unknown;
   timings: Record<string, number>;
+  /**
+   * Прокинутый из ShortlistResult clientSummary - нужен в Phase 4 для
+   * детерминированного расчёта медианы рынка по текущей роли кандидата
+   * (колонка Таблицы 3 "Senior сейчас" в финальном документе).
+   */
+  clientSummary?: ClientSummary;
+  /**
+   * EnrichedDirection-ы для 3 топ-направлений, выбранных Phase 3 — с
+   * готовыми значениями vacancies/competition/trend/aiRisk из market-index
+   * для подстановки в Таблицу 1 финального документа.
+   */
+  enrichedTop3?: EnrichedDirection[];
 }
 
 /**
@@ -833,6 +848,27 @@ export async function runDeepFromShortlist(
     16000,
   );
   timings["step6_analysis"] = Date.now() - t0;
+
+  // Детерминированный пересчёт retrainingVolume из adjacencyScorePercent.
+  // Модель склонна ставить "существенное" даже когда adjacency=85% (разраб→DevOps
+  // и т.п.) и пугать клиента 12+ месяцами переобучения. Шкала в коде:
+  //   >= 80  → минимальное  (по сути та же/очень близкая роль)
+  //   60-79  → умеренное    (смежная ниша, 3-6 мес)
+  //   < 60   → существенное (существенно новая специализация)
+  // Модель больше не решает retrainingVolume, только оценивает adjacency.
+  for (const d of analysis.directions) {
+    const adj = d.transition?.adjacencyScorePercent ?? 0;
+    const prevVolume = d.transition.retrainingVolume;
+    const newVolume: "минимальное" | "умеренное" | "существенное" =
+      adj >= 80 ? "минимальное" : adj >= 60 ? "умеренное" : "существенное";
+    if (prevVolume !== newVolume) {
+      console.log(
+        `[Deep/Step 6] retrainingVolume "${d.title}": ${prevVolume} → ${newVolume} (adjacency=${adj}%)`,
+      );
+    }
+    d.transition.retrainingVolume = newVolume;
+  }
+
   console.log(
     `[Deep/Step 6] Done in ${timings["step6_analysis"]}ms. Top-3: ${analysis.directions.map((d) => d.title).join(" | ")}`,
   );
@@ -852,6 +888,18 @@ export async function runDeepFromShortlist(
   const totalTime = Object.values(timings).reduce((a, b) => a + b, 0);
   console.log(`\n[Phase 1 Total] ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s)`);
 
+  // Дёргаем enriched именно для ТОП-3 (после Phase 3 отбора). Это нужно
+  // Phase 4 чтобы заполнить Таблицу 1 готовыми значениями. Берём из
+  // shortlist.enriched по совпадению title — titles у Phase 3 и Phase 1
+  // совпадают (Phase 3 не переименовывает direction'ы).
+  const enrichedTop3: EnrichedDirection[] = [];
+  if (shortlist.enriched && shortlist.enriched.length > 0) {
+    for (const d of analysis.directions) {
+      const match = shortlist.enriched.find((e) => e.title === d.title);
+      if (match) enrichedTop3.push(match);
+    }
+  }
+
   return {
     profile,
     directions,
@@ -859,6 +907,8 @@ export async function runDeepFromShortlist(
     reviewSummaryText,
     perplexityMarketData: perplexityRawData,
     timings,
+    clientSummary: shortlist.clientSummary,
+    enrichedTop3,
   };
 }
 
@@ -921,15 +971,70 @@ export async function runAnalysisPhase4(
   directions: DirectionsOutput,
   analysis: AnalysisOutput,
   expertFeedback?: string,
-  opts?: { candidateLevel?: "junior" | "middle" | "senior"; skipStyleCleanup?: boolean },
+  opts?: {
+    candidateLevel?: "junior" | "middle" | "senior";
+    skipStyleCleanup?: boolean;
+    /**
+     * Enriched directions из Phase 2+ (с slug-level vacancies/competition/trend
+     * из market-index). Используются для детерминированного заполнения
+     * колонок Таблицы 1 и Таблицы 3 в финальном документе (ширина рынка,
+     * динамика, конкуренция, AI-риск, медиана для текущей роли). Если не
+     * передан - `tableHints` будет пустой и модель сгенерирует таблицы как
+     * раньше (legacy режим, на случай вызова из старых e2e-тестов).
+     */
+    enriched?: EnrichedDirection[];
+    /**
+     * ClientSummary клиента - нужен чтобы посчитать медиану рынка по
+     * ТЕКУЩЕЙ роли кандидата для Таблицы 3 "Senior сейчас". Если не
+     * передан, соответствующая колонка в hints останется пустой.
+     */
+    clientSummary?: ClientSummary;
+  },
 ): Promise<Phase4Result> {
   console.log("\n[Step 4] Compiling final document...");
   const t0 = Date.now();
+
+  // Собираем готовые значения для Таблиц 1 и 3 из кода, чтобы модель не
+  // пересчитывала (частый источник рассинхрона проза ↔ таблицы).
+  let tableHintsText = "";
+  if (opts?.enriched && opts.enriched.length > 0) {
+    const hints = buildTableHints(opts.enriched);
+    const topTitles = analysis.directions.map((d) => {
+      const enriched = opts.enriched!.find((e) => e.title === d.title);
+      return {
+        title: d.title,
+        roleSlug: enriched?.roleSlug ?? "",
+      };
+    });
+    let currentRole: Awaited<ReturnType<typeof resolveCandidateCurrentRoleStats>> = null;
+    if (opts.clientSummary) {
+      try {
+        currentRole = await resolveCandidateCurrentRoleStats(opts.clientSummary);
+      } catch (err) {
+        console.warn(
+          `[Step 4] resolveCandidateCurrentRoleStats failed: ${(err as Error).message}`,
+        );
+      }
+    }
+    tableHintsText = formatTableHints({
+      topDirections: topTitles,
+      hints,
+      candidateCurrentRole: currentRole,
+    });
+    console.log(
+      `[Step 4] tableHints: ${hints.length} directions, currentRoleMedian=${currentRole?.medianSalaryMid ?? "—"}`,
+    );
+  } else {
+    tableHintsText =
+      "# Готовые значения для таблиц\n\n(не переданы — собери значения из analysisOutput как обычно)";
+  }
+
   const prompt04 = await loadPrompt04({
     candidateProfile: JSON.stringify(profile, null, 2),
     directionsOutput: JSON.stringify(directions, null, 2),
     analysisOutput: JSON.stringify(analysis, null, 2),
     expertFeedback: expertFeedback || "Нет комментариев",
+    tableHints: tableHintsText,
   });
   const draftDocument = await callClaudeText(prompt04);
   const draftTiming = Date.now() - t0;
@@ -1007,6 +1112,10 @@ export async function runAnalysisPipeline(
     phase1.directions,
     phase1.analysis,
     input.expertFeedback,
+    {
+      enriched: phase1.enrichedTop3,
+      clientSummary: phase1.clientSummary,
+    },
   );
 
   const timings = { ...phase1.timings, step4_final: phase4.timing };

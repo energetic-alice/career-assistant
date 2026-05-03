@@ -701,6 +701,11 @@ async function handleFinalLocked(
       phase1.profile,
       phase1.directions,
       phase1.analysis,
+      undefined,
+      {
+        enriched: phase1.enrichedTop3,
+        clientSummary: phase1.clientSummary,
+      },
     );
   } catch (err) {
     console.error(`[Final] ${participantId}: phase3/4 failed`, err);

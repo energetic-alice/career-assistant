@@ -104,6 +104,34 @@ export function isPhysicallyInEU(physicalCountry: string): boolean {
   return EU_COUNTRIES.has(physicalCountry);
 }
 
+export function isPhysicallyInUK(physicalCountry: string): boolean {
+  return UK_COUNTRIES.has(physicalCountry);
+}
+
+export function isPhysicallyInUS(physicalCountry: string): boolean {
+  return US_COUNTRIES.has(physicalCountry);
+}
+
+/**
+ * Закрыт ли RU-рынок из-за санкций для клиента, физически находящегося в
+ * этой стране. Работодатели из РФ не могут легально платить резидентам
+ * ЕС/UK/США, банки блокируют SWIFT-платежи, плюс законодательные ограничения.
+ *
+ * Клиент в ЕС, который всё равно хотел бы "работать на РФ-рынок" — не
+ * реалистичный кейс, RU-данные в таких анализах только путают.
+ *
+ * Клиенты из Латам/APAC/ME/СНГ — санкциями не ограничены; RU-рынок
+ * остаётся доступным по их выбору (низкий английский, языковой барьер
+ * в местных tech-компаниях и т.п.).
+ */
+export function isRuBlockedBySanctions(physicalCountry: string): boolean {
+  return (
+    isPhysicallyInEU(physicalCountry) ||
+    isPhysicallyInUK(physicalCountry) ||
+    isPhysicallyInUS(physicalCountry)
+  );
+}
+
 export function hasRuWorkPermit(
   physicalCountry: string,
   citizenships: readonly string[],

@@ -14,6 +14,44 @@ import { z } from "zod";
 export const aiRiskEnum = z.enum(["low", "medium", "high", "extreme"]);
 export type AiRisk = z.infer<typeof aiRiskEnum>;
 
+export const competitionLabelEnum = z.enum(["низкая", "средняя", "высокая"]);
+export type CompetitionLabel = z.infer<typeof competitionLabelEnum>;
+
+/**
+ * Детерминированное преобразование числа "вакансий на 100 специалистов"
+ * в качественную метку. Используется везде, где текст идёт в промпт или
+ * в UI - чтобы модель не путала шкалу.
+ *
+ * Шкала (согласована с `kb/competition-eu.md`):
+ *   >= 8   → низкая (рынок кандидата, много вакансий)
+ *   3-7.9  → средняя
+ *   < 3    → высокая (рынок работодателя, много соискателей)
+ */
+export function competitionLabel(per100: number | null | undefined): CompetitionLabel | null {
+  if (per100 === null || per100 === undefined) return null;
+  if (per100 >= 8) return "низкая";
+  if (per100 >= 3) return "средняя";
+  return "высокая";
+}
+
+/**
+ * Конвертирует ratio = now/twoYearsAgo в короткий текстовый лейбл для таблицы.
+ * Примеры:
+ *   1.50 → "+50% за 2 года"
+ *   0.75 → "-25% за 2 года"
+ *   0.97..1.03 → "стабильно"
+ *   null → null
+ */
+export function trendLabelPct(ratio: number | null | undefined): string | null {
+  if (ratio === null || ratio === undefined || !Number.isFinite(ratio) || ratio <= 0) {
+    return null;
+  }
+  const pct = Math.round((ratio - 1) * 100);
+  if (Math.abs(pct) < 5) return "стабильно";
+  const sign = pct > 0 ? "+" : "";
+  return `${sign}${pct}% за 2 года`;
+}
+
 export const regionStatsSchema = z.object({
   /** Number of live vacancies (hh.ru total / itjw "Live Now" for top title). */
   vacancies: z.number().nullable(),
@@ -93,6 +131,30 @@ export const marketIndexEntrySchema = z.object({
 
   /** AI-risk bucket for the role (expert tagging, adjustable per feedback). */
   aiRisk: aiRiskEnum,
+
+  /**
+   * Competition per 100 specialists - slug-level (не per-region).
+   * Раньше хранилось в двух местах: `ru.competitionPer100Specialists`
+   * (точная hh.ru метрика) и `uk.competitionPer100Specialists` (оценочное
+   * ratio из `competition-eu.md`). Это давало модели два разных числа для
+   * одной роли и путаницу в финальном тексте.
+   *
+   * Теперь одно число на slug (приоритет: RU hh.ru → EU из KB → null),
+   * одинаковое для всех рынков. Кач. оценка "низкая/средняя/высокая"
+   * вычисляется детерминированно через `competitionLabel()`.
+   */
+  competitionPer100: z.number().nullable().optional(),
+
+  /**
+   * Slug-level динамика спроса (perm-vacancies, 2-year window, ratio = now/twoYearsAgo).
+   * Источник приоритета: UK itjobswatch (`uk.trend.ratio`) → RU snapshots
+   * (`ru.trend.ratio`) → null. UK-сигнал предпочтительнее, потому что в RU
+   * рынок сильно искажён санкциями последних 2 лет и даёт нерепрезентативную
+   * картину для глобальной роли.
+   *
+   * В финал таблицу отдаём как `динамика ±N% YoY` через `trendLabelPct()`.
+   */
+  trendRatio: z.number().nullable().optional(),
 });
 export type MarketIndexEntry = z.infer<typeof marketIndexEntrySchema>;
 

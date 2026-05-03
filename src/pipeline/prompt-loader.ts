@@ -274,6 +274,14 @@ export async function loadPrompt04(vars: {
   directionsOutput: string;
   analysisOutput: string;
   expertFeedback: string;
+  /**
+   * Готовые значения для сравнительных таблиц (ширина/динамика/конкуренция/AI-риск
+   * по каждому направлению + медиана текущей роли кандидата). Собираются
+   * детерминированно в `direction-enricher.ts:buildTableHints()` и в
+   * `run-analysis.ts:resolveCandidateCurrentRoleStats()`. Модель не
+   * пересчитывает, только подставляет в соответствующие колонки.
+   */
+  tableHints: string;
 }): Promise<string> {
   let template = await loadFile(join(PROMPTS_DIR, "04-final-compilation.md"));
   const styleGuide = await getReference("style-guide");
@@ -285,6 +293,7 @@ export async function loadPrompt04(vars: {
   template = template.replace("{{directionsOutput}}", vars.directionsOutput);
   template = template.replace("{{analysisOutput}}", vars.analysisOutput);
   template = template.replace("{{expertFeedback}}", vars.expertFeedback);
+  template = template.replace("{{tableHints}}", vars.tableHints);
 
   return template;
 }

@@ -70,9 +70,22 @@ function renderClientLine(state: PipelineState): string[] {
   const program = getProgramLabel(state);
   const programTag = program ? `[${escapeHtml(program)}] ` : "";
 
+  // Выбранные направления для упаковки (если есть) — показываем title'ы,
+  // чтобы куратор сразу видел кто под что упаковывается.
+  const selected = (cs?.selectedTargetRoles ??
+    (state.stageOutputs as { selectedTargetRoles?: Array<{ title?: string; roleSlug?: string }> } | undefined)
+      ?.selectedTargetRoles ??
+    []) as Array<{ title?: string; roleSlug?: string }>;
+  const targetTitles = selected
+    .map((r) => r.title || r.roleSlug)
+    .filter((t): t is string => !!t && t.length > 0);
+  const targetLine = targetTitles.length
+    ? `  🎯 ${escapeHtml(targetTitles.join(" · "))}\n`
+    : "";
+
   return [
     `${programTag}<b>@${escapeHtml(nick)}</b>${nameStr}${context}`,
-    `  ${escapeHtml(stageLabel)} — /client_${nick}`,
+    `${targetLine}  ${escapeHtml(stageLabel)} — /client_${nick}`,
     "",
   ];
 }

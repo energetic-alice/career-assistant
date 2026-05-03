@@ -2,6 +2,7 @@ import { loadMarketIndex } from "./role-scorer.js";
 import type { Direction } from "../schemas/analysis-outputs.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
 import type { MarketIndexEntry, RegionStats } from "../schemas/market-index.js";
+import { competitionLabel, trendLabelPct } from "../schemas/market-index.js";
 import { KNOWN_ROLES, type KnownRoleSlug } from "./known-roles.js";
 import { canonicalizeRoleSlug, matchRoleToSlug } from "./role-matcher.js";
 
@@ -301,6 +302,15 @@ export async function enrichDirections(
       entry?.aiRisk !== undefined;
     const dataSource: EnrichDataSource = hasAnyValue ? "market-index" : "none";
 
+    // competitionPer100 / trendRatio: slug-level, одно число на роль
+    // (см. market-index.ts). Fallback на per-region для старых index-файлов
+    // без top-level полей - чтобы не падали state-файлы, сохранённые до
+    // миграции.
+    const slugCompetition =
+      entry?.competitionPer100 ?? stats?.competitionPer100Specialists ?? null;
+    const slugTrendRatio =
+      entry?.trendRatio ?? stats?.trend?.ratio ?? null;
+
     return {
       index: i,
       title: d.title,
@@ -313,12 +323,211 @@ export async function enrichDirections(
       vacancies: stats?.vacancies ?? null,
       medianSalaryMid: stats?.medianSalaryMid ?? null,
       aiRisk: entry?.aiRisk ?? null,
-      competitionPer100: stats?.competitionPer100Specialists ?? null,
-      trendRatio: stats?.trend?.ratio ?? null,
+      competitionPer100: slugCompetition,
+      trendRatio: slugTrendRatio,
       entry,
       dataSource,
     };
   });
+}
+
+/**
+ * Готовый набор значений для финальных таблиц Phase 4 (Таблица 1 "Рынок" и
+ * Таблица 3 "Зарплатные ожидания"). Собирается **в коде** из slug-level
+ * данных market-index и передаётся в промпт Phase 4 как единственный
+ * источник для этих колонок. Модель не пересчитывает, только подставляет.
+ *
+ * Это устраняет два частых источника галлюцинаций:
+ *   - «+35%» динамики при том, что в данных -12%;
+ *   - «низкая конкуренция» при competitionPer100=1.3 (на самом деле высокая).
+ */
+export interface DirectionTableHints {
+  /** Совпадает с EnrichedDirection.index — ключ для стыковки. */
+  index: number;
+  title: string;
+  roleSlug: string;
+  /** Ширина рынка: качественно, без цифр. Из vacancies + vacancy_volume. */
+  width: "нишевый" | "средний" | "широкий" | null;
+  /** Динамика, готовая строка для таблицы: "+40% за 2 года" / "стабильно" / "-15% за 2 года". */
+  trend: string | null;
+  /** Конкуренция, готовая метка из competitionLabel(). */
+  competition: "низкая" | "средняя" | "высокая" | null;
+  /** AI-риск в русском виде, совместимом с analyzedDirectionSchema.aiRisk.level. */
+  aiRisk: "низкий" | "средний" | "средний-высокий" | "высокий" | null;
+}
+
+/**
+ * Переводит low/medium/high/extreme из market-index в русский enum,
+ * который используем в финальном документе. `extreme` — теоретически не
+ * должен доходить до Phase 4 (direction дропается в postValidate), но
+ * на всякий случай мапим в "высокий".
+ */
+function mapAiRisk(risk: MarketIndexEntry["aiRisk"] | null): DirectionTableHints["aiRisk"] {
+  if (!risk) return null;
+  switch (risk) {
+    case "low": return "низкий";
+    case "medium": return "средний";
+    case "high": return "высокий";
+    case "extreme": return "высокий";
+  }
+}
+
+/**
+ * Качественная ширина рынка из числа live-вакансий. Пороги калиброваны под
+ * UK itjobswatch (единственный цифровой источник для abroad-ролей):
+ *   < 100       → нишевый (реально редкая роль, типа Rust-разработчик в UK)
+ *   100-499     → средний
+ *   >= 500      → широкий
+ * Для RU-bucket используется абсолютное число hh.ru-вакансий, шкала та же —
+ * RU-рынок сопоставим с UK по абсолютным числам для большинства ролей.
+ */
+function widthFromVacancies(vacancies: number | null): DirectionTableHints["width"] {
+  if (vacancies === null) return null;
+  if (vacancies < 100) return "нишевый";
+  if (vacancies < 500) return "средний";
+  return "широкий";
+}
+
+export function buildTableHints(rows: EnrichedDirection[]): DirectionTableHints[] {
+  return rows.map((r) => ({
+    index: r.index,
+    title: r.title,
+    roleSlug: r.roleSlug,
+    width: widthFromVacancies(r.vacancies),
+    trend: trendLabelPct(r.trendRatio),
+    competition: competitionLabel(r.competitionPer100),
+    aiRisk: mapAiRisk(r.aiRisk),
+  }));
+}
+
+/**
+ * Находит медиану рынка для ТЕКУЩЕЙ роли кандидата (нужна для Таблицы 3
+ * "Зарплатные ожидания", колонка "Senior в твоей текущей роли сейчас").
+ *
+ * Делает 2 прохода: canonicalizeRoleSlug по summary.currentRole.normalizedSlug
+ * (если есть) → fallback на matchRoleToSlug по title/currentRole.title.
+ * Возвращает enriched-совместимую запись с vacancies/medianSalaryMid/aiRisk
+ * для bucket'а, выбранного по primary target market.
+ *
+ * Если текущую роль не удалось смапить в slug — вернёт null, финальный
+ * документ покажет прочерк в соответствующей колонке (без галлюцинации).
+ */
+export async function resolveCandidateCurrentRoleStats(
+  summary: ClientSummary,
+): Promise<{ roleSlug: string; medianSalaryMid: number | null; bucket: EnrichBucket } | null> {
+  const currentTitle = summary.currentProfession;
+  if (!currentTitle) return null;
+
+  const index = await loadMarketIndex();
+  const knownSet: Set<string> = new Set(KNOWN_ROLES);
+
+  let slug: string | null = null;
+  const canonical = canonicalizeRoleSlug(currentTitle);
+  if (canonical && knownSet.has(canonical)) {
+    slug = canonical;
+  } else {
+    const hit = await matchRoleToSlug(currentTitle);
+    if (hit && hit.confidence >= 0.85 && knownSet.has(hit.slug)) {
+      slug = hit.slug;
+    }
+  }
+  if (!slug) return null;
+
+  const entry = index[slug];
+  if (!entry) return null;
+
+  // Bucket: если у клиента в targetMarketRegions есть что-то не-ru, берём
+  // abroad (UK proxy); иначе ru. Санкции/локация кандидата учитываются
+  // выше по стеку (см. isRuBlockedBySanctions), здесь просто статистика.
+  const hasAbroadTarget = (summary.targetMarketRegions ?? []).some(
+    (r) => r.toLowerCase() !== "ru",
+  );
+  const bucket: EnrichBucket = hasAbroadTarget ? "abroad" : "ru";
+  const stats = bucket === "ru" ? entry.ru : entry.uk ?? entry.eu ?? entry.us;
+
+  return {
+    roleSlug: slug,
+    medianSalaryMid: stats?.medianSalaryMid ?? null,
+    bucket,
+  };
+}
+
+/**
+ * Формирует markdown-блок с готовыми значениями для Таблиц 1 и 3 финального
+ * документа. Подставляется в промпт 04 как `{{tableHints}}`. Все колонки,
+ * которые можно посчитать детерминированно (ширина, динамика, конкуренция,
+ * AI-риск), берутся из market-index; модель их не пересчитывает, чтобы
+ * избежать расхождений между прозой и таблицами.
+ *
+ * `candidateCurrentRole` — заполняется результатом
+ * `resolveCandidateCurrentRoleStats` (медиана для текущей роли в целевой
+ * локации клиента). `null` → модель ставит прочерк, без выдумки.
+ */
+export function formatTableHints(params: {
+  topDirections: { title: string; roleSlug: string }[];
+  hints: DirectionTableHints[];
+  candidateCurrentRole: {
+    roleSlug: string;
+    medianSalaryMid: number | null;
+    bucket: EnrichBucket;
+  } | null;
+}): string {
+  const lines: string[] = [];
+  lines.push("# Готовые значения для сравнительных таблиц Phase 4");
+  lines.push("");
+  lines.push(
+    "⚠ Значения ниже посчитаны детерминированно из `market-index.json`. В Таблице 1 " +
+      "(Рынок) и Таблице 3 (Зарплатные ожидания) **копируй их дословно** — не пересчитывай, " +
+      "не меняй формулировки, не «сглаживай». Если в поле стоит `—`, оставляй прочерк.",
+  );
+  lines.push("");
+
+  // Ключ — сопоставление по roleSlug (устойчиво к перестановке direction'ов в
+  // analysisOutput, в отличие от числовых индексов).
+  const byRoleSlug = new Map<string, DirectionTableHints>();
+  for (const h of params.hints) byRoleSlug.set(h.roleSlug, h);
+
+  lines.push("## Таблица 1 (Рынок) - строки");
+  lines.push("");
+  lines.push("| направление | ширина рынка | динамика | конкуренция (вак/100 спец) | AI-риск |");
+  lines.push("|---|---|---|---|---|");
+  for (const d of params.topDirections) {
+    const h = byRoleSlug.get(d.roleSlug);
+    const width = h?.width ?? "—";
+    const trend = h?.trend ?? "—";
+    const comp = h?.competition ?? "—";
+    const ai = h?.aiRisk ?? "—";
+    lines.push(`| ${d.title} | ${width} | ${trend} | ${comp} | ${ai} |`);
+  }
+  lines.push("");
+
+  lines.push("## Таблица 3 (Зарплатные ожидания) - вспомогательные данные");
+  lines.push("");
+  if (params.candidateCurrentRole && params.candidateCurrentRole.medianSalaryMid !== null) {
+    const b = params.candidateCurrentRole.bucket;
+    const sal = params.candidateCurrentRole.medianSalaryMid;
+    lines.push(
+      `- Медиана рынка для текущей роли кандидата (slug: \`${params.candidateCurrentRole.roleSlug}\`, bucket: ${b}): **${sal}** (моб/годовая в валюте рынка; см. marketData для уточнения).`,
+    );
+    lines.push(
+      "- Эту цифру используй в колонке «Senior в твоей текущей роли сейчас» Таблицы 3 как базу " +
+        "для сравнения с желаемой зп. Не округляй, не конвертируй.",
+    );
+  } else {
+    lines.push(
+      "- Медиана рынка для текущей роли кандидата: **нет точной цифры в market-index**. " +
+        "В колонке «Senior в текущей роли» поставь прочерк, без выдуманных цифр.",
+    );
+  }
+  lines.push("");
+  lines.push(
+    "Для каждого топ-3 направления колонку «Senior в целевой роли» бери из marketData " +
+      "(поле medianSalaryMid соответствующего bucket'а и/или seniorityCurve.senior). " +
+      "Если в данных только UK-цифра, а клиент ищет в EU/US — пиши UK-цифру и в примечании " +
+      "делай пометку «UK proxy», без арифметики ×1.5 для US.",
+  );
+
+  return lines.join("\n");
 }
 
 /**
@@ -348,13 +557,13 @@ export function formatEnrichedAsMarketData(rows: EnrichedDirection[]): string {
     lines.push(title);
     lines.push(`- slug: \`${r.roleSlug}\`${r.offIndex ? " (off-index)" : ""}`);
     lines.push(`- bucket: ${r.bucket ?? "—"}`);
-    // competition/100 — точная метрика только для RU (расчёт hh.ru вакансий/резюме).
-    // Для bucket=abroad число в market-index приходит из competition-eu.md
-    // (оценочное ratio LinkedIn/ITJW), и подавать его модели как факт не стоит —
-    // см. user-rule «оставим только где они реально есть из данных рынка».
+    // competition/100 - одно число на slug (см. market-index). Модели
+    // отдаём с готовой меткой "низкая/средняя/высокая" чтобы не пересчитывала
+    // шкалу самостоятельно и не путала `1.3 = низкая` (на самом деле высокая).
+    const compLabel = competitionLabel(r.competitionPer100);
     const compPart =
-      r.bucket === "ru" && r.competitionPer100 !== null
-        ? ` · competition/100 (hh.ru): ${r.competitionPer100.toFixed(1)}`
+      r.competitionPer100 !== null && compLabel !== null
+        ? ` · competition/100: ${r.competitionPer100.toFixed(1)} (${compLabel.toUpperCase()})`
         : "";
     lines.push(
       `- vacancies: ${fmtNum(r.vacancies)} · medianSalary: ${fmtNum(r.medianSalaryMid)}${compPart}`,

@@ -411,17 +411,33 @@ async function main(): Promise<void> {
     const ruRatio = competitionRu.get(def.slug);
     const euRatio = competitionEu.get(def.slug);
 
+    // Slug-level competition: приоритет RU hh.ru (точная метрика из
+    // вакансий/резюме) → EU из competition-eu.md → null. Одинаковое число
+    // для всех рынков - механика спроса/предложения от слага не зависит
+    // (хоть и может отклоняться по регионам на ±20-30%).
+    const slugCompetition = ruRatio ?? euRatio ?? null;
+
+    const ruStats = withCompetition(await buildRu(def), ruRatio);
+    const ukStats = withCompetition(await buildUk(def), euRatio);
+
+    // Slug-level trend (динамика спроса, 2-year window, ratio).
+    // Приоритет: UK itjobswatch (глобальный сигнал, не искажён санкциями) →
+    // RU snapshots → null. Одинаковое число для всех рынков в финальной таблице.
+    const slugTrendRatio = ukStats?.trend?.ratio ?? ruStats?.trend?.ratio ?? null;
+
     const entry: MarketIndexEntry = {
       slug: def.slug,
       displayTitle: def.displayTitle,
       category: def.category,
       ...(def.stackFamily ? { stackFamily: def.stackFamily } : {}),
       aliases: collectAliases(def),
-      ru: withCompetition(await buildRu(def), ruRatio),
-      uk: withCompetition(await buildUk(def), euRatio),
+      ru: ruStats,
+      uk: ukStats,
       eu: null,
       us: null,
       aiRisk: def.aiRisk,
+      competitionPer100: slugCompetition,
+      trendRatio: slugTrendRatio,
     };
     index[def.slug] = entry;
   }

@@ -362,6 +362,15 @@ export type MarketData = z.infer<typeof marketDataSchema>;
 
 export const analyzedDirectionSchema = z.object({
   title: z.string(),
+  /**
+   * Канонический slug из исходного `directionSchema.roleSlug`. Нужен для
+   * детерминированной стыковки analyzed↔enriched в Phase 4 (чтобы заполнять
+   * таблицы 1/3 значениями из market-index по slug, а не по title —
+   * модель часто переименовывает direction в "Role, Specialization (senior)"
+   * и string-match по title ломается). Optional для обратной совместимости
+   * со старыми state-ами на проде.
+   */
+  roleSlug: z.string().optional(),
   type: z.enum(["основной трек", "запасной вариант", "краткосрочный мост", "долгосрочная ставка"]),
   whyFits: z.string(),
   whatToHighlightToRecruiters: z.string(),
@@ -403,7 +412,6 @@ export const analyzedDirectionSchema = z.object({
     timeToMarket: z.string(),
   }),
 
-  offerProbability3to9months: z.enum(["высокая", "средняя", "низкая"]),
   candidateMatchScore: z.number().min(1).max(10),
 
   horizons: z.object({

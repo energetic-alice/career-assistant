@@ -282,6 +282,11 @@ async function probeOne(state: PipeState): Promise<void> {
     phase1.profile,
     phase1.directions,
     phase1.analysis,
+    undefined,
+    {
+      enriched: phase1.enrichedTop3,
+      clientSummary: phase1.clientSummary,
+    },
   );
   const ms4 = Date.now() - t4;
   console.log(`  [Phase 4] done in ${(ms4 / 1000).toFixed(1)}s, markdown=${phase4.finalDocument.length} chars`);
