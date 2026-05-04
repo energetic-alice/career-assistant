@@ -3,14 +3,25 @@ import type {
   AuditItem,
   HeadlineCandidate,
   LinkedinPack,
+  ProfileContent,
 } from "../../schemas/linkedin-pack.js";
 
 /**
  * Рендер LinkedinPack в Markdown для Google Doc.
  *
- * В MVP документ состоит из двух больших секций:
- *   1. Аудит — общий балл, топ-приоритеты, чек-лист с галочками и рекомендациями.
+ * Секции документа (если соответствующие фазы отработали):
+ *   1. Аудит — счётчик пунктов по статусам, топ-приоритеты, чек-лист с галочками и рекомендациями.
  *   2. Headline — текущий заголовок + 5 вариантов по формуле.
+ *   3. About — готовый copy-paste (без эмодзи) + разбор по блокам.
+ *   4. Top Skills — 5 закреплённых.
+ *   5. Experience — переписанные позиции.
+ *   6. Настройки профиля — инструкции (location, URL, open to work, cover, contact).
+ *   7. Образование, языки, сертификаты, волонтёрство.
+ *   8. План действий — connections, endorsements, recommendations, активность.
+ *   9. Контент-план — 4 темы для первых постов.
+ *
+ * Эмодзи остаются ТОЛЬКО в чек-листе аудита (✅ / ❌ / ❓). Остальной документ
+ * — plain text, чтобы клиент мог копировать без подчистки.
  */
 
 function statusIcon(status: AuditItem["status"]): string {
@@ -26,16 +37,33 @@ function statusIcon(status: AuditItem["status"]): string {
 
 function renderAuditItem(it: AuditItem): string {
   const icon = statusIcon(it.status);
-  const score = `**${it.pointsAwarded}/${it.maxPoints}**`;
-  const header = `- ${icon} ${it.number}. ${it.title} — ${score}`;
+  const header = `- ${icon} ${it.number}. ${it.title}`;
   if (!it.recommendation?.trim()) return header;
   return `${header}\n  - ${it.recommendation.trim()}`;
 }
 
+function countByStatus(items: AuditItem[]): { pass: number; fail: number; unknown: number } {
+  let pass = 0;
+  let fail = 0;
+  let unknown = 0;
+  for (const it of items) {
+    if (it.status === "pass") pass += 1;
+    else if (it.status === "fail") fail += 1;
+    else unknown += 1;
+  }
+  return { pass, fail, unknown };
+}
+
+function statusSummary(items: AuditItem[]): string {
+  const { pass, fail, unknown } = countByStatus(items);
+  const parts = [`${pass} ✅`, `${fail} ❌`];
+  if (unknown > 0) parts.push(`${unknown} ❓`);
+  return parts.join(" · ");
+}
+
 function renderAuditBlock(block: AuditBlock): string {
-  const earned = block.items.reduce((acc, it) => acc + it.pointsAwarded, 0);
   const lines: string[] = [];
-  lines.push(`### ${block.name} — ${earned}/${block.maxScore} баллов`);
+  lines.push(`### ${block.name} — ${statusSummary(block.items)}`);
   lines.push("");
   for (const item of block.items) {
     lines.push(renderAuditItem(item));
@@ -85,10 +113,11 @@ export function renderLinkedinPack(pack: LinkedinPack): string {
   // ── Секция 1: Аудит ──────────────────────────────────────────────────────
   lines.push("## 1. Аудит профиля");
   lines.push("");
-  lines.push(
-    `**Итоговый балл: ${audit.totalScore} / ${audit.maxTotalScore}** · ` +
-      `SSI-потенциал: **${ssiLabel(audit.ssiEstimate)}**`,
-  );
+
+  const allItems = audit.blocks.flatMap((b) => b.items);
+  lines.push(`**${allItems.length} пунктов чек-листа:** ${statusSummary(allItems)}`);
+  lines.push("");
+  lines.push("Легенда: ✅ выполнено · ❌ не выполнено · ❓ не проверяется автоматически (проверь руками).");
   lines.push("");
 
   if (audit.topPriorities.length > 0) {
@@ -100,9 +129,7 @@ export function renderLinkedinPack(pack: LinkedinPack): string {
     lines.push("");
   }
 
-  lines.push("### Чек-лист (18 пунктов)");
-  lines.push("");
-  lines.push("Легенда: ✅ выполнено · ❌ не выполнено · ❓ не проверяется автоматически (проверь руками).");
+  lines.push("### Чек-лист");
   lines.push("");
 
   for (const block of audit.blocks) {
@@ -135,24 +162,201 @@ export function renderLinkedinPack(pack: LinkedinPack): string {
     lines.push("");
   });
 
+  // ── Секции 3-9: Profile content ──────────────────────────────────────────
+  if (pack.profileContent) {
+    lines.push(...renderProfileContent(pack.profileContent));
+  }
+
   // ── Footer ───────────────────────────────────────────────────────────────
   lines.push("---");
   lines.push("");
   lines.push(
-    "*Следующий шаг (вне MVP): тексты для секций About / Experience / Skills, " +
-      "контент-план и генерация постов для роста SSI.*",
+    "*Следующий шаг (вне MVP): индивидуальные посты на основе контент-плана, " +
+      "отслеживание роста SSI и помощь с интеграциями (Canva-баннер, оформление Featured).*",
   );
 
   return lines.join("\n");
 }
 
-function ssiLabel(estimate: "low" | "medium" | "high"): string {
-  switch (estimate) {
-    case "low":
-      return "низкий";
-    case "medium":
-      return "средний";
-    case "high":
-      return "высокий";
+function renderProfileContent(content: ProfileContent): string[] {
+  const lines: string[] = [];
+
+  // ── 3. About ─────────────────────────────────────────────────────────────
+  lines.push("## 3. Секция «О себе» (About) — готовый текст");
+  lines.push("");
+  lines.push(
+    "Ниже — полный текст для поля About в LinkedIn. Можно скопировать целиком " +
+      "или подредактировать под свой голос. Структура из 4 блоков по методологии.",
+  );
+  lines.push("");
+  lines.push("**Copy-paste:**");
+  lines.push("");
+  lines.push("```");
+  lines.push(content.about.fullText);
+  lines.push("```");
+  lines.push("");
+
+  lines.push("**Разбор по блокам:**");
+  lines.push("");
+  lines.push(`1. **Summary-абзац:** ${content.about.firstParagraph}`);
+  lines.push("");
+  lines.push("2. **Professional highlights** (достижения, образование, проекты, выступления, менторство):");
+  for (const h of content.about.highlights) {
+    lines.push(`   - ${h}`);
   }
+  lines.push("");
+  lines.push(`3. **Технический стэк:** ${content.about.technicalSkills}`);
+  lines.push("");
+  lines.push(`4. **CTA + контакт:** ${content.about.cta}`);
+  lines.push("");
+
+  // ── 4. Top Skills ────────────────────────────────────────────────────────
+  lines.push("## 4. Top Skills (5 закреплённых)");
+  lines.push("");
+  lines.push(
+    "Закрепи ровно эти 5 скиллов в разделе Skills (значок пин). Они должны " +
+      "повторяться и в Headline, и в About, и в описании каждого Experience — " +
+      "LinkedIn работает как поисковик по keyword-ам.",
+  );
+  lines.push("");
+  content.topSkills.forEach((s, i) => {
+    lines.push(`${i + 1}. **${s}**`);
+  });
+  lines.push("");
+
+  // ── 5. Experience ────────────────────────────────────────────────────────
+  lines.push("## 5. Опыт работы (Experience) — переписанные позиции");
+  lines.push("");
+  lines.push(
+    "Для каждой позиции — готовый copy-paste для LinkedIn. Если компания " +
+      "санкционная / государственная, в `suggested.company` — нейтральная " +
+      "формулировка. Job title приведён к target-роли или близко.",
+  );
+  lines.push("");
+
+  content.experience.forEach((exp, i) => {
+    lines.push(`### ${i + 1}. ${exp.suggested.title} · ${exp.suggested.company}`);
+    lines.push("");
+    lines.push(
+      `*Было в профиле: ${exp.original.title} · ${exp.original.company} (${exp.original.dates})*`,
+    );
+    lines.push("");
+    lines.push("**Title:**");
+    lines.push("");
+    lines.push("```");
+    lines.push(exp.suggested.title);
+    lines.push("```");
+    lines.push("");
+    lines.push("**Company (как вводить в поле `Company`):**");
+    lines.push("");
+    lines.push("```");
+    lines.push(exp.suggested.company);
+    lines.push("```");
+    lines.push("");
+    lines.push(`**Location:** \`${exp.suggested.location}\``);
+    lines.push("");
+    lines.push("**Description (copy-paste в поле Description):**");
+    lines.push("");
+    lines.push("```");
+    lines.push(exp.suggested.companyContext);
+    lines.push("");
+    for (const b of exp.suggested.bullets) {
+      lines.push(`• ${b}`);
+    }
+    lines.push("```");
+    lines.push("");
+    lines.push(`**Skills для этой позиции:** ${exp.suggested.skills.join(", ")}`);
+    lines.push("");
+    if (exp.notes?.trim()) {
+      lines.push(`> Комментарий: ${exp.notes}`);
+      lines.push("");
+    }
+  });
+
+  // ── 6. Profile settings ──────────────────────────────────────────────────
+  lines.push("## 6. Настройки профиля (что кликнуть / куда вставить)");
+  lines.push("");
+
+  content.profileSettings.forEach((s, i) => {
+    lines.push(`**${i + 1}. ${s.section}**`);
+    lines.push("");
+    lines.push(`- Как: ${s.how}`);
+    if (s.valueToUse?.trim()) {
+      lines.push(`- Значение: \`${s.valueToUse}\``);
+    }
+    lines.push("");
+  });
+
+  // ── 7. Supporting sections ───────────────────────────────────────────────
+  lines.push("## 7. Образование, языки, сертификаты, волонтёрство");
+  lines.push("");
+  lines.push(`**Education:** ${content.supportingSections.education}`);
+  lines.push("");
+  lines.push("**Languages (в правильном порядке — English первым):**");
+  lines.push("");
+  for (const l of content.supportingSections.languages) {
+    lines.push(`- ${l}`);
+  }
+  lines.push("");
+  lines.push("**Certifications к получению (в приоритете):**");
+  lines.push("");
+  content.supportingSections.certificationsToEarn.forEach((c, i) => {
+    lines.push(`${i + 1}. ${c}`);
+  });
+  lines.push("");
+  if (content.supportingSections.volunteering?.trim()) {
+    lines.push(`**Volunteering:** ${content.supportingSections.volunteering}`);
+    lines.push("");
+  }
+
+  // ── 8. Action plan ───────────────────────────────────────────────────────
+  lines.push("## 8. План действий (вне LinkedIn-UI)");
+  lines.push("");
+  lines.push(
+    "Эти пункты руками в интерфейсе не сделаешь — нужно время и регулярность. " +
+      "Ключевое: 500+ connections, 2+ recommendations, ежедневная активность в ленте.",
+  );
+  lines.push("");
+
+  content.actionPlan.forEach((a, i) => {
+    lines.push(`### ${i + 1}. ${a.title}`);
+    lines.push("");
+    lines.push(a.details);
+    lines.push("");
+    if (a.template?.trim()) {
+      lines.push("**Шаблон сообщения:**");
+      lines.push("");
+      lines.push("```");
+      lines.push(a.template);
+      lines.push("```");
+      lines.push("");
+    }
+  });
+
+  // ── 9. Content ideas ─────────────────────────────────────────────────────
+  lines.push("## 9. Контент-план — 4 темы для первых постов");
+  lines.push("");
+  lines.push(
+    "Цель — 4 поста за 2-3 недели, чтобы SSI дорос до 50+. После публикации " +
+      "сразу ставь сам лайк и попроси 2-3 коллег полайкать в первый час — " +
+      "алгоритм подхватит и начнёт продвигать.",
+  );
+  lines.push("");
+
+  content.contentIdeas.forEach((c, i) => {
+    lines.push(`### Пост ${i + 1}. ${c.topic}`);
+    lines.push("");
+    lines.push("**Hook (первая строка поста):**");
+    lines.push("");
+    lines.push(`> ${c.hook}`);
+    lines.push("");
+    lines.push("**Тезисы для раскрытия:**");
+    lines.push("");
+    for (const p of c.keyPoints) {
+      lines.push(`- ${p}`);
+    }
+    lines.push("");
+  });
+
+  return lines;
 }

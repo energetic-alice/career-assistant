@@ -7,12 +7,14 @@ import {
   linkedinAuditSchema,
   headlinePackSchema,
   linkedinPackSchema,
+  profileContentSchema,
   recomputeAuditTotals,
   recomputeHeadlineLengths,
   HEADLINE_MAX_LENGTH,
   type LinkedinAudit,
   type HeadlinePack,
   type LinkedinPack,
+  type ProfileContent,
 } from "../../schemas/linkedin-pack.js";
 import type { LinkedinPackInput } from "./build-inputs.js";
 import { summariseClientSummary } from "./build-inputs.js";
@@ -21,10 +23,14 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPTS_DIR = join(__dirname, "..", "..", "prompts", "linkedin");
 const AUDIT_PROMPT_PATH = join(PROMPTS_DIR, "01-audit.md");
 const HEADLINE_PROMPT_PATH = join(PROMPTS_DIR, "02-headline.md");
+const PROFILE_CONTENT_PROMPT_PATH = join(PROMPTS_DIR, "03-profile-content.md");
 
 const MODEL = process.env.LINKEDIN_PACK_MODEL || "claude-sonnet-4-20250514";
 const MAX_OUTPUT_TOKENS = 6000;
+/** Profile content — тяжёлая фаза, нужно больше tokens. */
+const PROFILE_MAX_OUTPUT_TOKENS = 12000;
 const HEADLINE_RETRIES = 2;
+const PROFILE_CONTENT_RETRIES = 1;
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -36,16 +42,55 @@ function unwrapJsonText(raw: string): string {
   return txt;
 }
 
-async function callClaude(prompt: string, tag: string): Promise<string> {
+/**
+ * Картинка, прикладываемая к user message. Claude сам скачивает по URL и
+ * анализирует — проверено тестом (см. `scripts/test-claude-vision.ts`).
+ */
+interface CallClaudeImage {
+  /** Подпись, которую увидит модель перед картинкой (например, "Аватар LinkedIn"). */
+  label: string;
+  /** Прямая ссылка. Для LinkedIn — из `basic_info.profile_picture_url`. */
+  url: string;
+}
+
+async function callClaude(
+  prompt: string,
+  tag: string,
+  maxTokens = MAX_OUTPUT_TOKENS,
+  images: CallClaudeImage[] = [],
+): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
 
   const client = new Anthropic();
   const t0 = Date.now();
+
+  // Если картинок нет — классический вариант с plain string prompt.
+  // Если есть — собираем multi-modal content array.
+  const content =
+    images.length === 0
+      ? prompt
+      : [
+          ...images.flatMap((img) => [
+            {
+              type: "text" as const,
+              text: `### ${img.label}`,
+            },
+            {
+              type: "image" as const,
+              source: { type: "url", url: img.url } as unknown as {
+                type: "url";
+                url: string;
+              },
+            },
+          ]),
+          { type: "text" as const, text: prompt },
+        ];
+
   const resp = await client.messages.create({
     model: MODEL,
-    max_tokens: MAX_OUTPUT_TOKENS,
-    messages: [{ role: "user", content: prompt }],
+    max_tokens: maxTokens,
+    messages: [{ role: "user", content }],
   });
   const ms = Date.now() - t0;
 
@@ -56,14 +101,18 @@ async function callClaude(prompt: string, tag: string): Promise<string> {
 
   console.log(
     `[LinkedinPack:${tag}] in=${resp.usage.input_tokens} ` +
-      `out=${resp.usage.output_tokens} ${(ms / 1000).toFixed(1)}s`,
+      `out=${resp.usage.output_tokens} ${(ms / 1000).toFixed(1)}s` +
+      (images.length > 0 ? ` (images=${images.length})` : ""),
   );
   return unwrapJsonText(block.text);
 }
 
 function inputSection(input: LinkedinPackInput): string {
   const parts: string[] = [];
-  parts.push("## Client summary\n```\n" + summariseClientSummary(input.clientSummary) + "\n```");
+  const summaryHeader = input.clientSummary
+    ? "## Client summary"
+    : "## Client summary (ВНИМАНИЕ: анкеты нет — выведи target-роль/рынок/грейд из LinkedIn + резюме)";
+  parts.push(`${summaryHeader}\n\`\`\`\n` + summariseClientSummary(input.clientSummary) + "\n```");
 
   if (input.linkedin) {
     parts.push(
@@ -90,11 +139,30 @@ function inputSection(input: LinkedinPackInput): string {
 
 // ── Phase 1: audit ──────────────────────────────────────────────────────────
 
+function collectProfileImages(input: LinkedinPackInput): CallClaudeImage[] {
+  if (!input.linkedin) return [];
+  const out: CallClaudeImage[] = [];
+  if (input.linkedin.profilePictureUrl) {
+    out.push({
+      label: "Profile photo (LinkedIn avatar)",
+      url: input.linkedin.profilePictureUrl,
+    });
+  }
+  if (input.linkedin.backgroundPictureUrl) {
+    out.push({
+      label: "Cover banner (LinkedIn background image)",
+      url: input.linkedin.backgroundPictureUrl,
+    });
+  }
+  return out;
+}
+
 async function runAudit(input: LinkedinPackInput): Promise<LinkedinAudit> {
   const system = await readFile(AUDIT_PROMPT_PATH, "utf-8");
   const prompt = system + "\n\n---\n\n# Input\n\n" + inputSection(input);
 
-  const raw = await callClaude(prompt, "audit");
+  const images = collectProfileImages(input);
+  const raw = await callClaude(prompt, "audit", MAX_OUTPUT_TOKENS, images);
 
   let parsed: unknown;
   try {
@@ -178,26 +246,138 @@ async function runHeadline(
   );
 }
 
+// ── Phase 3: profile content ────────────────────────────────────────────────
+
+async function runProfileContent(
+  input: LinkedinPackInput,
+  audit: LinkedinAudit,
+  headline: HeadlinePack,
+): Promise<ProfileContent> {
+  const system = await readFile(PROFILE_CONTENT_PROMPT_PATH, "utf-8");
+
+  const topHeadline = headline.variants[0]?.text ?? "";
+  const extraContext =
+    "## Audit priorities\n" +
+    audit.topPriorities.map((p) => `- ${p}`).join("\n") +
+    `\n\n## Top headline (use as keyword anchor)\n\`\`\`\n${topHeadline}\n\`\`\``;
+
+  let lastError: string | null = null;
+
+  for (let attempt = 0; attempt <= PROFILE_CONTENT_RETRIES; attempt += 1) {
+    const retryNote =
+      attempt === 0
+        ? ""
+        : `\n\n**ВНИМАНИЕ (попытка ${attempt + 1}):** прошлый ответ упал на валидации:\n${lastError}\n\nИсправь и верни валидный JSON по схеме.`;
+
+    const prompt =
+      system +
+      "\n\n---\n\n# Input\n\n" +
+      inputSection(input) +
+      "\n\n" +
+      extraContext +
+      retryNote;
+
+    let raw: string;
+    try {
+      raw = await callClaude(
+        prompt,
+        `profile#${attempt + 1}`,
+        PROFILE_MAX_OUTPUT_TOKENS,
+      );
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+      continue;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      lastError = `JSON parse failed: ${err instanceof Error ? err.message : String(err)}`;
+      console.warn(`[LinkedinPack:profile] attempt ${attempt + 1} ${lastError}`);
+      continue;
+    }
+
+    try {
+      return profileContentSchema.parse(parsed);
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+      console.warn(
+        `[LinkedinPack:profile] attempt ${attempt + 1} schema fail: ${lastError}`,
+      );
+    }
+  }
+
+  throw new Error(
+    `[profile] failed after ${PROFILE_CONTENT_RETRIES + 1} attempts: ${lastError ?? "unknown"}`,
+  );
+}
+
 // ── Public ─────────────────────────────────────────────────────────────────
 
 export interface RunLinkedinPackResult {
   data: LinkedinPack;
   model: string;
-  timings: { auditMs: number; headlineMs: number };
+  timings: { auditMs: number; headlineMs: number; profileMs: number };
+}
+
+/**
+ * Вызывается между фазами. Позволяет Telegram-боту обновлять «Фаза X/3…»
+ * в progress-сообщении. Ошибки внутри callback'а глотаются — они не должны
+ * прерывать пайплайн.
+ */
+export type LinkedinPackProgressCallback = (
+  stage: "headline" | "profile",
+  audit: LinkedinAudit,
+) => Promise<void> | void;
+
+export interface RunLinkedinPackOpts {
+  onProgress?: LinkedinPackProgressCallback;
 }
 
 export async function runLinkedinPack(
   input: LinkedinPackInput,
+  opts: RunLinkedinPackOpts = {},
 ): Promise<RunLinkedinPackResult> {
   const auditStart = Date.now();
   const audit = await runAudit(input);
   const auditMs = Date.now() - auditStart;
 
+  if (opts.onProgress) {
+    try {
+      await opts.onProgress("headline", audit);
+    } catch (err) {
+      console.warn(`[LinkedinPack] onProgress(headline) failed: ${String(err)}`);
+    }
+  }
+
   const headlineStart = Date.now();
   const headline = await runHeadline(input, audit);
   const headlineMs = Date.now() - headlineStart;
 
-  const selectedRoles = input.clientSummary.selectedTargetRoles ?? [];
+  if (opts.onProgress) {
+    try {
+      await opts.onProgress("profile", audit);
+    } catch (err) {
+      console.warn(`[LinkedinPack] onProgress(profile) failed: ${String(err)}`);
+    }
+  }
+
+  // Phase 3 тяжёлая и более склонна к сбоям. Если упала — не роняем весь
+  // пакет, отдаём audit+headline и куратор сможет сгенерировать Phase 3
+  // отдельно / позже.
+  const profileStart = Date.now();
+  let profileContent: ProfileContent | undefined;
+  try {
+    profileContent = await runProfileContent(input, audit, headline);
+  } catch (err) {
+    console.warn(
+      `[LinkedinPack:profile] phase failed, continuing without it: ${String(err)}`,
+    );
+  }
+  const profileMs = Date.now() - profileStart;
+
+  const selectedRoles = input.clientSummary?.selectedTargetRoles ?? [];
   const firstTarget = selectedRoles[0];
 
   const pack: LinkedinPack = {
@@ -214,11 +394,12 @@ export async function runLinkedinPack(
     },
     audit,
     headline,
+    profileContent,
   };
 
   return {
     data: linkedinPackSchema.parse(pack),
     model: MODEL,
-    timings: { auditMs, headlineMs },
+    timings: { auditMs, headlineMs, profileMs },
   };
 }

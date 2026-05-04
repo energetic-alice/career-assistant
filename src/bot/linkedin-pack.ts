@@ -9,10 +9,7 @@ import {
   type ResumeVersion,
 } from "../pipeline/intake.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
-import type {
-  LinkedinPackArtifact,
-  LinkedinPack,
-} from "../schemas/linkedin-pack.js";
+import type { LinkedinPackArtifact } from "../schemas/linkedin-pack.js";
 import { linkedinPackArtifactSchema } from "../schemas/linkedin-pack.js";
 import {
   buildLinkedinPackInputs,
@@ -194,26 +191,31 @@ async function handleRun(participantId: string, ctx: Context): Promise<void> {
       chatId,
       `⚙️ <b>LinkedIn-пак для @${escapeHtml(nick)}</b>\n` +
         `Источники: ${inputs.linkedin ? "LinkedIn" : "—"} + ${inputs.resume ? "резюме" : "—"}.\n` +
-        `Фаза 1/2: аудит по чек-листу…`,
+        `Фаза 1/3: аудит по чек-листу…`,
       { parse_mode: "HTML" },
     );
 
     try {
-      const result = await runLinkedinPack(inputs);
+      const result = await runLinkedinPack(inputs, {
+        onProgress: async (stage, audit) => {
+          const label =
+            stage === "headline"
+              ? `Аудит готов (${audit.passCount} ✅ · ${audit.failCount} ❌${audit.unknownCount > 0 ? ` · ${audit.unknownCount} ❓` : ""} из ${audit.totalCount}). Фаза 2/3: headline-варианты…`
+              : `Фаза 3/3: готовим полный текст профиля (About, Experience, настройки, контент-план)…`;
+          try {
+            await getBot().telegram.editMessageText(
+              chatId,
+              progress.message_id,
+              undefined,
+              `⚙️ <b>LinkedIn-пак для @${escapeHtml(nick)}</b>\n${label}`,
+              { parse_mode: "HTML" },
+            );
+          } catch {
+            // не страшно, следующий шаг идёт в отдельном сообщении
+          }
+        },
+      });
       const pack = result.data;
-
-      try {
-        await getBot().telegram.editMessageText(
-          chatId,
-          progress.message_id,
-          undefined,
-          `⚙️ <b>LinkedIn-пак для @${escapeHtml(nick)}</b>\n` +
-            `Аудит готов (${pack.audit.totalScore}/30). Фаза 2/2: headline-варианты…`,
-          { parse_mode: "HTML" },
-        );
-      } catch {
-        // не страшно, следующие шаги идут в отдельных сообщениях
-      }
 
       const docTitle = `LinkedIn пак — @${nick}`;
       const markdown = renderLinkedinPack(pack);
@@ -240,9 +242,14 @@ async function handleRun(participantId: string, ctx: Context): Promise<void> {
       }
 
       const top = pack.audit.topPriorities.slice(0, 3);
+      const a = pack.audit;
+      const auditLine =
+        `Аудит: <b>${a.passCount} ✅ · ${a.failCount} ❌` +
+        (a.unknownCount > 0 ? ` · ${a.unknownCount} ❓` : "") +
+        `</b> из ${a.totalCount} пунктов`;
       const summary = [
         `✅ <b>LinkedIn-пак готов</b> для @${escapeHtml(nick)} (v${artifact.version}).`,
-        `Аудит: <b>${pack.audit.totalScore}/30</b> · SSI-потенциал: ${ssiRuLabel(pack.audit.ssiEstimate)}`,
+        auditLine,
         top.length > 0 ? `Топ-приоритеты:\n${top.map((p) => `• ${escapeHtml(p)}`).join("\n")}` : "",
         `Гугл-док: ${url}`,
       ]
@@ -298,17 +305,6 @@ async function handleSent(participantId: string, ctx: Context): Promise<void> {
   }
   updatePipelineStage(participantId, "linkedin_sent");
   await ctx.answerCbQuery("✅ Отмечено как отправлено клиенту.").catch(() => undefined);
-}
-
-function ssiRuLabel(estimate: LinkedinPack["audit"]["ssiEstimate"]): string {
-  switch (estimate) {
-    case "low":
-      return "низкий";
-    case "medium":
-      return "средний";
-    case "high":
-      return "высокий";
-  }
 }
 
 function readyKeyboard(participantId: string, url: string): {

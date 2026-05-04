@@ -33,10 +33,16 @@ const LINKEDIN_CACHE_TTL_DAYS = 180;
  * и т.п.) — модель сама пропишет «проверь руками».
  */
 
+/**
+ * `clientSummary` опциональный: для клиента КА-программы он заполнен
+ * (всё, что знаем про грейд, target-роли, рынок). Для внешнего человека
+ * (ad-hoc probe по URL, или клиент без прошедшего intake) — null, тогда
+ * модель выводит target-роль/рынок/грейд из LinkedIn + резюме сама.
+ */
 export interface LinkedinPackInput {
   participantId: string;
   nick: string;
-  clientSummary: ClientSummary;
+  clientSummary: ClientSummary | null;
   linkedin: LinkedinProfile | null;
   linkedinUrl: string | null;
   resume: {
@@ -48,7 +54,8 @@ export interface LinkedinPackInput {
 export interface BuildLinkedinPackInputsArgs {
   participantId: string;
   nick: string;
-  clientSummary: ClientSummary;
+  /** Может быть null для внешнего человека вне КА-программы. */
+  clientSummary: ClientSummary | null;
   resumeVersions: ResumeVersion[];
   activeResumeVersionId?: string | null;
   /** Явный URL, если передаёшь из UI/CLI; иначе берём из clientSummary. */
@@ -79,20 +86,35 @@ export async function buildLinkedinPackInputs(
 ): Promise<LinkedinPackInput> {
   const linkedinUrl =
     (args.linkedinUrlOverride ?? "").trim() ||
-    (args.clientSummary.linkedinUrl ?? "").trim() ||
+    (args.clientSummary?.linkedinUrl ?? "").trim() ||
     null;
 
   let linkedin: LinkedinProfile | null = null;
   if (linkedinUrl) {
-    try {
-      linkedin = await fetchLinkedinProfile(linkedinUrl);
-    } catch (err) {
-      console.warn(
-        `[LinkedinPack] LinkedIn fetch failed for ${linkedinUrl}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+    // 1) disk cache (TTL 180 дней) — чтобы не дёргать Apify при каждом
+    // повторном запуске. Ключ — participantId + URL (совпадение после
+    // нормализации). Для внешних probe-запусков participantId
+    // = `external-<slug>`, так что у каждого URL свой файл.
+    const cached = loadCachedLinkedin(args.participantId, linkedinUrl);
+    if (cached) {
+      console.log(
+        `[LinkedinPack] Using cached linkedin profile for ${args.participantId} (${linkedinUrl})`,
       );
-      linkedin = null;
+      linkedin = cached;
+    } else {
+      try {
+        linkedin = await fetchLinkedinProfile(linkedinUrl);
+        if (linkedin) {
+          saveCachedLinkedin(args.participantId, linkedin);
+        }
+      } catch (err) {
+        console.warn(
+          `[LinkedinPack] LinkedIn fetch failed for ${linkedinUrl}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        linkedin = null;
+      }
     }
   }
 
@@ -173,6 +195,27 @@ export function loadCachedLinkedin(
     return null;
   }
 
+  // Инвалидируем кеш при смене Apify actor'а. Разные акторы возвращают
+  // разный набор полей (базовый vs full-sections): старый JSON из
+  // basic-актора не содержит top-level skills/recommendations, и если
+  // мы просто отдадим его в модель — аудит получит меньше данных, чем
+  // мог бы. Безопаснее при несовпадении актора перегенерировать.
+  const currentActor = process.env.APIFY_LINKEDIN_ACTOR ?? "";
+  if (currentActor && parsed.actor && parsed.actor !== currentActor) {
+    console.log(
+      `[LinkedinPack] Cached linkedin was scraped by "${parsed.actor}", current actor is "${currentActor}" — refetching`,
+    );
+    return null;
+  }
+  // Нет поля actor в cached → значит это legacy cache от старого актора,
+  // тоже refetch (проставится при следующем save).
+  if (currentActor && !parsed.actor) {
+    console.log(
+      `[LinkedinPack] Cached linkedin has no actor stamp (legacy), refetching with ${currentActor}`,
+    );
+    return null;
+  }
+
   return parsed;
 }
 
@@ -196,8 +239,19 @@ export function saveCachedLinkedin(
 
 /**
  * Краткое текстовое summary для промпта (используется и в audit, и в headline).
+ * `null` означает внешнего человека без заполненной анкеты КА-программы —
+ * модель должна вывести target-роль/рынок/грейд из LinkedIn + резюме сама.
  */
-export function summariseClientSummary(c: ClientSummary): string {
+export function summariseClientSummary(c: ClientSummary | null): string {
+  if (!c) {
+    return [
+      "Клиент пришёл без анкеты КА-программы (внешний человек или probe-запуск).",
+      "Target-роль, рынок, грейд и контакты выведи из LinkedIn (headline / текущая позиция / location) + резюме.",
+      "Если в LinkedIn headline/experience видно target-специализацию — считай её target-ролью.",
+      "Если не видно — бери текущую позицию клиента как target (работаем на ту же роль, но лучше упакованную).",
+    ].join("\n");
+  }
+
   const lines: string[] = [];
   const fullNameLatin =
     [c.firstNameLatin, c.lastNameLatin].filter(Boolean).join(" ").trim();

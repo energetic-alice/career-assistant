@@ -28,11 +28,26 @@ export interface LinkedinProfile {
   url: string;
   fetchedAt: string;
   source: "apify";
+  /**
+   * Apify actor id, которым был сделан scrape. Используется для инвалидации
+   * disk-кеша: при переключении актора (разные поля в JSON) старые файлы
+   * автоматически отбрасываются.
+   */
+  actor?: string;
   /** Pretty-printed JSON от Apify actor'а — сразу скармливаем в промпт. */
   text: string;
   /** Quick parsed bits для UI/лог-префиксов (best-effort, могут быть пустыми). */
   headline: string;
   location: string;
+  /**
+   * Прямые URL картинок с LinkedIn — передаём Claude вместе с текстом
+   * промпта в audit-фазе, чтобы модель сама оценила пункты
+   * «Профессиональное фото» и «Cover-баннер». Пустая строка если
+   * у клиента дефолт. Optional, чтобы старые cached JSON'ы (где полей
+   * ещё нет) валидировались без ошибок.
+   */
+  profilePictureUrl?: string;
+  backgroundPictureUrl?: string;
 }
 
 export async function fetchLinkedinProfile(
@@ -77,17 +92,41 @@ function normalizeLinkedinUrl(raw: string): string | null {
 
 // ── Apify ──────────────────────────────────────────────────────────────────
 //
-// Актор принимает `{ username: <profile-url-or-slug>, includeEmail: false }`
-// и возвращает массив с одним объектом формата
-// `{ basic_info, experience, education, languages }`.
+// Используем актор `apimaestro/linkedin-profile-full-sections-scraper`
+// (settable через `APIFY_LINKEDIN_ACTOR`). Он принимает
+// `{ usernames: [<url-or-slug>], includeEmail: false }` — массив, даже
+// для одного профиля, и возвращает массив с одним объектом формата:
 //
-// Парсить этот JSON не нужно: скармливаем модели сырой pretty-printed JSON —
-// там уже вся разметка (полные поля headline, about, experience[].description
-// и т.д.), плюс бонус: `basic_info.profile_picture_url` и
-// `basic_info.background_picture_url` позволяют автоматом проверить пункты
-// чеклиста про фото и баннер, без "проверь руками".
+//   {
+//     basic_info: { …, profile_picture_url, background_picture_url,
+//                   open_to_work, connection_count, follower_count,
+//                   top_skills, email, is_premium, … },
+//     experience: [{ …, skills: [...10 шт] }],
+//     education:  [...],
+//     certifications: [...],
+//     skills:     [{ name, endorsement_count, related_experiences }, ...],
+//     recommendations: { ... },
+//     "volunteering-experiences": [...],
+//   }
+//
+// Раньше был `apimaestro/linkedin-profile-detail` — дешевле, но скупее
+// (возвращал 2 скилла per experience и без top-level skills/recommendations).
+// Переехали 04.05.2026, потому что расширенные поля позволяют автопроверить
+// в аудите Open to Work, 500+ connections, endorsements, Top Skills без
+// "проверь руками".
+//
+// Actor ID поддерживает два формата: короткий (`VhxlqQXRwhW8H5hNV`) и
+// `username/name` (`apimaestro/linkedin-profile-full-sections-scraper`).
+// Apify URL требует `~` вместо `/` в username/name — конвертируем.
+//
+// Парсить этот JSON в nested поля не нужно: скармливаем модели сырой
+// pretty-printed JSON, плюс достаём 2 image URL и headline/location для UI.
 
 const APIFY_TIMEOUT_MS = 180_000;
+
+function normalizeActorIdForUrl(actorId: string): string {
+  return actorId.replace(/\//g, "~");
+}
 
 async function fetchWithApify(url: string): Promise<LinkedinProfile | null> {
   const token = process.env.APIFY_API_TOKEN;
@@ -100,13 +139,13 @@ async function fetchWithApify(url: string): Promise<LinkedinProfile | null> {
   }
 
   const endpoint =
-    `https://api.apify.com/v2/acts/${encodeURIComponent(actorId)}/run-sync-get-dataset-items` +
+    `https://api.apify.com/v2/acts/${encodeURIComponent(normalizeActorIdForUrl(actorId))}/run-sync-get-dataset-items` +
     `?token=${encodeURIComponent(token)}&timeout=${Math.floor(APIFY_TIMEOUT_MS / 1000)}`;
 
   const resp = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username: url, includeEmail: false }),
+    body: JSON.stringify({ usernames: [url], includeEmail: false }),
   });
 
   if (!resp.ok) {
@@ -131,6 +170,14 @@ async function fetchWithApify(url: string): Promise<LinkedinProfile | null> {
       ? (basic["location"] as Record<string, unknown>)
       : {};
   const location = typeof loc["full"] === "string" ? loc["full"] : "";
+  const profilePictureUrl =
+    typeof basic["profile_picture_url"] === "string"
+      ? (basic["profile_picture_url"] as string)
+      : "";
+  const backgroundPictureUrl =
+    typeof basic["background_picture_url"] === "string"
+      ? (basic["background_picture_url"] as string)
+      : "";
 
   const text = JSON.stringify(item, null, 2);
   if (text.length < 200) {
@@ -141,8 +188,11 @@ async function fetchWithApify(url: string): Promise<LinkedinProfile | null> {
     url,
     fetchedAt: new Date().toISOString(),
     source: "apify",
+    actor: actorId,
     headline,
     location,
+    profilePictureUrl,
+    backgroundPictureUrl,
     text,
   };
 }

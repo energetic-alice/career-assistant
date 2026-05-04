@@ -123,12 +123,14 @@ async function main(): Promise<void> {
   console.log(
     `\n[probe] pack generated in ${(ms / 1000).toFixed(1)}s ` +
       `(audit=${(result.timings.auditMs / 1000).toFixed(1)}s, ` +
-      `headline=${(result.timings.headlineMs / 1000).toFixed(1)}s)`,
+      `headline=${(result.timings.headlineMs / 1000).toFixed(1)}s, ` +
+      `profile=${(result.timings.profileMs / 1000).toFixed(1)}s)`,
   );
+  const a = result.data.audit;
   console.log(
-    `[probe] totalScore=${result.data.audit.totalScore}/${result.data.audit.maxTotalScore}  ` +
-      `ssi=${result.data.audit.ssiEstimate}  ` +
-      `variants=${result.data.headline.variants.length}`,
+    `[probe] audit: ${a.passCount} pass · ${a.failCount} fail · ${a.unknownCount} unknown / ${a.totalCount} items  ` +
+      `variants=${result.data.headline.variants.length}  ` +
+      `profileContent=${result.data.profileContent ? "ok" : "missing"}`,
   );
 
   const md = renderLinkedinPack(result.data);
