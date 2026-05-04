@@ -24,7 +24,26 @@
       "FastAPI",
       "Flask"
     ],
-    "notes": "UK: суммируем Python Dev + Django + FastAPI + Flask + Senior/Lead/Full-Stack — ближе к реальному спросу (top-1 «Python Developer» слишком узкий). RU: «Python developer» на hh.ru тянет ML/Data (fuzzy-матч), поэтому считаем спрос только по backend-фреймворкам Django/FastAPI/Flask."
+    "notes": "UK: суммируем Python Dev + Django + FastAPI + Flask + Senior/Lead/Full-Stack — ближе к реальному спросу (top-1 «Python Developer» слишком узкий). RU: «Python developer» на hh.ru тянет ML/Data (fuzzy-матч), поэтому считаем спрос только по backend-фреймворкам Django/FastAPI/Flask.",
+    "marketKeywordsTop5": [
+      "Python",
+      "PostgreSQL",
+      "Docker",
+      "SQL",
+      "FastAPI"
+    ],
+    "marketKeywords": [
+      "Python",
+      "PostgreSQL",
+      "Docker",
+      "Git",
+      "SQL",
+      "FastAPI",
+      "Django",
+      "Linux",
+      "REST API",
+      "Redis"
+    ]
   },
   {
     "slug": "backend_java",
@@ -44,6 +63,25 @@
       "Java инженер",
       "Backend Java",
       "Java Spring разработчик"
+    ],
+    "marketKeywordsTop5": [
+      "Java",
+      "Spring Framework",
+      "PostgreSQL",
+      "SQL",
+      "Apache Kafka"
+    ],
+    "marketKeywords": [
+      "Java",
+      "Spring Framework",
+      "PostgreSQL",
+      "SQL",
+      "Apache Kafka",
+      "Spring Boot",
+      "Git",
+      "Docker",
+      "REST API",
+      "Hibernate"
     ]
   },
   {
@@ -65,6 +103,25 @@
       "Go программист",
       "Backend Go",
       "Go инженер"
+    ],
+    "marketKeywordsTop5": [
+      "Go",
+      "PostgreSQL",
+      "Docker",
+      "Kafka",
+      "Kubernetes"
+    ],
+    "marketKeywords": [
+      "Go",
+      "PostgreSQL",
+      "Docker",
+      "Kafka",
+      "Kubernetes",
+      "SQL",
+      "Git",
+      "Redis",
+      "Linux",
+      "REST API"
     ]
   },
   {
@@ -84,6 +141,25 @@
       "Node.js программист",
       "Node разработчик",
       "Backend Node.js"
+    ],
+    "marketKeywordsTop5": [
+      "Node.js",
+      "PostgreSQL",
+      "JavaScript",
+      "TypeScript",
+      "Docker"
+    ],
+    "marketKeywords": [
+      "Node.js",
+      "PostgreSQL",
+      "Git",
+      "JavaScript",
+      "TypeScript",
+      "Docker",
+      "REST API",
+      "MySQL",
+      "Redis",
+      "SQL"
     ]
   },
   {
@@ -104,6 +180,25 @@
       "C# программист",
       "Backend C#",
       ".NET инженер"
+    ],
+    "marketKeywordsTop5": [
+      "C#",
+      "PostgreSQL",
+      "ASP.NET",
+      "SQL",
+      "Docker"
+    ],
+    "marketKeywords": [
+      "C#",
+      "PostgreSQL",
+      "ASP.NET",
+      "Git",
+      "SQL",
+      ".NET",
+      "Docker",
+      "Entity Framework",
+      "RabbitMQ",
+      "MS SQL"
     ]
   },
   {
@@ -123,6 +218,25 @@
       "PHP разработчик",
       "PHP программист",
       "Backend PHP"
+    ],
+    "marketKeywordsTop5": [
+      "PHP",
+      "MySQL",
+      "Laravel",
+      "Docker",
+      "PostgreSQL"
+    ],
+    "marketKeywords": [
+      "PHP",
+      "MySQL",
+      "Git",
+      "Laravel",
+      "Docker",
+      "PostgreSQL",
+      "JavaScript",
+      "Symfony",
+      "Redis",
+      "HTML"
     ]
   },
   {
@@ -183,7 +297,26 @@
       "C++ программист",
       "C++ инженер"
     ],
-    "notes": "На itjobswatch C и C++ лежат в общем пуле embedded/systems-разработчиков, поэтому для UK берём общий запрос и считаем их одной ролью."
+    "notes": "На itjobswatch C и C++ лежат в общем пуле embedded/systems-разработчиков, поэтому для UK берём общий запрос и считаем их одной ролью.",
+    "marketKeywordsTop5": [
+      "C++",
+      "Linux",
+      "Qt",
+      "Python",
+      "C"
+    ],
+    "marketKeywords": [
+      "C++",
+      "Linux",
+      "Git",
+      "Qt",
+      "Python",
+      "C",
+      "SQL",
+      "STL",
+      "PostgreSQL",
+      "Docker"
+    ]
   },
   {
     "slug": "frontend_react",
@@ -203,6 +336,25 @@
       "Frontend React",
       "React программист",
       "React инженер"
+    ],
+    "marketKeywordsTop5": [
+      "JavaScript",
+      "TypeScript",
+      "React",
+      "HTML",
+      "CSS"
+    ],
+    "marketKeywords": [
+      "JavaScript",
+      "TypeScript",
+      "React",
+      "Git",
+      "HTML",
+      "CSS",
+      "Redux",
+      "REST API",
+      "Node.js",
+      "Webpack"
     ]
   },
   {
@@ -276,6 +428,25 @@
       "Swift разработчик",
       "iOS программист",
       "iOS инженер"
+    ],
+    "marketKeywordsTop5": [
+      "iOS",
+      "Swift",
+      "UIKit",
+      "MVVM",
+      "REST API"
+    ],
+    "marketKeywords": [
+      "iOS",
+      "Swift",
+      "UIKit",
+      "Git",
+      "MVVM",
+      "REST API",
+      "Objective-C",
+      "Xcode",
+      "SOLID",
+      "SwiftUI"
     ]
   },
   {
@@ -294,6 +465,25 @@
       "Kotlin разработчик",
       "Android программист",
       "Android инженер"
+    ],
+    "marketKeywordsTop5": [
+      "Kotlin",
+      "Android",
+      "Java",
+      "Android SDK",
+      "MVVM"
+    ],
+    "marketKeywords": [
+      "Kotlin",
+      "Android",
+      "Java",
+      "Android SDK",
+      "Git",
+      "MVVM",
+      "Jetpack Compose",
+      "Coroutines",
+      "Clean Architecture",
+      "RxJava"
     ]
   },
   {
@@ -312,6 +502,25 @@
       "Flutter программист",
       "Flutter инженер",
       "Dart разработчик"
+    ],
+    "marketKeywordsTop5": [
+      "Flutter",
+      "Dart",
+      "Android",
+      "iOS",
+      "REST API"
+    ],
+    "marketKeywords": [
+      "Flutter",
+      "Dart",
+      "Git",
+      "Android",
+      "iOS",
+      "REST API",
+      "Kotlin",
+      "Java",
+      "Clean Architecture",
+      "OOP"
     ]
   },
   {
@@ -371,7 +580,26 @@
       "AppSec DevOps",
       "Безопасник DevOps"
     ],
-    "notes": "Collapsed cluster: DevOps + SRE + MLOps + Platform Engineer живут как один canonical slug `devops`. Эти роли сильно пересекаются на рынке (одни и те же кандидаты, hiring processes), и шум — рекомендовать все четыре варианта независимо. Клиент с чётким запросом «хочу SRE» всё равно попадёт в devops по aliases. Рыночные цифры берём только из `ru_devops.md` / `uk_devops.md` — они репрезентативны для всего кластера."
+    "notes": "Collapsed cluster: DevOps + SRE + MLOps + Platform Engineer живут как один canonical slug `devops`. Эти роли сильно пересекаются на рынке (одни и те же кандидаты, hiring processes), и шум — рекомендовать все четыре варианта независимо. Клиент с чётким запросом «хочу SRE» всё равно попадёт в devops по aliases. Рыночные цифры берём только из `ru_devops.md` / `uk_devops.md` — они репрезентативны для всего кластера.",
+    "marketKeywordsTop5": [
+      "Linux",
+      "Docker",
+      "Kubernetes",
+      "DevOps",
+      "Ansible"
+    ],
+    "marketKeywords": [
+      "Linux",
+      "Docker",
+      "Kubernetes",
+      "DevOps",
+      "Ansible",
+      "CI/CD",
+      "Python",
+      "PostgreSQL",
+      "Grafana",
+      "Prometheus"
+    ]
   },
   {
     "slug": "data_engineer",
@@ -387,6 +615,25 @@
       "Инженер данных",
       "Дата инженер",
       "ETL инженер"
+    ],
+    "marketKeywordsTop5": [
+      "Python",
+      "SQL",
+      "PostgreSQL",
+      "ETL",
+      "Big Data"
+    ],
+    "marketKeywords": [
+      "Python",
+      "SQL",
+      "PostgreSQL",
+      "ETL",
+      "Big Data",
+      "Clickhouse",
+      "DWH",
+      "Apache Airflow",
+      "pandas",
+      "Greenplum"
     ]
   },
   {
@@ -410,6 +657,25 @@
       "ML разработчик",
       "Специалист по данным",
       "Дата сайентист"
+    ],
+    "marketKeywordsTop5": [
+      "Python",
+      "Machine Learning",
+      "PyTorch",
+      "Deep Learning",
+      "SQL"
+    ],
+    "marketKeywords": [
+      "Python",
+      "Machine Learning",
+      "PyTorch",
+      "Deep Learning",
+      "SQL",
+      "pandas",
+      "Scikit-learn",
+      "Linux",
+      "Docker",
+      "Numpy"
     ]
   },
   {
@@ -422,6 +688,25 @@
       "Data Analyst",
       "Аналитик данных",
       "Дата аналитик"
+    ],
+    "marketKeywordsTop5": [
+      "SQL",
+      "Python",
+      "Data Analysis",
+      "Analytical Thinking",
+      "Power BI"
+    ],
+    "marketKeywords": [
+      "SQL",
+      "Python",
+      "Data Analysis",
+      "Analytical Thinking",
+      "Power BI",
+      "MS Excel",
+      "Data Visualization",
+      "PostgreSQL",
+      "Clickhouse",
+      "pandas"
     ]
   },
   {
@@ -437,6 +722,25 @@
       "CJM аналитик",
       "Продуктовый аналитик",
       "Аналитик продукта"
+    ],
+    "marketKeywordsTop5": [
+      "SQL",
+      "Python",
+      "A/B Testing",
+      "Power BI",
+      "Data Analysis"
+    ],
+    "marketKeywords": [
+      "SQL",
+      "Python",
+      "A/B Testing",
+      "Power BI",
+      "Data Analysis",
+      "Tableau",
+      "PostgreSQL",
+      "Statistics",
+      "MS Excel",
+      "Clickhouse"
     ]
   },
   {
@@ -457,6 +761,25 @@
       "QA Manager",
       "Quality Assurance Manager",
       "QA Lead"
+    ],
+    "marketKeywordsTop5": [
+      "Java",
+      "SQL",
+      "Python",
+      "Selenium",
+      "API"
+    ],
+    "marketKeywords": [
+      "Java",
+      "Python",
+      "SQL",
+      "Selenium",
+      "Git",
+      "API",
+      "Postman",
+      "QA",
+      "CI/CD",
+      "Docker"
     ]
   },
   {
@@ -473,6 +796,25 @@
       "Тестировщик",
       "Manual QA Engineer",
       "QA tester"
+    ],
+    "marketKeywordsTop5": [
+      "SQL",
+      "Postman",
+      "Functional Testing",
+      "Manual Testing",
+      "QA"
+    ],
+    "marketKeywords": [
+      "SQL",
+      "Postman",
+      "Functional Testing",
+      "Manual Testing",
+      "Git",
+      "QA",
+      "Regression Testing",
+      "Jira",
+      "Linux",
+      "REST API"
     ]
   },
   {
@@ -488,6 +830,25 @@
       "Product Owner",
       "Продакт менеджер",
       "Owner продукта"
+    ],
+    "marketKeywordsTop5": [
+      "Product Metrics",
+      "Analytical Thinking",
+      "English",
+      "Competitor Analysis",
+      "A/B Testing"
+    ],
+    "marketKeywords": [
+      "Product Metrics",
+      "Analytical Thinking",
+      "English",
+      "Competitor Analysis",
+      "A/B Testing",
+      "Product Management",
+      "Market Analysis",
+      "Unit Economics",
+      "Roadmap",
+      "CustDev"
     ]
   },
   {
@@ -554,6 +915,25 @@
       "BA",
       "Аналитик бизнес-процессов",
       "Бизнес аналитик"
+    ],
+    "marketKeywordsTop5": [
+      "Business Analysis",
+      "BPMN",
+      "SQL",
+      "Business Process Modeling",
+      "Systems Analysis"
+    ],
+    "marketKeywords": [
+      "Business Analysis",
+      "BPMN",
+      "SQL",
+      "Business Process Modeling",
+      "Systems Analysis",
+      "UML",
+      "Business Process Optimization",
+      "MS Excel",
+      "Writing Technical Specs",
+      "Business Requirements Engineering"
     ]
   },
   {
@@ -566,6 +946,25 @@
       "Systems Analyst",
       "Системный аналитик",
       "System Analyst"
+    ],
+    "marketKeywordsTop5": [
+      "SQL",
+      "Systems Analysis",
+      "BPMN",
+      "UML",
+      "REST API"
+    ],
+    "marketKeywords": [
+      "SQL",
+      "Systems Analysis",
+      "BPMN",
+      "UML",
+      "REST API",
+      "Business Analysis",
+      "Writing Technical Specs",
+      "SOAP",
+      "REST",
+      "API"
     ]
   },
   {
@@ -671,6 +1070,25 @@
       "1C разработчик",
       "Программист 1С",
       "1С специалист"
+    ],
+    "marketKeywordsTop5": [
+      "1С: Предприятие 8",
+      "Working with Large Data Volumes",
+      "1С: Документооборот",
+      "1С: Управление Торговлей",
+      "1С программирование"
+    ],
+    "marketKeywords": [
+      "1С: Предприятие 8",
+      "Working with Large Data Volumes",
+      "1С: Документооборот",
+      "1С: Управление Торговлей",
+      "1С программирование",
+      "1С: Бухгалтерия",
+      "Business Communication",
+      "1С: Предприятие",
+      "ERP-системы на базе 1С",
+      "1С: Зарплата и управление персоналом"
     ]
   },
   {
@@ -689,6 +1107,25 @@
       "Unity программист",
       "Game-разработчик",
       "Game developer Unity"
+    ],
+    "marketKeywordsTop5": [
+      "Unity",
+      "C#",
+      "Game Programming",
+      "Android",
+      "OOP"
+    ],
+    "marketKeywords": [
+      "Unity",
+      "C#",
+      "Game Programming",
+      "Git",
+      "Android",
+      "OOP",
+      "English",
+      "iOS",
+      "UI",
+      "ECS"
     ]
   },
   {

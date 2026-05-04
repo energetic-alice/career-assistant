@@ -150,8 +150,37 @@ export function renderLinkedinPack(pack: LinkedinPack): string {
     lines.push("");
   }
 
+  if (headline.marketKeywords.length > 0) {
+    lines.push("### Market keywords — что рекрутеры реально ищут для твоей роли");
+    lines.push("");
+    lines.push(
+      "Это ключевые слова, которые ты должна расставить в Headline, About, " +
+        "Top Skills и описании каждого Experience. LinkedIn ранжирует по " +
+        "keyword-совпадениям — чем больше этих слов в профиле, тем выше ты в " +
+        "поиске рекрутеров.",
+    );
+    lines.push("");
+    lines.push(headline.marketKeywords.map((k) => `\`${k}\``).join(" · "));
+    lines.push("");
+    if (headline.clientGaps.length > 0) {
+      lines.push(
+        "**Gaps (требует рынок, у тебя пока не закрыто):** " +
+          headline.clientGaps.map((k) => `\`${k}\``).join(" · "),
+      );
+      lines.push("");
+      lines.push(
+        "Эти keyword'ы нужно либо освоить (pet-project / курс / сертификация), " +
+          "либо добавить в профиль, если они на самом деле есть в опыте, но ты " +
+          "забыла их упомянуть. Конкретные шаги — в разделе «План действий».",
+      );
+      lines.push("");
+    }
+  }
+
+  lines.push("### 5 вариантов заголовка");
+  lines.push("");
   lines.push(
-    "Ниже 5 вариантов по формуле: `[Грейд] [Должность] | [Стек] | [Индустрии] | " +
+    "По формуле: `[Грейд] [Должность] | [Стек] | [Индустрии] | " +
       "[Опыт / достижение] | [Формат]`. Все варианты ≤ 120 символов — можно " +
       "копировать в LinkedIn как есть. Выбери один или скомбинируй.",
   );

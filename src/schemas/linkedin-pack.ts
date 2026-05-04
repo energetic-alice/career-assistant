@@ -124,6 +124,27 @@ export type HeadlineCandidate = z.infer<typeof headlineCandidateSchema>;
 
 export const headlinePackSchema = z.object({
   currentHeadline: z.string().default(""),
+  /**
+   * Топ-keyword'ы, которые реально ищут рекрутеры на target-рынке для
+   * target-роли в 2026-м. Модель выводит их ДО генерации headline-ов —
+   * дальше и Headline (Phase 2), и Top Skills (Phase 3) строятся именно
+   * из пересечения этого списка с тем, что есть у клиента. Без этого
+   * модель тянет скиллы из headline клиента / что в голову придёт.
+   *
+   * 10-15 штук. Технологии/фреймворки/методологии/общепринятые термины.
+   * Например для Frontend React 2026: `React`, `TypeScript`, `Next.js`,
+   * `Redux Toolkit`, `TanStack Query`, `Zustand`, `TailwindCSS`, `Vite`,
+   * `Storybook`, `React Testing Library`, `Playwright`, `WebSocket`,
+   * `Web Performance`, `Accessibility`, `A/B testing`.
+   */
+  marketKeywords: z.array(z.string().min(1)).max(25).default([]),
+  /**
+   * Keyword'ы из marketKeywords, которых НЕТ у клиента (ни в LinkedIn,
+   * ни в резюме). Это gap — что нужно освоить или хотя бы упомянуть в
+   * pet-проекте, чтобы выйти на target-роль. Phase 3 (actionPlan) берёт
+   * первые 3-5 и превращает в конкретные действия.
+   */
+  clientGaps: z.array(z.string().min(1)).max(25).default([]),
   variants: z.array(headlineCandidateSchema).length(5),
 });
 export type HeadlinePack = z.infer<typeof headlinePackSchema>;

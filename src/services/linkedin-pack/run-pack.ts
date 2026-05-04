@@ -18,6 +18,10 @@ import {
 } from "../../schemas/linkedin-pack.js";
 import type { LinkedinPackInput } from "./build-inputs.js";
 import { summariseClientSummary } from "./build-inputs.js";
+import {
+  getMarketKeywordsForSlug,
+  type MarketKeywordsSeed,
+} from "./market-keywords.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPTS_DIR = join(__dirname, "..", "..", "prompts", "linkedin");
@@ -202,15 +206,42 @@ async function runAudit(input: LinkedinPackInput): Promise<LinkedinAudit> {
 
 // ── Phase 2: headline ───────────────────────────────────────────────────────
 
+function renderMarketKeywordsSeed(seed: MarketKeywordsSeed | null): string {
+  if (!seed) {
+    return (
+      "## Market keywords seed\n" +
+      "СИД НЕДОСТУПЕН — для этой target-роли база ещё не прописана в " +
+      "`prompts/kb/roles-catalog.json`. В этом случае сам составь `marketKeywords` " +
+      "(10-15 keyword-ов) как раньше: по своему знанию индустрии + target-рынку."
+    );
+  }
+  return (
+    `## Market keywords seed (из \`prompts/kb/roles-catalog.json\`, slug=${seed.slug})\n` +
+    "ЭТО ОСНОВА. Используй seed как стартовый набор: **все** keyword'ы ниже " +
+    "должны попасть в итоговый `marketKeywords` ответа (если что-то реально " +
+    "неприменимо к target-рынку клиента — удали и поясни в `whyThis`). " +
+    "Сверху можешь **дополнить 3-6 штук** под target-рынок/грейд (например, для " +
+    "EU-DevOps: EKS, ArgoCD, GitOps; для Senior-PM: OKRs, Strategy). Не меняй " +
+    "порядок seed'а — добавленные тобой keyword'ы ставь в конец.\n\n" +
+    `**Top-5 (обязательный якорь для Headline и Top Skills):** ${seed.top5
+      .map((k) => `\`${k}\``)
+      .join(" · ")}\n\n` +
+    "**Extended seed (расширенный список — используй в Experience.skills, About-technicalSkills):**\n" +
+    seed.extended.map((k) => `- ${k}`).join("\n")
+  );
+}
+
 async function runHeadline(
   input: LinkedinPackInput,
   audit: LinkedinAudit,
+  seed: MarketKeywordsSeed | null,
 ): Promise<HeadlinePack> {
   const system = await readFile(HEADLINE_PROMPT_PATH, "utf-8");
 
   const auditContext =
     "auditTopPriorities:\n" +
     audit.topPriorities.map((p) => `- ${p}`).join("\n");
+  const seedContext = renderMarketKeywordsSeed(seed);
 
   let lastError: string | null = null;
 
@@ -224,6 +255,8 @@ async function runHeadline(
       system +
       "\n\n---\n\n# Input\n\n" +
       inputSection(input) +
+      "\n\n" +
+      seedContext +
       "\n\n## Audit priorities\n" +
       auditContext +
       retryNote;
@@ -265,14 +298,32 @@ async function runProfileContent(
   input: LinkedinPackInput,
   audit: LinkedinAudit,
   headline: HeadlinePack,
+  seed: MarketKeywordsSeed | null,
 ): Promise<ProfileContent> {
   const system = await readFile(PROFILE_CONTENT_PROMPT_PATH, "utf-8");
 
   const topHeadline = headline.variants[0]?.text ?? "";
+  const seedBlock = seed
+    ? `\n\n## Market keywords seed (base — топ-5 якорь для topSkills, из \`roles-catalog.json\` slug=${seed.slug})\n` +
+      `**Top-5:** ${seed.top5.map((k) => `\`${k}\``).join(" · ")}\n\n` +
+      "**Extended:**\n" +
+      seed.extended.map((k) => `- ${k}`).join("\n")
+    : "";
+  const marketKeywordsBlock = headline.marketKeywords.length
+    ? `\n\n## Market keywords (из Phase 2 — seed + adapter'ы под рынок; используй как единственный источник для topSkills и Experience.skills)\n` +
+      headline.marketKeywords.map((k) => `- ${k}`).join("\n")
+    : "";
+  const clientGapsBlock = headline.clientGaps.length
+    ? `\n\n## Client gaps (нет у клиента, но требует рынок — обязательно отрази в actionPlan)\n` +
+      headline.clientGaps.map((k) => `- ${k}`).join("\n")
+    : "";
   const extraContext =
     "## Audit priorities\n" +
     audit.topPriorities.map((p) => `- ${p}`).join("\n") +
-    `\n\n## Top headline (use as keyword anchor)\n\`\`\`\n${topHeadline}\n\`\`\``;
+    `\n\n## Top headline (use as keyword anchor)\n\`\`\`\n${topHeadline}\n\`\`\`` +
+    seedBlock +
+    marketKeywordsBlock +
+    clientGapsBlock;
 
   let lastError: string | null = null;
 
@@ -352,6 +403,19 @@ export async function runLinkedinPack(
   input: LinkedinPackInput,
   opts: RunLinkedinPackOpts = {},
 ): Promise<RunLinkedinPackResult> {
+  const selectedRoles = input.clientSummary?.selectedTargetRoles ?? [];
+  const firstTarget = selectedRoles[0];
+  const seed = getMarketKeywordsForSlug(firstTarget?.roleSlug ?? null);
+  if (seed) {
+    console.log(
+      `[LinkedinPack] marketKeywords seed for slug=${seed.slug}: top5=${seed.top5.length} extended=${seed.extended.length}`,
+    );
+  } else {
+    console.log(
+      `[LinkedinPack] marketKeywords seed NOT available for slug=${firstTarget?.roleSlug ?? "(none)"} — модель сгенерит сама`,
+    );
+  }
+
   const auditStart = Date.now();
   const audit = await runAudit(input);
   const auditMs = Date.now() - auditStart;
@@ -365,7 +429,7 @@ export async function runLinkedinPack(
   }
 
   const headlineStart = Date.now();
-  const headline = await runHeadline(input, audit);
+  const headline = await runHeadline(input, audit, seed);
   const headlineMs = Date.now() - headlineStart;
 
   if (opts.onProgress) {
@@ -382,16 +446,13 @@ export async function runLinkedinPack(
   const profileStart = Date.now();
   let profileContent: ProfileContent | undefined;
   try {
-    profileContent = await runProfileContent(input, audit, headline);
+    profileContent = await runProfileContent(input, audit, headline, seed);
   } catch (err) {
     console.warn(
       `[LinkedinPack:profile] phase failed, continuing without it: ${String(err)}`,
     );
   }
   const profileMs = Date.now() - profileStart;
-
-  const selectedRoles = input.clientSummary?.selectedTargetRoles ?? [];
-  const firstTarget = selectedRoles[0];
 
   const pack: LinkedinPack = {
     meta: {
