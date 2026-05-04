@@ -115,9 +115,22 @@ function inputSection(input: LinkedinPackInput): string {
   parts.push(`${summaryHeader}\n\`\`\`\n` + summariseClientSummary(input.clientSummary) + "\n```");
 
   if (input.linkedin) {
+    // Раньше здесь был slice(0, 8000) — 8K символов едва покрывают
+    // basic_info + experience, а certifications/languages/education/
+    // recommendations (нужные для пунктов 22-26) уезжали за обрезку,
+    // и модель честно ставила им unknown. Full-sections actor возвращает
+    // 10-40KB JSON, всё должно попасть в промпт. Верхняя граница 50K
+    // стоит как страховка от экстремальных профилей (200+ экспы),
+    // чтобы не выжрать input-budget Claude целиком.
+    const MAX_LINKEDIN_CHARS = 50_000;
+    const li = input.linkedin.text;
+    const truncated = li.length > MAX_LINKEDIN_CHARS;
     parts.push(
       `## LinkedIn profile (fetched ${input.linkedin.source} at ${input.linkedin.fetchedAt})\n` +
-        "```\n" + input.linkedin.text.slice(0, 8000) + "\n```",
+        "```\n" +
+        li.slice(0, MAX_LINKEDIN_CHARS) +
+        (truncated ? "\n... [truncated at 50K chars]" : "") +
+        "\n```",
     );
   } else {
     parts.push(

@@ -59,13 +59,13 @@
 ### Блок 2 — Headline
 
 8. Headline по формуле: `grade + target job title + стэк-keywords + индустрии + B2B/Remote/TZ`, ≤220 символов, закрывает поиск по всем ключевикам
-9. Headline содержит target job title **слово-в-слово** и дублирует 5 Top Skills (keyword consistency с About и Experience)
+9. Headline содержит target job title **слово-в-слово** и дублирует 2-3 из Top Skills (сколько влезает в 120 символов — keyword consistency с About и Experience)
 
 ### Блок 3 — Раздел «О себе» / About
 
 10. About заполнен по структуре 4 блоков: (1) summary, (2) professional highlights (достижения / образование / проекты / менторство / выступления), (3) technical skills, (4) CTA «open to new opportunities» + прямой контакт
 11. Первый абзац = полноценное summary как в резюме: `target title` + `grade` + `годы релевантного опыта` + `индустрии` + цепляющее достижение/компания, которое зацепит рекрутера с первой строки
-12. Keyword consistency: target job title и 5 Top Skills из Headline повторяются в About (прямой буст в поиск)
+12. Keyword consistency: target job title и 2-3 основных Top Skills (те, что попали в Headline) повторяются в About (прямой буст в поиск)
 13. Достижения в цифрах (метрики, проценты, масштаб пользователей), а не общий текст. На каждую цифру клиент должен уметь ответить «откуда она»
 14. CTA + прямой контакт (email для зарубежа / Telegram для RU) в самом тексте About
 
@@ -93,9 +93,31 @@
 **status** для каждого пункта — ровно одно из:
 - `"pass"` — пункт явно выполнен.
 - `"fail"` — пункт явно не выполнен, есть прямое основание в данных.
-- `"unknown"` — по данным нельзя определить (например, пункт 23 «Recommendations» — в профиле часто отсутствует поле; пункт 27 «Активность» — если постов в JSON нет; пункты 1-2 «Фото/Баннер» — только если картинки к запросу не приложили). В `recommendation` пиши «проверь руками: …».
+- `"unknown"` — по данным нельзя определить. Применимо только к пунктам, где нужных полей физически нет в JSON (см. таблицу ниже). В `recommendation` пиши «проверь руками: …».
 
 Не ставь `"pass"` без прямых оснований в данных. Лучше `"unknown"`, чем галлюцинация.
+
+### Откуда брать данные для автопроверки (Apify full-sections actor)
+
+JSON от нашего актора содержит поля, которых хватает для автопроверки большинства пунктов. **Перед тем как ставить `unknown` — открой JSON и проверь**:
+
+| Пункт | Поле в JSON | Правило |
+|---|---|---|
+| 4 | `basic_info.open_to_work` (boolean) | `true` → pass, `false` → fail |
+| 5 | `basic_info.connection_count` (int) | ≥500 → pass, иначе fail с точным числом |
+| 6 | `basic_info.public_identifier` / `profile_url` | есть читаемый slug → pass, `nikolay-XXXXXXXXXX`-паттерн → fail |
+| 7 | нет поля в JSON | **всегда unknown**: «проверь руками в Contact Info и Featured» |
+| 8-9 | `basic_info.headline` (string) | оцениваем по формуле, считаем символы |
+| 10-14 | `basic_info.about` (string) | pass/fail по содержимому |
+| 15-21 | `experience[]` | pass/fail по содержимому позиций |
+| 22 | `basic_info.top_skills` (array, до 5) + `skills[]` (общий список) | ровно 5 top-skills → pass, 4 и меньше → fail. Если общий массив `skills` непустой → перечисли совпадения с target |
+| 23 | `skills[].endorsement_count` + `recommendations.received_recommendations` (array) | endorsements = 0 у всех top-3 → fail. `received_recommendations.length ≥ 2` → pass для рекомендаций. **Если массив есть (даже пустой) — это уже не unknown**. |
+| 24 | `certifications[]` (array) | если `length ≥ 1` и хоть один релевантен target-роли → pass. Если массив пустой или отсутствует → fail (а не unknown). |
+| 25 | `languages[]` (array of `{name, proficiency}`) | есть массив → оценивай порядок и уровни. English первый + ≥ Professional working → pass. English не первый или ниже B2 → fail. Массив пустой/отсутствует → fail. |
+| 26 | `education[]` (array) | `length ≥ 1` и есть степень → pass. Пустой/отсутствует → fail (red flag). |
+| 27 | поля `posts` нет в JSON | **всегда unknown**: «проверь руками активность в ленте» |
+
+**Правило:** `unknown` разрешён только для пунктов 1, 2, 7, 27 (фото/баннер — если картинки не приложены; 7 и 27 — потому что полей нет в JSON). Для всех остальных — должен быть `pass` или `fail` по содержимому.
 
 **Рекомендация** (`recommendation`):
 - 1-2 коротких предложения. Без воды.
