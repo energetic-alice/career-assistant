@@ -6,10 +6,13 @@ type CallbackButton = ReturnType<typeof Markup.button.callback>;
 type InlineKeyboardMarkup = ReturnType<typeof Markup.inlineKeyboard>["reply_markup"];
 import { getAdminChatId, getBot } from "./bot-instance.js";
 import {
+  buildPipelineInput,
   getPipelineState,
+  persistPipelineStatesPublic,
   toggleSelectedTargetRole,
   updatePipelineStage,
 } from "../pipeline/intake.js";
+import type { AnalysisInput } from "../schemas/participant.js";
 import {
   runShortlist,
   regenerateOneDirection,
@@ -486,10 +489,40 @@ export async function startShortlist(
     return;
   }
   const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
-  const pipelineInput = outputs.pipelineInput as AnalysisPipelineInput | undefined;
+  let pipelineInput = outputs.pipelineInput as AnalysisPipelineInput | undefined;
+
+  // Legacy fallback: у части клиентов (~30/53 на май 2026 — импорт старых
+  // анкет через backfill + клиенты, у которых резюме обновляли через бот
+  // до того, как intake их пересохранял) поле `pipelineInput` в state
+  // не появилось. Строим лениво из `analysisInput` + `rawNamedValues`,
+  // чтобы кнопка «Предварительный анализ» не падала и state сам починился
+  // перед первым Phase 1.
   if (!pipelineInput) {
-    await ctx.reply("Нет pipelineInput для клиента — не могу запустить анализ.");
-    return;
+    const analysisInput = outputs.analysisInput as AnalysisInput | undefined;
+    if (!analysisInput) {
+      await ctx.reply(
+        "Не могу запустить: в state нет ни `pipelineInput`, ни `analysisInput`. " +
+          "Похоже, анкета не дошла до сохранения — пересоздай клиента через /clients.",
+      );
+      return;
+    }
+    const rawNamedValues = outputs.rawNamedValues as
+      | Record<string, string>
+      | undefined;
+    const resumeUrl =
+      (outputs.pipelineInput as { resumeUrl?: string } | undefined)?.resumeUrl ??
+      (rawNamedValues?.resumeFileUrl || undefined);
+    pipelineInput = buildPipelineInput(
+      analysisInput,
+      resumeUrl,
+      rawNamedValues,
+    );
+    outputs.pipelineInput = pipelineInput;
+    state.stageOutputs = outputs;
+    persistPipelineStatesPublic();
+    console.log(
+      `[Shortlist] ${participantId}: pipelineInput был пуст — пересобрали на лету из analysisInput + rawNamedValues`,
+    );
   }
 
   const chatId = ctx.chat!.id;

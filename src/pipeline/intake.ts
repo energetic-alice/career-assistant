@@ -157,6 +157,22 @@ export function saveResumeVersion(input: SaveResumeVersionInput): ResumeVersion 
   }
   if (pipelineInput) {
     pipelineInput.resumeText = text;
+  } else if (analysisInput) {
+    // У старых клиентов (импорт через backfill или legacy intake до
+    // processResumeAndRunAnalysis) pipelineInput в state отсутствует.
+    // Раньше saveResumeVersion тихо его не создавал, и потом клик
+    // «Предварительный анализ» падал с "Нет pipelineInput".
+    // Теперь собираем на лету — state становится ready-to-analyze сразу
+    // после загрузки резюме.
+    const rawNamedValues = outputs.rawNamedValues as
+      | Record<string, string>
+      | undefined;
+    const rebuilt = buildPipelineInput(
+      { ...analysisInput, resumeText: text },
+      rawNamedValues?.resumeFileUrl,
+      rawNamedValues,
+    );
+    outputs.pipelineInput = rebuilt;
   }
 
   state.stageOutputs = outputs;
@@ -892,7 +908,7 @@ export function registerIntakeRoutes(app: FastifyInstance) {
   );
 }
 
-function buildPipelineInput(
+export function buildPipelineInput(
   analysisInput: AnalysisInput,
   resumeFileUrl?: string,
   rawNamedValues?: Record<string, string>,
