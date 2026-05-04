@@ -388,9 +388,25 @@ export async function fetchMarketDataForDirections(
   directions: Direction[],
   profile: CandidateProfile,
 ): Promise<PerplexityMarketResult> {
-  const regions = profile.careerGoals.targetMarketRegions;
+  // Источник правды — `accessibleMarkets` (whitelist, вычисленный
+  // `computeAccessibleMarkets` с учётом физ. локации + паспортов +
+  // английского). Раньше брали `targetMarketRegions` — это открывало
+  // USD-запросы для клиентов, физически вне США, которые просто
+  // мечтали работать на US-рынке. Perplexity возвращал US-вилки,
+  // модель встраивала их в финальный документ → клиент получал
+  // недостижимую картину рынка.
+  const accessible = profile.barriers.accessibleMarkets ?? [];
+  // Fallback на targetMarketRegions — только если computeAccessibleMarkets
+  // вообще не был вызван (старые state-ы). Даже тогда не даём `us`
+  // автоматом — он требует физ. локации, которую мы здесь не знаем.
+  const regions =
+    accessible.length > 0
+      ? accessible
+      : (profile.careerGoals.targetMarketRegions ?? []).filter(
+          (r) => r !== "us",
+        );
   if (!regions || regions.length === 0) {
-    throw new Error("No targetMarketRegions in profile");
+    throw new Error("No accessibleMarkets (or fallback targetMarketRegions) in profile");
   }
 
   const allKeys = buildSearchKeys(directions, regions);

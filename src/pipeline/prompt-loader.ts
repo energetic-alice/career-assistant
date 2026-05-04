@@ -230,6 +230,18 @@ export async function loadPrompt03(vars: {
   marketData: string;
   scrapedMarketData?: string;
   relevantDomains: string[];
+  /**
+   * Whitelist рынков, которые разрешено упоминать в документе. Строка
+   * вида "ru, cis" или "eu, global (UK как прокси для EU)". Вычисляется
+   * `computeAccessibleMarkets` + флаг `shouldShowUkDataAsEuProxy`.
+   */
+  allowedMarkets: string;
+  /**
+   * Если клиент явно просил US, но не в США физически — сюда попадает
+   * `US_CRISIS_STRATEGIC_ALERT`. Модель обязана вставить его в Стратегический
+   * алерт. Пустая строка = не вставлять.
+   */
+  usStrategicAlert: string;
 }): Promise<string> {
   let template = await loadFile(join(PROMPTS_DIR, "03-direction-analysis.md"));
   const styleGuide = await getReference("style-guide");
@@ -265,6 +277,8 @@ export async function loadPrompt03(vars: {
   );
   template = template.replace("{{competitionReference}}", competitionRef);
   template = template.replace("{{domainKBs}}", domainKBs.join("\n\n---\n\n"));
+  template = template.replace("{{allowedMarkets}}", vars.allowedMarkets);
+  template = template.replace("{{usStrategicAlert}}", vars.usStrategicAlert);
 
   return template;
 }
@@ -282,6 +296,17 @@ export async function loadPrompt04(vars: {
    * пересчитывает, только подставляет в соответствующие колонки.
    */
   tableHints: string;
+  /**
+   * Whitelist рынков — строго из `accessibleMarkets` + пометка про UK-as-EU-proxy.
+   * Модель не имеет права упоминать рынки за пределами этого списка.
+   */
+  allowedMarkets: string;
+  /**
+   * Текст `US_CRISIS_STRATEGIC_ALERT`, если клиент хотел US, но не в США.
+   * Модель обязана вставить его дословно в Стратегический алерт. Пустая
+   * строка = не вставлять.
+   */
+  usStrategicAlert: string;
 }): Promise<string> {
   let template = await loadFile(join(PROMPTS_DIR, "04-final-compilation.md"));
   const styleGuide = await getReference("style-guide");
@@ -294,6 +319,8 @@ export async function loadPrompt04(vars: {
   template = template.replace("{{analysisOutput}}", vars.analysisOutput);
   template = template.replace("{{expertFeedback}}", vars.expertFeedback);
   template = template.replace("{{tableHints}}", vars.tableHints);
+  template = template.replace("{{allowedMarkets}}", vars.allowedMarkets);
+  template = template.replace("{{usStrategicAlert}}", vars.usStrategicAlert);
 
   return template;
 }

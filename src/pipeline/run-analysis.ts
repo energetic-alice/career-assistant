@@ -31,7 +31,13 @@ import {
 } from "../services/market-data-service.js";
 import { rankRoles, formatScorerTop20ForPrompt } from "../services/role-scorer.js";
 import { resolveClientGrade } from "../services/client-grade.js";
-import { computeAccessibleMarkets } from "../services/market-access.js";
+import {
+  computeAccessibleMarkets,
+  shouldShowUkDataAsEuProxy,
+  shouldWarnUsWithoutUsPresence,
+  US_CRISIS_STRATEGIC_ALERT,
+} from "../services/market-access.js";
+import type { Region } from "../schemas/analysis-outputs.js";
 import {
   enrichDirections,
   formatEnrichedForLog,
@@ -44,10 +50,46 @@ import {
 import { directionKey } from "../services/deep-research-service.js";
 import { getMarketResearchProvider } from "../services/market-research/index.js";
 import { sanitizeRussianText } from "../services/text-sanitize.js";
-import type { Region } from "../schemas/analysis-outputs.js";
 
 const client = new Anthropic();
 const MODEL = "claude-sonnet-4-20250514";
+
+/**
+ * Человекочитаемая строка «whitelist рынков» для подстановки в
+ * `{{allowedMarkets}}`. Содержит список `accessibleMarkets` в порядке,
+ * в каком они были вычислены, плюс пометку, что UK — EU-прокси (если так).
+ */
+function formatAllowedMarkets(
+  accessible: readonly Region[],
+  ukIsProxy: boolean,
+): string {
+  const base = accessible.length > 0 ? accessible.join(", ") : "(пусто)";
+  return ukIsProxy
+    ? `${base} (UK-цифры в scrapedMarketData идут как ориентир для EU-рынка, ` +
+        `UK в whitelist отдельно НЕ попадает — используй €, не £)`
+    : base;
+}
+
+/**
+ * Собирает пару `{ allowedMarkets, usStrategicAlert }` для подстановки в
+ * prompt 03/04. Единственный источник правды — `profile.barriers.accessibleMarkets`
+ * и `careerGoals.targetMarketRegions`.
+ */
+function buildMarketWhitelistVars(profile: CandidateProfile): {
+  allowedMarkets: string;
+  usStrategicAlert: string;
+} {
+  const accessible = profile.barriers.accessibleMarkets ?? [];
+  const ukIsProxy = shouldShowUkDataAsEuProxy(accessible);
+  const warnUs = shouldWarnUsWithoutUsPresence({
+    targetMarketRegions: profile.careerGoals.targetMarketRegions ?? [],
+    physicalCountry: profile.barriers.physicalCountry ?? "",
+  });
+  return {
+    allowedMarkets: formatAllowedMarkets(accessible, ukIsProxy),
+    usStrategicAlert: warnUs ? US_CRISIS_STRATEGIC_ALERT : "",
+  };
+}
 
 /**
  * Generic: TOutput — z.output<schema>, TInput — z.input<schema>. Разделение
@@ -217,6 +259,7 @@ export async function runClientSummary(input: {
     citizenships: summary.citizenships ?? [],
     physicalCountry: summary.physicalCountry ?? "",
     targetMarketRegions: summary.targetMarketRegions ?? [],
+    englishLevel: summary.englishLevel ?? "",
   });
   console.log(
     `[Phase 0] Done in ${Date.now() - t0}ms (${summary.firstNameLatin} ${summary.lastNameLatin}, ` +
@@ -834,12 +877,19 @@ export async function runDeepFromShortlist(
   const relevantDomains = inferRelevantDomains(currentDirections.map((d) => d.title));
   console.log(`[Deep/Step 6] Relevant domains: ${relevantDomains.join(", ")}`);
 
+  const { allowedMarkets, usStrategicAlert } = buildMarketWhitelistVars(profile);
+  console.log(
+    `[Deep/Step 6] allowedMarkets: ${allowedMarkets}` +
+      (usStrategicAlert ? " | US-warning=true" : ""),
+  );
   const prompt03 = await loadPrompt03({
     candidateProfile: JSON.stringify(profile, null, 2),
     directionsOutput: JSON.stringify(directions, null, 2),
     marketData,
     scrapedMarketData,
     relevantDomains,
+    allowedMarkets,
+    usStrategicAlert,
   });
   const analysis = await callClaudeStructured(
     prompt03,
@@ -1041,12 +1091,16 @@ export async function runAnalysisPhase4(
       "# Готовые значения для таблиц\n\n(не переданы — собери значения из analysisOutput как обычно)";
   }
 
+  const { allowedMarkets: allowed04, usStrategicAlert: usAlert04 } =
+    buildMarketWhitelistVars(profile);
   const prompt04 = await loadPrompt04({
     candidateProfile: JSON.stringify(profile, null, 2),
     directionsOutput: JSON.stringify(directions, null, 2),
     analysisOutput: JSON.stringify(analysis, null, 2),
     expertFeedback: expertFeedback || "Нет комментариев",
     tableHints: tableHintsText,
+    allowedMarkets: allowed04,
+    usStrategicAlert: usAlert04,
   });
   const draftDocument = await callClaudeText(prompt04);
   const draftTiming = Date.now() - t0;

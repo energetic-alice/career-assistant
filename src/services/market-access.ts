@@ -1,6 +1,20 @@
 import type { Region } from "../schemas/analysis-outputs.js";
 
 /**
+ * CEFR-шкала для гейтов native-English рынков.
+ * Дублируем мини-таблицу здесь (а не импортируем из market-data-service),
+ * чтобы market-access оставался листовым модулем без обратных зависимостей
+ * на pipeline/data-services.
+ */
+const CEFR_ORDER: Record<string, number> = {
+  "0": 0, A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6,
+};
+
+export function cefrAtLeast(level: string, threshold: string): boolean {
+  return (CEFR_ORDER[level] ?? 0) >= (CEFR_ORDER[threshold] ?? 0);
+}
+
+/**
  * UI-рендер региона: эмодзи-флаг для одно-страновых + короткий код для
  * мульти-страновых / remote. Используется во всех карточках и CLI-выводах.
  */
@@ -155,25 +169,47 @@ export function hasEUWorkPermit(
 /**
  * Вычисляет рынки, на которых клиент реально может работать.
  *
- * Логика:
- *   - RU: физически в РФ/Беларуси ИЛИ паспорт РФ/Беларуси (легальный найм).
- *   - CIS: паспорт или физически в стране СНГ.
- *   - EU/UK: физически в ЕС/UK ИЛИ паспорт ЕС (свобода передвижения).
- *   - LATAM/APAC/ME: физически там ИЛИ паспорт оттуда.
- *   - Для USA не делаем автоматический вывод (L-1/H-1B — особая тема);
- *     добавляется только если явно в `targetMarketRegions` (B2B remote).
- *   - Remote B2B доступен везде, куда клиент сам нацелен — потому
- *     `targetMarketRegions` всегда вливается в итог.
+ * Принцип — **whitelist**: этот список дальше превращается в жёсткое
+ * ограничение для промптов и Perplexity (никакие другие рынки в анализе
+ * не упоминаются). Поэтому хотение клиента (`targetMarketRegions`) само по
+ * себе рынок **не открывает** — нужен реальный путь к найму.
  *
- * Результат — пересечение accessible + wished (объединение), без дублей.
+ * Правила:
+ *   - `ru`: физически в РФ/Беларуси ИЛИ паспорт РФ/Беларуси.
+ *   - `cis`: паспорт или физически в стране СНГ.
+ *   - `eu`: физически в ЕС ИЛИ паспорт ЕС (независимо от английского).
+ *     Дополнительно: если клиент целится в `eu` (или `global`) через remote
+ *     B2B, и English ≥ B1 — открываем. B1 хватает, потому что в EU много
+ *     non-English-speaking компаний и русскоязычных команд, плюс B2B
+ *     не требует полноценного interview-цикла на native-level.
+ *   - `uk`: native English, только при English ≥ B2 И (физически в UK
+ *     ИЛИ паспорт ЕС/UK). Таргет `uk` без локации/паспорта рынок не
+ *     открывает.
+ *   - `us`: native English. Только при физическом нахождении в США И
+ *     English ≥ B2. Никакая виза/таргет не открывают — это отдельный
+ *     кейс со стратегическим алертом (`shouldWarnUsWithoutUsPresence`).
+ *   - `latam` / `asia-pacific` / `middle-east`: физически там ИЛИ
+ *     паспорт ИЛИ таргет при English ≥ B1 (remote B2B).
+ *   - `global`: только если клиент сам целится в `global` И English ≥ B1
+ *     (B2B контракты из любой юрисдикции не требуют native-level).
+ *
+ * Пороги английского:
+ *   - B1 — non-native remote B2B (eu / global / latam / apac / me).
+ *   - B2 — native English рынки (uk / us).
  */
 export function computeAccessibleMarkets(args: {
   citizenships: readonly string[];
   physicalCountry: string;
   targetMarketRegions: readonly Region[];
+  englishLevel: string;
 }): Region[] {
-  const { citizenships, physicalCountry, targetMarketRegions } = args;
+  const { citizenships, physicalCountry, targetMarketRegions, englishLevel } =
+    args;
   const accessible = new Set<Region>();
+  const targets = new Set<Region>(targetMarketRegions);
+  const hasEuPassport = citizenships.some((c) => EU_COUNTRIES.has(c));
+  const hasB1 = cefrAtLeast(englishLevel, "B1");
+  const hasB2 = cefrAtLeast(englishLevel, "B2");
 
   if (isPhysicallyInRU(physicalCountry) || hasRuWorkPermit(physicalCountry, citizenships)) {
     accessible.add("ru");
@@ -186,28 +222,92 @@ export function computeAccessibleMarkets(args: {
   }
   if (isPhysicallyInEU(physicalCountry) || hasEUWorkPermit(physicalCountry, citizenships)) {
     accessible.add("eu");
+  }
+  // EU через remote B2B (в т.ч. для RU/CIS-контингента) — достаточно B1.
+  if (targets.has("eu") && hasB1) {
+    accessible.add("eu");
+  }
+  // UK — native English, B2+. Автоматом только при физ. локации в UK
+  // или EU-паспорте (Settlement Scheme / frontier-worker).
+  // Таргет "uk" без локации/паспорта рынок не открывает.
+  if (hasB2 && (isPhysicallyInUK(physicalCountry) || hasEuPassport)) {
     accessible.add("uk");
+  }
+  // US — native English, только при физическом нахождении в США и B2+.
+  // Таргет `us` из анкеты НЕ открывает рынок — вместо этого Phase 4
+  // вставляет стратегический алерт про кризис US-найма за рубежом.
+  if (isPhysicallyInUS(physicalCountry) && hasB2) {
+    accessible.add("us");
   }
   if (
     LATAM_COUNTRIES.has(physicalCountry) ||
-    citizenships.some((c) => LATAM_COUNTRIES.has(c))
+    citizenships.some((c) => LATAM_COUNTRIES.has(c)) ||
+    (targets.has("latam") && hasB1)
   ) {
     accessible.add("latam");
   }
   if (
     APAC_COUNTRIES.has(physicalCountry) ||
-    citizenships.some((c) => APAC_COUNTRIES.has(c))
+    citizenships.some((c) => APAC_COUNTRIES.has(c)) ||
+    (targets.has("asia-pacific") && hasB1)
   ) {
     accessible.add("asia-pacific");
   }
   if (
     ME_COUNTRIES.has(physicalCountry) ||
-    citizenships.some((c) => ME_COUNTRIES.has(c))
+    citizenships.some((c) => ME_COUNTRIES.has(c)) ||
+    (targets.has("middle-east") && hasB1)
   ) {
     accessible.add("middle-east");
   }
-  // Remote B2B: куда клиент сам нацелен — тоже считаем доступным.
-  for (const r of targetMarketRegions) accessible.add(r);
+  // `global` = remote B2B-контракты в любой юрисдикции. Для RU/CIS
+  // клиентов это основной путь работать на международном рынке.
+  // Достаточно B1.
+  if (targets.has("global") && hasB1) {
+    accessible.add("global");
+  }
 
   return [...accessible];
 }
+
+/**
+ * UK-данные (itjobswatch) — proxy-ориентир для EU-рынка: отдельного
+ * гранулярного source по каждой EU-стране у нас нет. Этот флаг разрешает
+ * показывать UK-колонку в `scrapedMarketData` клиентам, у кого EU открыт,
+ * но UK нет в accessible (B1 / не-EU паспорт / не в UK). В whitelist
+ * промпта UK при этом **не попадает** — цифры идут с пометкой
+ * "UK как ориентир для EU".
+ */
+export function shouldShowUkDataAsEuProxy(
+  accessible: readonly Region[],
+): boolean {
+  return accessible.includes("eu") && !accessible.includes("uk");
+}
+
+/**
+ * True, если клиент явно просил US-рынок, но не находится в США физически.
+ * В таком случае Phase 4 финала вставляет `US_CRISIS_STRATEGIC_ALERT`
+ * вместо US-вилок — US в `accessibleMarkets` всё равно не попадает.
+ */
+export function shouldWarnUsWithoutUsPresence(args: {
+  targetMarketRegions: readonly Region[];
+  physicalCountry: string;
+}): boolean {
+  return (
+    args.targetMarketRegions.includes("us") &&
+    !isPhysicallyInUS(args.physicalCountry)
+  );
+}
+
+/**
+ * Алерт, который модель обязана вставить в Стратегический алерт финала,
+ * если `shouldWarnUsWithoutUsPresence === true`. Формулировка
+ * согласована с куратором.
+ */
+export const US_CRISIS_STRATEGIC_ALERT =
+  "US-рынок вообще не нанимает людей за пределами США и испытывает " +
+  "глубокий кризис прямо сейчас (200+ тыс IT-увольнений за 2025 год, " +
+  "H1B/O-1 фактически закрыты, большинство вакансий требуют физического " +
+  "присутствия и подтверждения work authorization). Реалистичный путь " +
+  "работать с US-компаниями для клиента без US-локации — через EOR / " +
+  "B2B-контракт из EU-юрисдикции.";

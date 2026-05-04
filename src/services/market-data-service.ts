@@ -144,6 +144,7 @@ import {
   hasRuWorkPermit as computeHasRuWorkPermit,
   isPhysicallyInEU as computeIsPhysicallyInEU,
   isPhysicallyInRU as computeIsPhysicallyInRU,
+  shouldShowUkDataAsEuProxy,
 } from "./market-access.js";
 
 export function computeMarketAccess(profile: CandidateProfile): CandidateProfile {
@@ -162,6 +163,7 @@ export function computeMarketAccess(profile: CandidateProfile): CandidateProfile
         citizenships,
         physicalCountry: country,
         targetMarketRegions: profile.careerGoals.targetMarketRegions,
+        englishLevel: profile.currentBase.englishLevel ?? "",
       }),
     },
   };
@@ -501,41 +503,42 @@ export async function buildMarketSummary(
 ): Promise<MarketSummary> {
   const b = profile.barriers;
   const eng = profile.currentBase.englishLevel;
-  const targets = new Set(profile.careerGoals.targetMarketRegions);
-  const accessible = new Set(b.accessibleMarkets ?? []);
+  const accessibleList = b.accessibleMarkets ?? [];
+  const accessible = new Set(accessibleList);
 
   // --- Determine which markets to show ---
-  let showUK = targets.has("uk") || targets.has("eu") || targets.has("us") || targets.has("global");
-  let showRU = targets.has("ru");
+  // Whitelist-логика: показываем только рынки, которые есть в
+  // accessibleMarkets. UK попадает в таблицу либо как собственный рынок
+  // (uk ∈ accessible — B2+ и физ. UK/EU-паспорт), либо как ориентир для
+  // EU-рынка (uk ∉ accessible, но eu ∈ accessible) — itjobswatch единственный
+  // гранулярный источник по EU tech, поэтому UK-цифры остаются прокси.
+  const ukIsProxy = shouldShowUkDataAsEuProxy(accessibleList);
+  const showUK = accessible.has("uk") || ukIsProxy;
 
-  // Physical in RU and not explicitly excluding → always show RU
-  if (b.isPhysicallyInRU && !b.explicitlyExcludesRU) showRU = true;
-
-  // Explicitly excludes RU → never show RU regardless of accessible
-  if (b.explicitlyExcludesRU) showRU = false;
-
-  // Санкционный блок: клиент физически в ЕС/UK/США не может работать на
-  // RU-рынок (банковские ограничения + работодатели не платят резидентам
-  // санкционных стран). Даже если intake-mapper проставил `ru` в targets,
-  // RU-цифры клиенту не нужны - только путают анализ.
-  // Латам/APAC/ME/СНГ - санкциями не ограничены; RU остаётся по выбору
-  // клиента (напр. аргентинка с низким английским ищет remote RU-B2B).
+  let showRU = accessible.has("ru");
+  // Санкционный блок: даже если `ru` почему-то всплыл в accessible, клиент
+  // физически в ЕС/UK/США не может работать на RU-рынок из-за санкций —
+  // цифры только путают.
   if (b.physicalCountry && isRuBlockedBySanctions(b.physicalCountry)) {
     showRU = false;
   }
-
-  // B2+ without international targets → show UK/EU as opportunity
-  if (cefrAtLeast(eng, "B2") && !showUK) {
-    showUK = true;
-  }
+  if (b.explicitlyExcludesRU) showRU = false;
 
   // --- Compute applicable coefficients ---
   const coefficients: Partial<MarketCoefficients> = {};
   const globalNotes: string[] = [];
 
-  if (!cefrAtLeast(eng, "B1") && showUK) {
-    coefficients.intlLowEnglish = 0.07;
-    globalNotes.push(`UK/EU ×0.07 (англ ${eng} < B1, только русскоязычные вакансии)`);
+  // Native English гейт: если UK/EU-цифры в таблице, а клиент < B2, значит
+  // в EU ему открыт только non-English или B2B-сегмент — отмечаем штрафом,
+  // чтобы модель не брала full-UK медианы как базу для pay-ожиданий.
+  // Раньше порог был < B1 и это пропускало B1-клиентов с завышенными US/UK
+  // вилками. Новый порог < B2 соответствует правилу «native English от B2».
+  if (!cefrAtLeast(eng, "B2") && showUK) {
+    coefficients.intlLowEnglish = 0.25;
+    globalNotes.push(
+      `UK/EU ×0.25 (англ ${eng} < B2, native-English вакансии сужаются до ` +
+        `русскоязычных команд / B2B-сегмента)`,
+    );
   }
 
   if (showRU && !b.isPhysicallyInRU) {
@@ -615,6 +618,25 @@ export async function buildMarketSummary(
     "",
   ];
 
+  // Явно сообщаем, что `accessibleMarkets` — это whitelist. Так промпт
+  // 03/04 не сможет сослаться на рынки за его пределами (US без us в
+  // accessible, отдельный UK для EU-клиента и т.д.).
+  mdLines.push(
+    `**Whitelist рынков (accessibleMarkets):** ${
+      accessibleList.length ? accessibleList.join(", ") : "∅"
+    }`,
+  );
+  if (ukIsProxy) {
+    mdLines.push(
+      "> UK-данные ниже показываются как **ориентир для EU-рынка** " +
+        "(itjobswatch — наш самый гранулярный источник по EU tech). " +
+        "UK в accessibleMarkets НЕ попадает — цитировать как «UK», «£» " +
+        "или UK-specific медианы в финальном документе нельзя, только " +
+        "как «EU-рынок (UK-прокси)».",
+    );
+  }
+  mdLines.push("");
+
   if (globalNotes.length > 0) {
     mdLines.push("**Коэффициенты доступа:**");
     for (const n of globalNotes) mdLines.push(`- ${n}`);
@@ -625,7 +647,13 @@ export async function buildMarketSummary(
   const hasSomeRU = showRU && roles.some((r) => r.ruVacancies !== null);
 
   const headerParts = ["| Роль"];
-  if (hasSomeUK) headerParts.push("UK: live / £ median / тренд 2г");
+  if (hasSomeUK) {
+    headerParts.push(
+      ukIsProxy
+        ? "EU (UK-прокси): live / £ median / тренд 2г"
+        : "UK: live / £ median / тренд 2г",
+    );
+  }
   if (hasSomeRU) headerParts.push("RU: вакансий / ₽ median");
   if (roles.some((r) => r.coeffNotes.length > 0)) headerParts.push("adj");
   headerParts.push("");
