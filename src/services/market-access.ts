@@ -27,6 +27,7 @@ const REGION_DISPLAY: Record<Region, string> = {
   latam: "LATAM",
   "asia-pacific": "APAC",
   "middle-east": "MENA",
+  israel: "🇮🇱",
   global: "🌐",
 };
 
@@ -107,8 +108,17 @@ export const APAC_COUNTRIES = new Set<string>([
 
 export const ME_COUNTRIES = new Set<string>([
   "UAE", "United Arab Emirates", "Saudi Arabia", "Qatar",
-  "Bahrain", "Kuwait", "Oman", "Israel", "Turkey",
+  "Bahrain", "Kuwait", "Oman", "Turkey",
 ]);
+
+/**
+ * Israel вынесен в отдельный bucket `israel`. Tech-сектор там:
+ *   - Зарплаты в USD (не ILS и не MENA-уровня).
+ *   - Команды англоязычные (IL-стартапы продают в US).
+ *   - Налоги и B2B/employment — свои специфичные.
+ * По зарплатам Израиль ближе к EU senior / US middle, а не к UAE/Qatar.
+ */
+export const ISRAEL_COUNTRIES = new Set<string>(["Israel"]);
 
 export function isPhysicallyInRU(physicalCountry: string): boolean {
   return RU_COUNTRIES.has(physicalCountry);
@@ -124,6 +134,14 @@ export function isPhysicallyInUK(physicalCountry: string): boolean {
 
 export function isPhysicallyInUS(physicalCountry: string): boolean {
   return US_COUNTRIES.has(physicalCountry);
+}
+
+export function isPhysicallyInIsrael(physicalCountry: string): boolean {
+  return ISRAEL_COUNTRIES.has(physicalCountry);
+}
+
+export function isPhysicallyInCIS(physicalCountry: string): boolean {
+  return CIS_COUNTRIES.has(physicalCountry);
 }
 
 /**
@@ -175,7 +193,13 @@ export function hasEUWorkPermit(
  * себе рынок **не открывает** — нужен реальный путь к найму.
  *
  * Правила:
- *   - `ru`: физически в РФ/Беларуси ИЛИ паспорт РФ/Беларуси.
+ *   - `ru`: **не** открывается автоматически по RU/BY-паспорту. Только:
+ *     (a) физически в РФ/Беларуси; (b) физически в СНГ + RU/BY permit
+ *     (KZ/GE/AM/UZ — там PPP паритет, RU-зп релевантны); (c) клиент
+ *     явно целится в `ru` И есть RU/BY permit. Клиенту с RU-паспортом
+ *     в Израиле / EU / UAE / Сингапуре RU-рынок не показываем — зп по
+ *     PPP неинтересны, санкции тоже могут блокировать (для EU/UK/US
+ *     это ловит `isRuBlockedBySanctions`).
  *   - `cis`: паспорт или физически в стране СНГ.
  *   - `eu`: физически в ЕС ИЛИ паспорт ЕС (независимо от английского).
  *     Дополнительно: если клиент целится в `eu` (или `global`) через remote
@@ -190,12 +214,18 @@ export function hasEUWorkPermit(
  *     кейс со стратегическим алертом (`shouldWarnUsWithoutUsPresence`).
  *   - `latam` / `asia-pacific` / `middle-east`: физически там ИЛИ
  *     паспорт ИЛИ таргет при English ≥ B1 (remote B2B).
+ *   - `israel`: отдельный bucket (не часть `middle-east`). Открывается
+ *     при физ. локации в Израиле ИЛИ израильском паспорте. IL-tech
+ *     работает в USD с англоязычными командами — зп ближе к US middle,
+ *     чем к Gulf States.
  *   - `global`: только если клиент сам целится в `global` И English ≥ B1
  *     (B2B контракты из любой юрисдикции не требуют native-level).
  *
  * Пороги английского:
  *   - B1 — non-native remote B2B (eu / global / latam / apac / me).
  *   - B2 — native English рынки (uk / us).
+ *   - Israel — без жёсткого порога (IL-tech работает в USD с
+ *     англоязычными командами, но клиент уже там физически).
  */
 export function computeAccessibleMarkets(args: {
   citizenships: readonly string[];
@@ -208,12 +238,22 @@ export function computeAccessibleMarkets(args: {
   const accessible = new Set<Region>();
   const targets = new Set<Region>(targetMarketRegions);
   const hasEuPassport = citizenships.some((c) => EU_COUNTRIES.has(c));
+  const ruOrByPermit = hasRuWorkPermit(physicalCountry, citizenships);
   const hasB1 = cefrAtLeast(englishLevel, "B1");
   const hasB2 = cefrAtLeast(englishLevel, "B2");
 
-  if (isPhysicallyInRU(physicalCountry) || hasRuWorkPermit(physicalCountry, citizenships)) {
+  // RU: (a) физ. в РФ/BY; (b) физ. в СНГ + RU/BY permit (PPP паритет);
+  // (c) явный target `ru` + RU/BY permit. Паспорт сам по себе рынок
+  // НЕ открывает — клиент в Израиле/EU/UAE с RU-паспортом получает
+  // ru только если явно попросил.
+  if (isPhysicallyInRU(physicalCountry)) {
+    accessible.add("ru");
+  } else if (isPhysicallyInCIS(physicalCountry) && ruOrByPermit) {
+    accessible.add("ru");
+  } else if (targets.has("ru") && ruOrByPermit) {
     accessible.add("ru");
   }
+
   if (
     citizenships.some((c) => CIS_COUNTRIES.has(c)) ||
     CIS_COUNTRIES.has(physicalCountry)
@@ -256,14 +296,40 @@ export function computeAccessibleMarkets(args: {
   if (
     ME_COUNTRIES.has(physicalCountry) ||
     citizenships.some((c) => ME_COUNTRIES.has(c)) ||
-    (targets.has("middle-east") && hasB1)
+    (targets.has("middle-east") && hasB1) ||
+    // Израиль физически в MENA — регион как гео-контекст (Gulf states,
+    // Jordan, Turkey) для клиентов из IL остаётся открытым, хотя
+    // основной их bucket — отдельный `israel`.
+    isPhysicallyInIsrael(physicalCountry)
   ) {
     accessible.add("middle-east");
+  }
+  // Израиль — отдельный bucket (USD-зп, англоязычные стартапы).
+  // Открывается физ. локацией или израильским паспортом. Клиенты с
+  // RU/EU паспортом, таргетящие IL, не получают его автоматически —
+  // Израиль требует alyah/визу, это не remote B2B.
+  if (
+    isPhysicallyInIsrael(physicalCountry) ||
+    citizenships.some((c) => ISRAEL_COUNTRIES.has(c))
+  ) {
+    accessible.add("israel");
   }
   // `global` = remote B2B-контракты в любой юрисдикции. Для RU/CIS
   // клиентов это основной путь работать на международном рынке.
   // Достаточно B1.
   if (targets.has("global") && hasB1) {
+    accessible.add("global");
+  }
+  // Global fallback: клиент целился в native-English рынок (us/uk), но
+  // код его не открыл (не в США / нет B2 / нет EU-паспорта). При B1+
+  // global — реалистичная альтернатива (EU B2B / EOR). Это не расширение
+  // желаемого рынка (US/UK он всё равно не получит), а опция работы на
+  // международном рынке из любой юрисдикции.
+  if (
+    hasB1 &&
+    ((targets.has("us") && !accessible.has("us")) ||
+      (targets.has("uk") && !accessible.has("uk")))
+  ) {
     accessible.add("global");
   }
 

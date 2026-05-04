@@ -70,10 +70,17 @@ export const REGIONS: Record<string, RegionConfig> = {
     extra: "Use hh.ru vacancy counts and resume counts to calculate competition ratio (vacancies per 100 resumes).",
   },
   "middle-east": {
-    label: "Middle East (UAE, Saudi Arabia, Qatar)",
+    label: "Middle East (UAE, Saudi Arabia, Qatar) - excluding Israel",
     jobBoards: ["bayt.com", "gulftalent.com", "naukrigulf.com"],
     salarySource: "levels.fyi",
     currency: "USD/AED",
+  },
+  israel: {
+    label: "Israel tech sector (Tel Aviv, Herzliya)",
+    jobBoards: ["alljobs.co.il", "drushim.co.il", "linkedin.com/il"],
+    salarySource: "levels.fyi",
+    currency: "USD",
+    extra: "IL-tech работает в USD, команды англоязычные (продажи в US/EU). Зарплаты ближе к US middle, чем к Gulf States. Крупнейшие сегменты: cybersecurity, AI/ML, fintech, SaaS.",
   },
   latam: {
     label: "Latin America (Brazil, Mexico, Argentina, Colombia)",

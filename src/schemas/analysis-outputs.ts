@@ -63,6 +63,11 @@ export const regionEnum = z.enum([
   "latam",
   "asia-pacific",
   "middle-east",
+  // Israel вынесен из middle-east: tech-сектор там ближе к US-стартапам
+  // (USD-зарплаты, англоязычные команды, венчурный капитал), чем к Gulf
+  // States. Отдельный bucket нужен для корректных зп-вилок и чтобы
+  // клиенты не смешивали UAE и TelAviv в одну таблицу.
+  "israel",
   "global",
 ]);
 

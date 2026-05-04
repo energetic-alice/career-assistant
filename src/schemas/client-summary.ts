@@ -151,7 +151,7 @@ export const clientSummarySchema = z.object({
    * Целевые рынки как нормализованный массив кодов регионов.
    * Заменяет прежнее свободно-текстовое поле `targetMarket`.
    * Значения из `regionEnum`: "ru" | "eu" | "uk" | "us" | "cis" | "latam" |
-   * "asia-pacific" | "middle-east" | "global". Клод заполняет по анкете.
+   * "asia-pacific" | "middle-east" | "israel" | "global". Клод заполняет по анкете.
    * Пустой массив = клиент не указал таргет (обычно в паре с location-fallback).
    */
   targetMarketRegions: z.array(regionEnum).default([]),

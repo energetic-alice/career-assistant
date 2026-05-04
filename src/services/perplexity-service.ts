@@ -197,6 +197,7 @@ const REGION_LABELS: Record<string, string> = {
   latam: "Latin America",
   "asia-pacific": "Asia-Pacific (Singapore, Malaysia, Australia, Japan)",
   "middle-east": "Middle East (UAE, Saudi Arabia)",
+  israel: "Israel (Tel Aviv tech sector)",
   global: "Global (remote)",
 };
 
