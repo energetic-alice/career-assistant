@@ -36,7 +36,7 @@
 
 ## Важный контекст перед оценкой
 
-- **Зарубежный рынок (EU/UK/US/LATAM/MENA)** → локация крупного target-города, English-профиль, email-контакт в баннере, **никаких следов РФ** (локация, телефон, санкционные компании).
+- **Зарубежный рынок (EU/UK/US/LATAM/MENA)** → локация в target-стране ИЛИ в tax-friendly remote-hub (Dubai, Singapore, Lisbon, Limassol, Yerevan, Tbilisi), English-профиль, email-контакт в баннере, **никаких следов РФ** (локация, телефон, санкционные компании). Dubai/Singapore — нормальные локации даже если target EU/UK: рекрутеры понимают, что человек на remote-контракте сидит в tax-выгодной юрисдикции.
 - **Российский рынок (RU/BY/KZ…)** → профиль на русском, Telegram в контактах уместен, локация — Москва.
 - **Санкционные компании** (ВТБ, Сбер, госпроекты и т.п.) в Experience для зарубежного рынка — `fail`, нужны нейтральные формулировки (`top-10 bank in CIS`, `large fintech company`).
 - **Keyword consistency:** target job title + стэк + индустрии должны повторяться в Headline ↔ About ↔ Top Skills ↔ каждом Experience. Это прямой буст ранжирования.
@@ -50,11 +50,11 @@
 
 1. Профессиональное фото (деловое, нейтральный фон, не селфи)
 2. Cover-баннер оформлен + в нём продублированы контакты (email для зарубежа / Telegram для RU)
-3. Локация = крупнейший город target-страны (London / Berlin / Lisbon / Yerevan и т.п.); для зарубежа нет следа РФ в локации и телефоне
+3. Локация = город в target-стране ИЛИ tax-friendly remote-hub (Dubai, Singapore, Lisbon, Limassol, Yerevan, Tbilisi); для зарубежного target — нет следа РФ в локации и телефоне
 4. Open to Work включён для рекрутеров (private), **без публичной зелёной плашки** вокруг аватара
 5. Connections 500+
-6. Кастомизированный URL (slug вида `linkedin.com/in/имя-роль`, не случайный набор цифр)
-7. Ссылки на GitHub / портфолио / сайт добавлены в Contact Info или Featured (для IT-ролей)
+6. Кастомизированный URL (читаемый slug `linkedin.com/in/имя` или `имя-фамилия`, **НЕ** случайный набор цифр вида `nikolay-XXXXXXXXXX`)
+7. Ссылки на GitHub / портфолио / сайт добавлены в Contact Info или Featured — **критично только для junior** (нечего показать в опыте); для middle/senior это опция, не обязательство, отсутствие GitHub не fail
 
 ### Блок 2 — Headline
 
@@ -82,7 +82,7 @@
 ### Блок 5 — Навыки, рекомендации, образование, активность
 
 22. Top Skills — ровно 5 закреплённых под target-роль; общий Skills ≥ 10; очевидные keyword'ы target-стэка (Git, Docker, CI/CD для DevOps; React/TS для Frontend и т.п.) присутствуют
-23. Endorsements на Top-3 скилла + Recommendations минимум 2 от коллег/руководителей
+23. Endorsements на Top-3 скилла (хотя бы 3+ подтверждений на каждом) + Recommendations минимум 2 от коллег/руководителей
 24. Certifications: минимум один релевантный target-роли (для перекатов — обязательно, например AWS Cloud Practitioner)
 25. Languages: English на первом месте, уровень ≥ B2 (в идеале C1, правило «+1 ступень»). Русский и другие языки указывать **можно и нужно** (это плюс, не минус) — главное, чтобы English был первым.
 26. Education: степень (Bachelor/Master) + вуз; год можно не указывать (ageism); для клиентов за рубежом — локальный вуз через нострификацию, если есть; отсутствие образования = red flag
@@ -103,21 +103,27 @@ JSON от нашего актора содержит поля, которых х
 
 | Пункт | Поле в JSON | Правило |
 |---|---|---|
+| 3 | `basic_info.location` / `basic_info.country` | для зарубежного target: pass если локация в target-стране ИЛИ в tax-friendly remote-hub (Dubai/UAE, Singapore, Lisbon, Limassol/Cyprus, Yerevan, Tbilisi, Belgrade). fail если локация = город в РФ/Беларуси и target не RU. Для RU-target: pass если Москва/СПб/русскоязычный регион. |
 | 4 | `basic_info.open_to_work` (boolean) | **Инвертированная логика!** Этот флаг у Apify означает **публичную** зелёную плашку #OpenToWork вокруг аватара (видную всем), а не private-режим для рекрутеров. Private-режим с анонимного скрейпа не виден. Поэтому: `true` → **fail** (публичная плашка = наш чек-лист считает это минусом, она отпугивает текущего работодателя). `false` → **unknown** («проверь руками: если ты уже включила Open to Work в Private mode для рекрутеров — этот пункт выполнен; если ещё нет — включи именно Private, не Public»). |
 | 5 | `basic_info.connection_count` (int) | ≥500 → pass, иначе fail с точным числом |
-| 6 | `basic_info.public_identifier` / `profile_url` | есть читаемый slug → pass, `nikolay-XXXXXXXXXX`-паттерн → fail |
-| 7 | нет поля в JSON | **всегда unknown**: «проверь руками в Contact Info и Featured» |
+| 6 | `basic_info.public_identifier` / `profile_url` | любой читаемый slug (имя, имя-фамилия, имя-роль) → **pass**. fail только если slug = `имя-XXXXXXXXXX`-паттерн (10+ случайных цифр в хвосте). Не требуй чтобы slug отражал target-роль — ребрендить URL под каждую новую роль никто не будет, и это **не** SEO-фактор. |
+| 7 | нет поля в JSON | grade junior → **fail** с рекомендацией «добавь GitHub и pet-проекты в Featured — без них рекрутерам сложно оценить твой код»; grade middle/senior/lead → **unknown** «опционально, проверь руками — если есть pet-проект или open-source, добавь в Featured, но это не блокер» |
 | 8-9 | `basic_info.headline` (string) | оцениваем по формуле, считаем символы |
 | 10-14 | `basic_info.about` (string) | pass/fail по содержимому |
 | 15-21 | `experience[]` | pass/fail по содержимому позиций |
 | 22 | `basic_info.top_skills` (array, до 5) + `skills[]` (общий список) | ровно 5 top-skills → pass, 4 и меньше → fail. Если общий массив `skills` непустой → перечисли совпадения с target |
-| 23 | `skills[].endorsement_count` + `recommendations.received_recommendations` (array) | endorsements = 0 у всех top-3 → fail. `received_recommendations.length ≥ 2` → pass для рекомендаций. **Если массив есть (даже пустой) — это уже не unknown**. |
+| 23 | `skills[].endorsement_count` + `recommendations.received_recommendations` (array) | оцениваем top-3 скилла по `endorsement_count`: если у каждого из топ-3 ≥ 3 endorsements **и** `received_recommendations.length ≥ 2` → pass. Если endorsements хотя бы у одного из top-3 < 3 ИЛИ recommendations < 2 → fail (в `recommendation` укажи **что именно** просесть: «endorsements ок, но 0 рекомендаций — попроси 2 коллег» или «3 рекомендации есть, но React.js имеет всего 1 endorsement — обменяйся endorsements в команде»). **Если массив skills есть (даже пустой) — это уже не unknown**. |
 | 24 | `certifications[]` (array) | если `length ≥ 1` и хоть один релевантен target-роли → pass. Если массив пустой или отсутствует → fail (а не unknown). |
 | 25 | `languages[]` (array of `{name, proficiency}`) | есть массив → оценивай порядок и уровни. English первый + ≥ Professional working → pass. English не первый или ниже B2 → fail. Массив пустой/отсутствует → fail. |
 | 26 | `education[]` (array) | `length ≥ 1` и есть степень → pass. Пустой/отсутствует → fail (red flag). |
 | 27 | поля `posts` нет в JSON | **всегда unknown**: «проверь руками активность в ленте» |
 
-**Правило:** `unknown` разрешён только для пунктов 1, 2, 4, 7, 27. Пункты 1 и 2 — unknown, если картинки не приложены. Пункт 4 — unknown, если `open_to_work: false` (private-режим с анонимного скрейпа не отличим от выключенного). Пункты 7 и 27 — потому что полей нет в JSON. Для всех остальных пунктов — должен быть `pass` или `fail` по содержимому.
+**Правило:** `unknown` разрешён только для пунктов 1, 2, 4, 7, 27.
+- Пункты 1 и 2 — unknown, если картинки не приложены.
+- Пункт 4 — unknown, если `open_to_work: false` (private-режим с анонимного скрейпа не отличим от выключенного).
+- Пункт 7 — для junior это **fail** (надо показать pet-проекты), для middle/senior — **unknown** (опция, не обязательство).
+- Пункт 27 — поля `posts` нет в JSON, всегда **unknown** «проверь руками активность в ленте».
+- Для всех остальных пунктов — должен быть `pass` или `fail` по содержимому.
 
 **Рекомендация** (`recommendation`):
 - 1-2 коротких предложения. Без воды.

@@ -30,6 +30,7 @@
 - **Самый крупный город** страны target-рынка (Lisbon, не Porto; London; Berlin; Amsterdam).
 - В LinkedIn привязка по городу, не по стране — рекрутер с вакансией в Берлине увидит тех, у кого стоит Берлин.
 - Никаких намёков на РФ для зарубежного поиска.
+- **Допустимо**: tax-friendly remote-хабы (Dubai, Singapore, Lisbon, Limassol, Yerevan, Tbilisi, Belgrade) — даже если target EU/UK. Рекрутеры понимают, что человек работает на remote-контракте из удобной юрисдикции, и это не блокер.
 
 ## 4. Open to Work — как правильно
 
