@@ -68,7 +68,10 @@ async function markdownToGdocHtml(md: string): Promise<string> {
  *
  * Strategy:
  * 1. If APPS_SCRIPT_DOC_URL is set → create via Google Apps Script web app
- *    (runs under the user's account, no SA quota issues)
+ *    (runs under the user's account, no SA quota issues).
+ *    Если Apps Script вернёт ошибку (HTML вместо JSON, 5xx, неправильный
+ *    deployment) — автоматически фолбечимся на Drive API через
+ *    service account, чтобы клиент всё равно получил Doc.
  * 2. Fallback: create via Drive API with the service account
  */
 export async function createGoogleDoc(
@@ -77,7 +80,16 @@ export async function createGoogleDoc(
 ): Promise<string> {
   const appsScriptUrl = process.env.APPS_SCRIPT_DOC_URL;
   if (appsScriptUrl) {
-    return createViaAppsScript(appsScriptUrl, title, markdownContent);
+    try {
+      return await createViaAppsScript(appsScriptUrl, title, markdownContent);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(
+        `[google-docs] Apps Script failed (${msg.slice(0, 200)}). ` +
+          `Falling back to Drive API service account...`,
+      );
+      // Не пробрасываем ошибку дальше — пробуем Drive API
+    }
   }
   return createViaDriveApi(title, markdownContent);
 }
@@ -102,12 +114,35 @@ async function createViaAppsScript(
     redirect: "follow",
   });
 
+  // Читаем body как текст ВСЕГДА — Apps Script может вернуть 200 OK с
+  // HTML-страницей-ошибкой (квота / истекший deployment / переавторизация),
+  // и тогда `resp.json()` падает с криптовым `Unexpected token '<'`.
+  const text = await resp.text();
   if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(`Apps Script error ${resp.status}: ${text}`);
+    const preview = text.slice(0, 300).replace(/\s+/g, " ");
+    throw new Error(
+      `Apps Script HTTP ${resp.status}: ${preview}`,
+    );
   }
 
-  const data = (await resp.json()) as { url?: string; error?: string };
+  // Если ответ не JSON (HTML страница ошибки Google), даём осмысленный msg.
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+    const preview = trimmed.slice(0, 200).replace(/\s+/g, " ");
+    throw new Error(
+      `Apps Script returned non-JSON (likely HTML error page from Google): ${preview}…`,
+    );
+  }
+
+  let data: { url?: string; error?: string };
+  try {
+    data = JSON.parse(trimmed) as { url?: string; error?: string };
+  } catch (err) {
+    throw new Error(
+      `Apps Script returned malformed JSON: ${(err as Error).message}. Body: ${trimmed.slice(0, 200)}`,
+    );
+  }
+
   if (data.error) throw new Error(`Apps Script: ${data.error}`);
   if (!data.url) throw new Error("Apps Script did not return a URL");
   return data.url;
