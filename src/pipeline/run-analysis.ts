@@ -923,6 +923,52 @@ export async function runDeepFromShortlist(
     `[Deep/Step 6] Done in ${timings["step6_analysis"]}ms. Top-3: ${analysis.directions.map((d) => d.title).join(" | ")}`,
   );
 
+  // Страховка: если куратор пометил направления `recommended=false`, они
+  // ОБЯЗАНЫ попасть в analysis.rejectedDirections — иначе блок «Почему не
+  // рассматриваем» в финале не сгенерируется. Промпт 03 уже это требует,
+  // но если модель ослушалась (или вернула пустой rejectedDirections при
+  // непустом наборе rejected на входе) — доклеиваем сами.
+  const curatorRejected = approvedDirections.filter(
+    (d) => d.recommended === false,
+  );
+  if (curatorRejected.length > 0) {
+    const top3Titles = new Set(analysis.directions.map((d) => d.title));
+    const alreadyInRejected = new Set(
+      (analysis.rejectedDirections ?? []).map((r) => r.originalTitle),
+    );
+    const missing = curatorRejected.filter(
+      (d) => !top3Titles.has(d.title) && !alreadyInRejected.has(d.title),
+    );
+    if (missing.length > 0) {
+      const patched = [...(analysis.rejectedDirections ?? [])];
+      for (const d of missing) {
+        patched.push({
+          originalTitle: d.title,
+          reason:
+            d.rejectionReason?.trim() ||
+            "Отклонено куратором при ревью shortlist'а (без явной причины).",
+        });
+      }
+      analysis.rejectedDirections = patched;
+      console.log(
+        `[Deep/Step 6] Доклеил ${missing.length} куратор-rejected → rejectedDirections: ${missing.map((d) => `"${d.title}"`).join(", ")}`,
+      );
+    }
+    // Дополнительная проверка: куратор-rejected НЕ должен оказаться в топ-3.
+    // Если попал — это серьёзный сигнал что модель проигнорировала правило.
+    const curatorRejectedTitles = new Set(curatorRejected.map((d) => d.title));
+    const inTop3WithReject = analysis.directions.filter((d) =>
+      curatorRejectedTitles.has(d.title),
+    );
+    if (inTop3WithReject.length > 0) {
+      console.warn(
+        `[Deep/Step 6] ⚠️ Модель поставила в топ-3 направления, отклонённые куратором: ${inTop3WithReject
+          .map((d) => `"${d.title}"`)
+          .join(", ")}. Это нарушение правила 03-direction-analysis.md.`,
+      );
+    }
+  }
+
   if (analysis.rejectedDirections?.length) {
     console.log(`[Deep/Step 6] Отклонено ${analysis.rejectedDirections.length} направлений:`);
     for (const r of analysis.rejectedDirections) {
