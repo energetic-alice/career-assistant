@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import type { ZodType } from "zod";
+import { ZodError, type ZodType } from "zod";
 import {
   candidateProfileSchema,
   directionsOutputSchema,
@@ -106,26 +106,69 @@ async function callClaudeStructured<TOutput, TInput = TOutput>(
 ): Promise<TOutput> {
   const jsonSchema = zodToJsonSchema(schema);
 
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: maxTokens,
-    tools: [
-      {
-        name: toolName,
-        description: `Output structured data according to the schema`,
-        input_schema: jsonSchema as Anthropic.Tool["input_schema"],
-      },
-    ],
-    tool_choice: { type: "tool", name: toolName },
-    messages: [{ role: "user", content: prompt }],
-  });
+  const callOnce = async (extraInstruction?: string): Promise<TOutput> => {
+    const fullPrompt = extraInstruction
+      ? `${prompt}\n\n---\n${extraInstruction}`
+      : prompt;
+    const response = await client.messages.create({
+      model: MODEL,
+      max_tokens: maxTokens,
+      tools: [
+        {
+          name: toolName,
+          description: `Output structured data according to the schema`,
+          input_schema: jsonSchema as Anthropic.Tool["input_schema"],
+        },
+      ],
+      tool_choice: { type: "tool", name: toolName },
+      messages: [{ role: "user", content: fullPrompt }],
+    });
 
-  const toolBlock = response.content.find((b) => b.type === "tool_use");
-  if (!toolBlock || toolBlock.type !== "tool_use") {
-    throw new Error(`No tool_use block in response for ${toolName}`);
+    const toolBlock = response.content.find((b) => b.type === "tool_use");
+    if (!toolBlock || toolBlock.type !== "tool_use") {
+      throw new Error(`No tool_use block in response for ${toolName}`);
+    }
+
+    try {
+      return schema.parse(toolBlock.input);
+    } catch (err) {
+      // Логируем сырой output модели при провале Zod-валидации, чтобы
+      // потом по логам Render можно было понять, что именно модель сломала.
+      // Печатаем превью (первые 1500 символов) — полный объект может быть
+      // огромным.
+      const rawJson = JSON.stringify(toolBlock.input);
+      const preview = rawJson.slice(0, 1500);
+      console.error(
+        `[callClaudeStructured/${toolName}] Zod parse failed. Raw input preview (${rawJson.length} chars total):`,
+      );
+      console.error(preview);
+      throw err;
+    }
+  };
+
+  try {
+    return await callOnce();
+  } catch (err) {
+    // Один retry с чётким напоминанием о структуре. Часто Claude один раз
+    // промахивается с типом (например, отдаёт `directions` как строку вместо
+    // массива), но при повторном промпте с явным напоминанием — попадает.
+    if (err instanceof ZodError) {
+      const issues = err.issues
+        .slice(0, 5)
+        .map((i) => `- ${i.path.join(".")}: ${i.message}`)
+        .join("\n");
+      console.warn(
+        `[callClaudeStructured/${toolName}] retrying after ZodError:\n${issues}`,
+      );
+      return await callOnce(
+        `ВАЖНО: предыдущая попытка вернула невалидный output. Конкретно:\n${issues}\n\n` +
+          `Верни ответ строго по схеме инструмента \`${toolName}\`. ` +
+          `Все поля массивов — это **массивы JSON-объектов**, не строки. ` +
+          `Не оборачивай массивы в кавычки. Все required-поля должны присутствовать.`,
+      );
+    }
+    throw err;
   }
-
-  return schema.parse(toolBlock.input);
 }
 
 async function callClaudeText(prompt: string, maxTokens = 16000): Promise<string> {
