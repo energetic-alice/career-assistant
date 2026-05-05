@@ -30,7 +30,15 @@
 Структура 4 блоков (ровно в таком порядке):
 1. **firstParagraph** — summary как в резюме: `<target title>`, `<grade>`, `<years> лет в <индустриях>`. Заканчивается цепляющим достижением или именами компаний-референсом (`built CI/CD for 20M-user platform at Opera`). 2-4 предложения.
 2. **highlights** (Professional highlights) — массив из 3-8 строк. Каждая — **один значимый факт** про клиента, который усиливает его профиль под target-роль. Может включать: количественные достижения с метриками, профильное образование (магистратура / спец-курсы), ключевые open-source / pet-проекты, выступления на конференциях, менторство / teaching, сертификации, награды, руководство командой. По строке, без префикса-буллета (его добавит renderer). Примеры: `Reduced deploy time from 1.5h to 15min by migrating to GitHub Actions (5x improvement)`, `Master's in Computer Science from HSE`, `Speaker at DevOpsDays Moscow 2023 — talk on Kubernetes operators`, `Mentored 8 engineers, 5 of them grew to mid/senior`, `AWS Certified Solutions Architect Associate`.
-3. **technicalSkills** — одна строка со списком топ-технологий (8-15 штук), которые совпадают с target-ролью и с Top Skills. Начни строкой `Tech stack:`. Пример: `Tech stack: Kubernetes, AWS (EKS, ECS, Lambda), Terraform, Docker, Python, GitHub Actions, Prometheus, Grafana`.
+3. **technicalSkills** — одна строка со списком топ-технологий (8-15 штук). Начни строкой `Tech stack:`. Пример: `Tech stack: Kubernetes, AWS (EKS, ECS, Lambda), Terraform, Docker, Python, GitHub Actions, Prometheus, Grafana`.
+
+   **ИСТОЧНИК ИСТИНЫ:**
+   - **Если в резюме есть секция Skills / Tech Stack / Hard Skills** — копируй её **1-в-1** из резюме (с теми же группировками, скобками и порядком). Резюме — это то, что клиент сам про себя написал и за что готов отвечать на интервью. Не выдумывай новые технологии и не подмешивай seed-keyword-ы, которых у клиента нет.
+   - **Если резюме нет** или в нём нет skills-секции — собери tech stack из:
+     1. Top Skills (5 пунктов выше) — как ядро.
+     2. Технологий, упомянутых в Experience-описаниях LinkedIn / резюме.
+     3. seed.extended из `Market keywords seed`
+   - **Запрещено** добавлять технологии, которых нет ни в резюме, ни в LinkedIn experience, ни в LinkedIn skills — даже если они в seed.top5. Tech stack в About — это «что я умею», а не «что я хочу освоить» (последнее идёт в `actionPlan`).
 4. **cta** — призыв к связи + **прямой контакт**. Для зарубежа: `Open to new remote Senior DevOps roles in EU. Reach me at elena.titova@gmail.com`. Для RU: `Открыта к новым удалённым ролям Senior DevOps в РФ. Пиши: @elena_t`.
 
 Плюс верни **fullText** — всё выше, склеенное с пустыми строками между блоками. **Без эмодзи** в fullText. Используй текстовые заголовки: `Professional highlights:` перед списком highlights, блоки `Tech stack:` и CTA уже сами себя обозначают. Клиент вставит этот текст в поле About как есть.
@@ -76,7 +84,7 @@
 
 **Featured — нюансы:**
 - Для junior-клиента: обязательно предложи добавить GitHub + 1-2 pet-проекта (без них непонятно, что человек умеет кодить).
-- Для middle/senior: Featured опционально. Если клиент сам упомянул pet-project / open-source / выступление — закрепи его в Featured. Если нечего — пропусти, не выдумывай (`valueToUse: "опционально, если есть pet-project или открытое выступление — закрепи; если нет — пропусти, для middle/senior это не блокер"`). Но можно предложить клиенту что-то туда добавить (желательно заполнить как можно больше блоков).
+- Для ролей middle/senior и выше: наличие GitHub опционально. Если клиент сам упомянул pet-project / open-source / выступление — закрепи его в Featured. Если нечего — пропусти, не выдумывай (`valueToUse: "опционально, если есть pet-project или открытое выступление — закрепи; если нет — пропусти, для middle/senior это не блокер"`). Но можно предложить клиенту что-то туда добавить (желательно заполнить как можно больше блоков).
 
 ### 5. supportingSections
 
