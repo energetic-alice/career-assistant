@@ -68,11 +68,11 @@ async function markdownToGdocHtml(md: string): Promise<string> {
  *
  * Strategy:
  * 1. If APPS_SCRIPT_DOC_URL is set → create via Google Apps Script web app
- *    (runs under the user's account, no SA quota issues).
- *    Если Apps Script вернёт ошибку (HTML вместо JSON, 5xx, неправильный
- *    deployment) — автоматически фолбечимся на Drive API через
- *    service account, чтобы клиент всё равно получил Doc.
- * 2. Fallback: create via Drive API with the service account
+ *    (runs under user's account — обходит storage quota service account'а)
+ * 2. Иначе fallback: Drive API через service account. Внимание: у обычного
+ *    service account собственный Drive storage 0 GB, поэтому fallback
+ *    реально работает только если SA добавлен в Shared Drive с ролью
+ *    Content Manager — иначе вернёт `storageQuotaExceeded`.
  */
 export async function createGoogleDoc(
   title: string,
@@ -80,18 +80,22 @@ export async function createGoogleDoc(
 ): Promise<string> {
   const appsScriptUrl = process.env.APPS_SCRIPT_DOC_URL;
   if (appsScriptUrl) {
-    try {
-      return await createViaAppsScript(appsScriptUrl, title, markdownContent);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(
-        `[google-docs] Apps Script failed (${msg.slice(0, 200)}). ` +
-          `Falling back to Drive API service account...`,
-      );
-      // Не пробрасываем ошибку дальше — пробуем Drive API
-    }
+    return createViaAppsScript(appsScriptUrl, title, markdownContent);
   }
   return createViaDriveApi(title, markdownContent);
+}
+
+// Apps Script web app периодически отдаёт HTML-страницу ошибки (Página não
+// encontrada / unauthorized) вместо JSON — нерегулярный glitch на стороне
+// Google: истекает auth-токен в кэше googleusercontent.com, перегружен прокси
+// после долгого простоя. Локально и со свежего deployment — мгновенно отдаёт
+// JSON. Поэтому делаем 3 попытки с экспоненциальным бэкоффом: одного retry
+// обычно хватает, второго — на крайний случай.
+const APPS_SCRIPT_RETRIES = 3;
+const APPS_SCRIPT_BACKOFF_MS = [0, 2_000, 5_000];
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function createViaAppsScript(
@@ -101,36 +105,60 @@ async function createViaAppsScript(
 ): Promise<string> {
   const htmlBody = await markdownToGdocHtml(markdownContent);
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
+  const payload = JSON.stringify({
+    title,
+    html: htmlBody,
+    folderId,
+    secret: process.env.WEBHOOK_SECRET || "",
+  });
 
+  let lastError: Error | undefined;
+  for (let attempt = 0; attempt < APPS_SCRIPT_RETRIES; attempt++) {
+    if (APPS_SCRIPT_BACKOFF_MS[attempt] > 0) {
+      await sleep(APPS_SCRIPT_BACKOFF_MS[attempt]);
+    }
+    try {
+      return await callAppsScriptOnce(webAppUrl, payload, attempt + 1);
+    } catch (err) {
+      lastError = err as Error;
+      console.warn(
+        `[createViaAppsScript] attempt ${attempt + 1}/${APPS_SCRIPT_RETRIES} failed: ${lastError.message.slice(0, 200)}`,
+      );
+    }
+  }
+  throw lastError ?? new Error("Apps Script: unknown failure");
+}
+
+async function callAppsScriptOnce(
+  webAppUrl: string,
+  payload: string,
+  attemptNum: number,
+): Promise<string> {
   const resp = await fetch(webAppUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      title,
-      html: htmlBody,
-      folderId,
-      secret: process.env.WEBHOOK_SECRET || "",
-    }),
+    body: payload,
     redirect: "follow",
   });
 
-  // Читаем body как текст ВСЕГДА — Apps Script может вернуть 200 OK с
-  // HTML-страницей-ошибкой (квота / истекший deployment / переавторизация),
-  // и тогда `resp.json()` падает с криптовым `Unexpected token '<'`.
+  // ВСЕГДА читаем body как текст — Apps Script может вернуть 200 OK с
+  // HTML-страницей-ошибкой, и тогда `resp.json()` падает с криптовым
+  // `Unexpected token '<'`. По тексту мы умеем отдать диагностический preview.
   const text = await resp.text();
+  const contentType = resp.headers.get("content-type") || "";
+
   if (!resp.ok) {
     const preview = text.slice(0, 300).replace(/\s+/g, " ");
     throw new Error(
-      `Apps Script HTTP ${resp.status}: ${preview}`,
+      `Apps Script HTTP ${resp.status} (attempt ${attemptNum}, ct=${contentType}, redirected=${resp.redirected}): ${preview}`,
     );
   }
 
-  // Если ответ не JSON (HTML страница ошибки Google), даём осмысленный msg.
   const trimmed = text.trim();
   if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
     const preview = trimmed.slice(0, 200).replace(/\s+/g, " ");
     throw new Error(
-      `Apps Script returned non-JSON (likely HTML error page from Google): ${preview}…`,
+      `Apps Script returned non-JSON (attempt ${attemptNum}, ct=${contentType}, redirected=${resp.redirected}, finalUrl=${resp.url.slice(0, 120)}): ${preview}…`,
     );
   }
 
@@ -139,7 +167,7 @@ async function createViaAppsScript(
     data = JSON.parse(trimmed) as { url?: string; error?: string };
   } catch (err) {
     throw new Error(
-      `Apps Script returned malformed JSON: ${(err as Error).message}. Body: ${trimmed.slice(0, 200)}`,
+      `Apps Script malformed JSON (attempt ${attemptNum}): ${(err as Error).message}. Body: ${trimmed.slice(0, 200)}`,
     );
   }
 
