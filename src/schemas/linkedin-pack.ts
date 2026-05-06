@@ -226,12 +226,81 @@ export const actionItemSchema = z.object({
 });
 export type ActionItem = z.infer<typeof actionItemSchema>;
 
+/**
+ * Формат поста — самый сильный сигнал охвата в LinkedIn-алгоритме. Каждый
+ * формат «достаёт» свою воронку:
+ *   - case_study — конкретный кейс с цифрами (do-X-from-Y → результат). Лучший
+ *     охват у hiring-менеджеров, потому что это buying-signal: «человек умеет
+ *     доставлять результат».
+ *   - technical_deep_dive — разбор инструмента/паттерна/решения. Залетает в
+ *     ленте у peers и тимлидов: «о, я тоже с этим воевал».
+ *   - opinion — hot take / несогласие с popular opinion на тему стэка/процесса.
+ *     Самый высокий engagement, но рискованный — нельзя токсично.
+ *   - lessons_learned — что бы я сделал иначе. Очень любят рекрутеры (показывает
+ *     рефлексию + senior-mindset).
+ *   - list_carousel — «5 способов сделать X», чек-листы. Saves > likes —
+ *     алгоритм считает saves сильным сигналом.
+ *   - career_story — переход в роль / первый месяц / собеседование. Высокий
+ *     охват у broad-аудитории (включая рекрутеров).
+ *   - poll — опрос. Требует только клика, поэтому даёт impressions, но мало
+ *     engagement — годится 1 раз на 4-5 постов как разогрев.
+ */
+export const contentFormatEnum = z.enum([
+  "case_study",
+  "technical_deep_dive",
+  "opinion",
+  "lessons_learned",
+  "list_carousel",
+  "career_story",
+  "poll",
+]);
+export type ContentFormat = z.infer<typeof contentFormatEnum>;
+
+/**
+ * Кому в первую очередь предназначен пост. Один пост = одна primary-аудитория,
+ * иначе размывается мессадж.
+ *   - recruiters — HR/talent acquisition. Триггерится на keyword'ы стэка,
+ *     количественные достижения, грейд.
+ *   - hiring_managers — тимлиды/head of department. Триггерится на конкретные
+ *     технические решения и результат.
+ *   - peers — коллеги по роли. Триггерятся на разборы и hot take'и, активно
+ *     шарят и комментируют (= алгоритм поднимает в ленте рекрутеров).
+ *   - mixed — пост работает на нескольких аудиториях сразу (career_story,
+ *     lessons_learned обычно сюда).
+ */
+export const contentAudienceEnum = z.enum([
+  "recruiters",
+  "hiring_managers",
+  "peers",
+  "mixed",
+]);
+export type ContentAudience = z.infer<typeof contentAudienceEnum>;
+
 export const contentIdeaSchema = z.object({
+  /** Готовый заголовок поста — можно копировать в LinkedIn как первую строку. */
   topic: z.string().min(3),
-  /** Цепляющее первое предложение поста. */
+  /** Формат поста (см. contentFormatEnum). */
+  format: contentFormatEnum,
+  /** Primary-аудитория (см. contentAudienceEnum). */
+  targetAudience: contentAudienceEnum,
+  /** Цепляющее первое предложение поста (после `topic`). Без воды. */
   hook: z.string().min(10),
   /** Ключевые тезисы (3-5 буллетов). */
   keyPoints: z.array(z.string().min(5)).min(2).max(6),
+  /**
+   * Почему этот пост даст охват у рекрутеров/тимлидов целевой роли. 1-2
+   * предложения, очень конкретно: "Recruiters in EU fintech ищут DevOps,
+   * который мигрировал с Jenkins — кейс с 5x speed-up — buying-signal".
+   */
+  whyItWorks: z.string().min(15),
+  /**
+   * Мягкий call-to-action в конце поста — то, на что читатель реагирует
+   * (комментирует / лайкает / сохраняет). Без агрессивного «найму!».
+   * Например: "Какой инструмент дал тебе самый большой ROI? — пиши в
+   * комментариях" или "DM, если работал с похожей миграцией — обменяемся
+   * опытом".
+   */
+  cta: z.string().min(10),
 });
 export type ContentIdea = z.infer<typeof contentIdeaSchema>;
 
@@ -254,7 +323,7 @@ export const profileContentSchema = z.object({
   profileSettings: z.array(profileSettingSchema).min(3),
   supportingSections: supportingSectionsSchema,
   actionPlan: z.array(actionItemSchema).min(3),
-  contentIdeas: z.array(contentIdeaSchema).length(4),
+  contentIdeas: z.array(contentIdeaSchema).min(4).max(8),
 });
 export type ProfileContent = z.infer<typeof profileContentSchema>;
 

@@ -1,6 +1,9 @@
 import type {
   AuditBlock,
   AuditItem,
+  ContentAudience,
+  ContentFormat,
+  ContentIdea,
   HeadlineCandidate,
   LinkedinPack,
   ProfileContent,
@@ -18,7 +21,7 @@ import type {
  *   6. Настройки профиля — инструкции (location, URL, open to work, cover, contact).
  *   7. Образование, языки, сертификаты, волонтёрство.
  *   8. План действий — connections, endorsements, recommendations, активность.
- *   9. Контент-план — 4 темы для первых постов.
+ *   9. Контент-план — 4-8 идей постов под охват у рекрутеров и тимлидов.
  *
  * Эмодзи остаются ТОЛЬКО в чек-листе аудита (✅ / ❌ / ❓). Остальной документ
  * — plain text, чтобы клиент мог копировать без подчистки.
@@ -363,17 +366,26 @@ function renderProfileContent(content: ProfileContent): string[] {
   });
 
   // ── 9. Content ideas ─────────────────────────────────────────────────────
-  lines.push("## 9. Контент-план — 4 темы для первых постов");
+  const ideasCount = content.contentIdeas.length;
+  lines.push(`## 9. Контент-план — ${ideasCount} ${pluralPosts(ideasCount)} под охват у рекрутеров и тимлидов`);
   lines.push("");
   lines.push(
-    "Цель — 4 поста за 2-3 недели, чтобы SSI дорос до 50+. После публикации " +
-      "сразу ставь сам лайк и попроси 2-3 коллег полайкать в первый час — " +
-      "алгоритм подхватит и начнёт продвигать.",
+    `Цель — ${ideasCount} ${pluralPosts(ideasCount)} за 3-5 недель, чтобы попасть в фид target-рекрутеров и hiring-менеджеров. ` +
+      "После публикации сразу ставь сам лайк и попроси 2-3 коллег полайкать в " +
+      "первый час — алгоритм подхватит и начнёт продвигать. **Не пиши «open " +
+      "to work» в самих постах** — это ретритится алгоритмом. Сигнал «меня " +
+      "стоит нанять» идёт через сам контент: достижения, компетенцию, способ думать.",
   );
+  lines.push("");
+  lines.push(renderFormatBreakdown(content.contentIdeas));
   lines.push("");
 
   content.contentIdeas.forEach((c, i) => {
     lines.push(`### Пост ${i + 1}. ${c.topic}`);
+    lines.push("");
+    lines.push(
+      `*Формат: **${formatLabel(c.format)}** · аудитория: **${audienceLabel(c.targetAudience)}***`,
+    );
     lines.push("");
     lines.push("**Hook (первая строка поста):**");
     lines.push("");
@@ -385,7 +397,60 @@ function renderProfileContent(content: ProfileContent): string[] {
       lines.push(`- ${p}`);
     }
     lines.push("");
+    lines.push(`**Почему этот пост даст охват:** ${c.whyItWorks}`);
+    lines.push("");
+    lines.push("**CTA в конце поста:**");
+    lines.push("");
+    lines.push(`> ${c.cta}`);
+    lines.push("");
   });
 
   return lines;
+}
+
+function pluralPosts(n: number): string {
+  if (n === 1) return "идея";
+  if (n >= 2 && n <= 4) return "идеи";
+  return "идей";
+}
+
+function formatLabel(f: ContentFormat): string {
+  const labels: Record<ContentFormat, string> = {
+    case_study: "кейс с цифрами",
+    technical_deep_dive: "технический разбор",
+    opinion: "hot take / мнение",
+    lessons_learned: "уроки / разбор фейла",
+    list_carousel: "список / карусель",
+    career_story: "карьерная история",
+    poll: "опрос",
+  };
+  return labels[f];
+}
+
+function audienceLabel(a: ContentAudience): string {
+  const labels: Record<ContentAudience, string> = {
+    recruiters: "рекрутеры (HR / talent acquisition)",
+    hiring_managers: "hiring-менеджеры (тимлиды / Head of)",
+    peers: "коллеги по роли (peers)",
+    mixed: "смешанная (рекрутеры + тимлиды + коллеги)",
+  };
+  return labels[a];
+}
+
+function renderFormatBreakdown(ideas: ContentIdea[]): string {
+  const counts: Record<ContentFormat, number> = {
+    case_study: 0,
+    technical_deep_dive: 0,
+    opinion: 0,
+    lessons_learned: 0,
+    list_carousel: 0,
+    career_story: 0,
+    poll: 0,
+  };
+  for (const idea of ideas) counts[idea.format] += 1;
+
+  const used = (Object.entries(counts) as [ContentFormat, number][])
+    .filter(([, n]) => n > 0)
+    .map(([fmt, n]) => `${formatLabel(fmt)} × ${n}`);
+  return `**Микс форматов:** ${used.join(" · ")}`;
 }
