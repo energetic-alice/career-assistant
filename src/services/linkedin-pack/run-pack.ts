@@ -8,6 +8,7 @@ import {
   headlinePackSchema,
   linkedinPackSchema,
   profileContentSchema,
+  contentPlanSchema,
   recomputeAuditTotals,
   recomputeHeadlineLengths,
   HEADLINE_MAX_LENGTH,
@@ -15,6 +16,7 @@ import {
   type HeadlinePack,
   type LinkedinPack,
   type ProfileContent,
+  type ContentPlan,
 } from "../../schemas/linkedin-pack.js";
 import type { LinkedinPackInput } from "./build-inputs.js";
 import { summariseClientSummary } from "./build-inputs.js";
@@ -28,13 +30,17 @@ const PROMPTS_DIR = join(__dirname, "..", "..", "prompts", "linkedin");
 const AUDIT_PROMPT_PATH = join(PROMPTS_DIR, "01-audit.md");
 const HEADLINE_PROMPT_PATH = join(PROMPTS_DIR, "02-headline.md");
 const PROFILE_CONTENT_PROMPT_PATH = join(PROMPTS_DIR, "03-profile-content.md");
+const CONTENT_PLAN_PROMPT_PATH = join(PROMPTS_DIR, "03-content-plan.md");
 
 const MODEL = process.env.LINKEDIN_PACK_MODEL || "claude-sonnet-4-20250514";
 const MAX_OUTPUT_TOKENS = 6000;
-/** Profile content — тяжёлая фаза, нужно больше tokens. */
+/** Profile content — тяжёлая фаза (about + experience + actionPlan), нужно больше tokens. */
 const PROFILE_MAX_OUTPUT_TOKENS = 12000;
+/** Контент-план — 4-8 идей по ~300-500 chars каждая → ~6K хватает. */
+const CONTENT_PLAN_MAX_OUTPUT_TOKENS = 6000;
 const HEADLINE_RETRIES = 2;
 const PROFILE_CONTENT_RETRIES = 1;
+const CONTENT_PLAN_RETRIES = 1;
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -292,7 +298,44 @@ async function runHeadline(
   );
 }
 
-// ── Phase 3: profile content ────────────────────────────────────────────────
+// ── Phase 3a/3b: shared context ─────────────────────────────────────────────
+
+/**
+ * Контекст, общий для Phase 3a (profile content) и Phase 3b (content plan):
+ * audit-priorities + top headline + market keywords + client gaps. Обе фазы
+ * читают одно и то же — поэтому считаем один раз и переиспользуем.
+ */
+function buildPhase3Context(
+  audit: LinkedinAudit,
+  headline: HeadlinePack,
+  seed: MarketKeywordsSeed | null,
+): string {
+  const topHeadline = headline.variants[0]?.text ?? "";
+  const seedBlock = seed
+    ? `\n\n## Market keywords seed (base — топ-5 якорь, из \`roles-catalog.json\` slug=${seed.slug})\n` +
+      `**Top-5:** ${seed.top5.map((k) => `\`${k}\``).join(" · ")}\n\n` +
+      "**Extended:**\n" +
+      seed.extended.map((k) => `- ${k}`).join("\n")
+    : "";
+  const marketKeywordsBlock = headline.marketKeywords.length
+    ? `\n\n## Market keywords (из Phase 2 — seed + adapter'ы под рынок; используй как единственный источник keyword'ов)\n` +
+      headline.marketKeywords.map((k) => `- ${k}`).join("\n")
+    : "";
+  const clientGapsBlock = headline.clientGaps.length
+    ? `\n\n## Client gaps (нет у клиента, но требует рынок)\n` +
+      headline.clientGaps.map((k) => `- ${k}`).join("\n")
+    : "";
+  return (
+    "## Audit priorities\n" +
+    audit.topPriorities.map((p) => `- ${p}`).join("\n") +
+    `\n\n## Top headline (use as keyword anchor)\n\`\`\`\n${topHeadline}\n\`\`\`` +
+    seedBlock +
+    marketKeywordsBlock +
+    clientGapsBlock
+  );
+}
+
+// ── Phase 3a: profile content ───────────────────────────────────────────────
 
 async function runProfileContent(
   input: LinkedinPackInput,
@@ -301,29 +344,7 @@ async function runProfileContent(
   seed: MarketKeywordsSeed | null,
 ): Promise<ProfileContent> {
   const system = await readFile(PROFILE_CONTENT_PROMPT_PATH, "utf-8");
-
-  const topHeadline = headline.variants[0]?.text ?? "";
-  const seedBlock = seed
-    ? `\n\n## Market keywords seed (base — топ-5 якорь для topSkills, из \`roles-catalog.json\` slug=${seed.slug})\n` +
-      `**Top-5:** ${seed.top5.map((k) => `\`${k}\``).join(" · ")}\n\n` +
-      "**Extended:**\n" +
-      seed.extended.map((k) => `- ${k}`).join("\n")
-    : "";
-  const marketKeywordsBlock = headline.marketKeywords.length
-    ? `\n\n## Market keywords (из Phase 2 — seed + adapter'ы под рынок; используй как единственный источник для topSkills и Experience.skills)\n` +
-      headline.marketKeywords.map((k) => `- ${k}`).join("\n")
-    : "";
-  const clientGapsBlock = headline.clientGaps.length
-    ? `\n\n## Client gaps (нет у клиента, но требует рынок — обязательно отрази в actionPlan)\n` +
-      headline.clientGaps.map((k) => `- ${k}`).join("\n")
-    : "";
-  const extraContext =
-    "## Audit priorities\n" +
-    audit.topPriorities.map((p) => `- ${p}`).join("\n") +
-    `\n\n## Top headline (use as keyword anchor)\n\`\`\`\n${topHeadline}\n\`\`\`` +
-    seedBlock +
-    marketKeywordsBlock +
-    clientGapsBlock;
+  const extraContext = buildPhase3Context(audit, headline, seed);
 
   let lastError: string | null = null;
 
@@ -377,18 +398,96 @@ async function runProfileContent(
   );
 }
 
+// ── Phase 3b: content plan ──────────────────────────────────────────────────
+
+async function runContentPlan(
+  input: LinkedinPackInput,
+  audit: LinkedinAudit,
+  headline: HeadlinePack,
+  seed: MarketKeywordsSeed | null,
+): Promise<ContentPlan> {
+  const system = await readFile(CONTENT_PLAN_PROMPT_PATH, "utf-8");
+  const extraContext = buildPhase3Context(audit, headline, seed);
+
+  let lastError: string | null = null;
+
+  for (let attempt = 0; attempt <= CONTENT_PLAN_RETRIES; attempt += 1) {
+    const retryNote =
+      attempt === 0
+        ? ""
+        : `\n\n**ВНИМАНИЕ (попытка ${attempt + 1}):** прошлый ответ упал на валидации:\n${lastError}\n\nИсправь и верни валидный JSON по схеме (особое внимание: \`whyItWorks\` обязан содержать ОБЕ части — охват + сигнал ценности).`;
+
+    const prompt =
+      system +
+      "\n\n---\n\n# Input\n\n" +
+      inputSection(input) +
+      "\n\n" +
+      extraContext +
+      retryNote;
+
+    let raw: string;
+    try {
+      raw = await callClaude(
+        prompt,
+        `contentPlan#${attempt + 1}`,
+        CONTENT_PLAN_MAX_OUTPUT_TOKENS,
+      );
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+      continue;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      lastError = `JSON parse failed: ${err instanceof Error ? err.message : String(err)}`;
+      console.warn(
+        `[LinkedinPack:contentPlan] attempt ${attempt + 1} ${lastError}`,
+      );
+      continue;
+    }
+
+    try {
+      return contentPlanSchema.parse(parsed);
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+      console.warn(
+        `[LinkedinPack:contentPlan] attempt ${attempt + 1} schema fail: ${lastError}`,
+      );
+    }
+  }
+
+  throw new Error(
+    `[contentPlan] failed after ${CONTENT_PLAN_RETRIES + 1} attempts: ${lastError ?? "unknown"}`,
+  );
+}
+
 // ── Public ─────────────────────────────────────────────────────────────────
 
 export interface RunLinkedinPackResult {
   data: LinkedinPack;
   model: string;
-  timings: { auditMs: number; headlineMs: number; profileMs: number };
+  /**
+   * `phase3Ms` — wall-clock параллельной фазы 3 (max(profileMs, contentPlanMs)
+   * примерно, т.к. они идут в Promise.all). `profileMs` и `contentPlanMs`
+   * остались как индивидуальные суммы для диагностики (можно понять, какая
+   * фаза тормозит, какая упала).
+   */
+  timings: {
+    auditMs: number;
+    headlineMs: number;
+    phase3Ms: number;
+    profileMs: number;
+    contentPlanMs: number;
+  };
 }
 
 /**
  * Вызывается между фазами. Позволяет Telegram-боту обновлять «Фаза X/3…»
  * в progress-сообщении. Ошибки внутри callback'а глотаются — они не должны
- * прерывать пайплайн.
+ * прерывать пайплайн. Стейдж `profile` сейчас триггерится один раз в начале
+ * параллельной Phase 3 (3a + 3b).
  */
 export type LinkedinPackProgressCallback = (
   stage: "headline" | "profile",
@@ -440,19 +539,57 @@ export async function runLinkedinPack(
     }
   }
 
-  // Phase 3 тяжёлая и более склонна к сбоям. Если упала — не роняем весь
-  // пакет, отдаём audit+headline и куратор сможет сгенерировать Phase 3
-  // отдельно / позже.
+  // Phase 3a (profile content) и Phase 3b (content plan) — независимые,
+  // обе видят одинаковый input (audit + headline + linkedin + resume).
+  // Запускаем параллельно через Promise.all → wall-clock падает с
+  // ~2x до ~1x на самой длинной из двух. Каждая фаза имеет свой
+  // try/catch — падение одной не должно ронять другую и весь пак.
+  const phase3Start = Date.now();
   const profileStart = Date.now();
-  let profileContent: ProfileContent | undefined;
-  try {
-    profileContent = await runProfileContent(input, audit, headline, seed);
-  } catch (err) {
-    console.warn(
-      `[LinkedinPack:profile] phase failed, continuing without it: ${String(err)}`,
-    );
-  }
-  const profileMs = Date.now() - profileStart;
+  const contentPlanStart = Date.now();
+
+  const [profileResult, contentPlanResult] = await Promise.all([
+    runProfileContent(input, audit, headline, seed)
+      .then(
+        (r) =>
+          ({
+            ok: true as const,
+            value: r,
+            ms: Date.now() - profileStart,
+          }) as const,
+      )
+      .catch((err: unknown) => {
+        console.warn(
+          `[LinkedinPack:profile] phase failed, continuing without it: ${String(err)}`,
+        );
+        return {
+          ok: false as const,
+          ms: Date.now() - profileStart,
+        } as const;
+      }),
+    runContentPlan(input, audit, headline, seed)
+      .then(
+        (r) =>
+          ({
+            ok: true as const,
+            value: r,
+            ms: Date.now() - contentPlanStart,
+          }) as const,
+      )
+      .catch((err: unknown) => {
+        console.warn(
+          `[LinkedinPack:contentPlan] phase failed, continuing without it: ${String(err)}`,
+        );
+        return {
+          ok: false as const,
+          ms: Date.now() - contentPlanStart,
+        } as const;
+      }),
+  ]);
+
+  const phase3Ms = Date.now() - phase3Start;
+  const profileContent = profileResult.ok ? profileResult.value : undefined;
+  const contentPlan = contentPlanResult.ok ? contentPlanResult.value : undefined;
 
   const pack: LinkedinPack = {
     meta: {
@@ -469,11 +606,18 @@ export async function runLinkedinPack(
     audit,
     headline,
     profileContent,
+    contentPlan,
   };
 
   return {
     data: linkedinPackSchema.parse(pack),
     model: MODEL,
-    timings: { auditMs, headlineMs, profileMs },
+    timings: {
+      auditMs,
+      headlineMs,
+      phase3Ms,
+      profileMs: profileResult.ms,
+      contentPlanMs: contentPlanResult.ms,
+    },
   };
 }

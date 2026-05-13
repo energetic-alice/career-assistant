@@ -10,6 +10,23 @@ import type {
 } from "../../schemas/linkedin-pack.js";
 
 /**
+ * Достаёт `contentIdeas` для секции 9 документа.
+ *
+ * Источник истины — Phase 3b (`pack.contentPlan.contentIdeas`). Для пакетов,
+ * сгенерированных до split'а Phase 3 на 3a/3b, контент-план хранится внутри
+ * `pack.profileContent.contentIdeas` — оттуда и фолбекаем.
+ */
+function pickContentIdeas(pack: LinkedinPack): ContentIdea[] | null {
+  if (pack.contentPlan?.contentIdeas?.length) {
+    return pack.contentPlan.contentIdeas;
+  }
+  if (pack.profileContent?.contentIdeas?.length) {
+    return pack.profileContent.contentIdeas;
+  }
+  return null;
+}
+
+/**
  * Рендер LinkedinPack в Markdown для Google Doc.
  *
  * Секции документа (если соответствующие фазы отработали):
@@ -194,9 +211,15 @@ export function renderLinkedinPack(pack: LinkedinPack): string {
     lines.push("");
   });
 
-  // ── Секции 3-9: Profile content ──────────────────────────────────────────
+  // ── Секции 3-8: Profile content (Phase 3a) ──────────────────────────────
   if (pack.profileContent) {
     lines.push(...renderProfileContent(pack.profileContent));
+  }
+
+  // ── Секция 9: Контент-план (Phase 3b или legacy fallback) ───────────────
+  const ideas = pickContentIdeas(pack);
+  if (ideas) {
+    lines.push(...renderContentPlan(ideas));
   }
 
   // ── Footer ───────────────────────────────────────────────────────────────
@@ -365,9 +388,22 @@ function renderProfileContent(content: ProfileContent): string[] {
     }
   });
 
-  // ── 9. Content ideas ─────────────────────────────────────────────────────
-  const ideasCount = content.contentIdeas.length;
-  lines.push(`## 9. Контент-план — ${ideasCount} ${pluralPosts(ideasCount)} под охват у рекрутеров и тимлидов`);
+  return lines;
+}
+
+/**
+ * Секция 9 — контент-план. Вынесена из `renderProfileContent` после split'а
+ * Phase 3 на 3a (profile content) / 3b (content plan): рендер должен работать
+ * и для новых паков (`pack.contentPlan`), и для legacy-паков с
+ * `profileContent.contentIdeas` (см. `pickContentIdeas`).
+ */
+function renderContentPlan(ideas: ContentIdea[]): string[] {
+  const lines: string[] = [];
+  const ideasCount = ideas.length;
+
+  lines.push(
+    `## 9. Контент-план — ${ideasCount} ${pluralPosts(ideasCount)} под охват у рекрутеров и тимлидов`,
+  );
   lines.push("");
   lines.push(
     `Цель — ${ideasCount} ${pluralPosts(ideasCount)} за 3-5 недель, чтобы попасть в фид target-рекрутеров и hiring-менеджеров. ` +
@@ -377,10 +413,10 @@ function renderProfileContent(content: ProfileContent): string[] {
       "стоит нанять» идёт через сам контент: достижения, компетенцию, способ думать.",
   );
   lines.push("");
-  lines.push(renderFormatBreakdown(content.contentIdeas));
+  lines.push(renderFormatBreakdown(ideas));
   lines.push("");
 
-  content.contentIdeas.forEach((c, i) => {
+  ideas.forEach((c, i) => {
     lines.push(`### Пост ${i + 1}. ${c.topic}`);
     lines.push("");
     lines.push(

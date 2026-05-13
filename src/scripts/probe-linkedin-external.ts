@@ -75,7 +75,9 @@ async function main(): Promise<void> {
     `\n[probe-external] pack generated in ${(ms / 1000).toFixed(1)}s ` +
       `(audit=${(result.timings.auditMs / 1000).toFixed(1)}s, ` +
       `headline=${(result.timings.headlineMs / 1000).toFixed(1)}s, ` +
-      `profile=${(result.timings.profileMs / 1000).toFixed(1)}s)`,
+      `phase3=${(result.timings.phase3Ms / 1000).toFixed(1)}s ` +
+      `[profile=${(result.timings.profileMs / 1000).toFixed(1)}s, ` +
+      `contentPlan=${(result.timings.contentPlanMs / 1000).toFixed(1)}s])`,
   );
   const a = result.data.audit;
   console.log(

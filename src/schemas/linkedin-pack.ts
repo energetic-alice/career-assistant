@@ -323,9 +323,29 @@ export const profileContentSchema = z.object({
   profileSettings: z.array(profileSettingSchema).min(3),
   supportingSections: supportingSectionsSchema,
   actionPlan: z.array(actionItemSchema).min(3),
-  contentIdeas: z.array(contentIdeaSchema).min(4).max(8),
+  /**
+   * Legacy: `contentIdeas` исторически жил внутри Phase 3 (profileContent).
+   * С версии «split-3» контент-план генерируется отдельной фазой 3b и хранится
+   * в `linkedinPackSchema.contentPlan`. Поле оставляем optional для двух
+   * случаев:
+   *   1. Старые паки в state (сгенерированы до split'а) — читаются без миграции.
+   *   2. Phase 3a в новом раннере вообще не возвращает contentIdeas, поле в JSON
+   *      просто отсутствует.
+   */
+  contentIdeas: z.array(contentIdeaSchema).min(4).max(8).optional(),
 });
 export type ProfileContent = z.infer<typeof profileContentSchema>;
+
+/**
+ * Phase 3b — контент-план. Отдельная фаза, отдельный промпт. Запускается
+ * параллельно с Phase 3a (profileContent), не зависит от её результата —
+ * обе видят одинаковый input (audit + headline + linkedin + resume +
+ * marketKeywords).
+ */
+export const contentPlanSchema = z.object({
+  contentIdeas: z.array(contentIdeaSchema).min(4).max(8),
+});
+export type ContentPlan = z.infer<typeof contentPlanSchema>;
 
 // ── Итоговый артефакт ───────────────────────────────────────────────────────
 
@@ -348,6 +368,12 @@ export const linkedinPackSchema = z.object({
   headline: headlinePackSchema,
   /** Может отсутствовать — для пакетов, сгенерированных до Phase 3 MVP. */
   profileContent: profileContentSchema.optional(),
+  /**
+   * Phase 3b — контент-план. Может отсутствовать у старых паков
+   * (до split'а Phase 3 на 3a/3b) — в этом случае renderer фолбечит на
+   * `profileContent.contentIdeas`.
+   */
+  contentPlan: contentPlanSchema.optional(),
 });
 export type LinkedinPack = z.infer<typeof linkedinPackSchema>;
 

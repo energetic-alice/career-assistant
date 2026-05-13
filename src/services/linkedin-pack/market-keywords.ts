@@ -8,8 +8,10 @@ import { fileURLToPath } from "node:url";
  * профессии (hh.ru подборка Алисы + универсализация под международный
  * рынок), которая передаётся в LinkedIn Pack как seed:
  *   - Phase 2 (Headline) складывает из них стек в headline-вариантах.
- *   - Phase 3 (Top Skills) берёт 5 из seed.top5 + дополняет из seed.extended,
- *     если чего-то не хватает.
+ *   - Phase 3a (Profile content): `topSkills = seed.top5` ровно (жёсткий якорь,
+ *     рекрутеры ищут именно по этим словам); `about.technicalSkills` (Tech stack
+ *     в About) обязательно включает весь `seed.extended` + обогащается реальным
+ *     опытом клиента.
  *
  * Без seed модель начинает галлюцинировать keyword-ы из того, что
  * случайно стояло в профиле клиента — и промахивается мимо реального
