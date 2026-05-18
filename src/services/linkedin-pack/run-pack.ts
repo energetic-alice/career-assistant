@@ -67,8 +67,9 @@ async function callClaude(
   prompt: string,
   tag: string,
   maxTokens = MAX_OUTPUT_TOKENS,
-  images: CallClaudeImage[] = [],
+  imagesInput: CallClaudeImage[] = [],
 ): Promise<string> {
+  let images = imagesInput;
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
 
@@ -97,11 +98,37 @@ async function callClaude(
           { type: "text" as const, text: prompt },
         ];
 
-  const resp = await client.messages.create({
-    model: MODEL,
-    max_tokens: maxTokens,
-    messages: [{ role: "user", content }],
-  });
+  let resp;
+  try {
+    resp = await client.messages.create({
+      model: MODEL,
+      max_tokens: maxTokens,
+      messages: [{ role: "user", content }],
+    });
+  } catch (err) {
+    // Graceful fallback: если Anthropic не смог скачать одну из переданных
+    // картинок (типичные кейсы — протухший LinkedIn CDN URL, редирект,
+    // private actor blob) — повторяем запрос без картинок. Текстовая часть
+    // промпта остаётся, audit-пункты 1/2 (фото и баннер) корректно
+    // вернутся как `unknown` через правило «картинок нет — ставь unknown
+    // с припиской "проверь руками"» из `01-audit.md`.
+    const msg = err instanceof Error ? err.message : String(err);
+    const isImageDownloadError =
+      images.length > 0 &&
+      (msg.includes("Unable to download the file") ||
+        msg.includes("Could not process image") ||
+        msg.includes("image_url"));
+    if (!isImageDownloadError) throw err;
+    console.warn(
+      `[LinkedinPack:${tag}] image download failed (${images.length} img), retrying without images…`,
+    );
+    resp = await client.messages.create({
+      model: MODEL,
+      max_tokens: maxTokens,
+      messages: [{ role: "user", content: prompt }],
+    });
+    images = [];
+  }
   const ms = Date.now() - t0;
 
   const block = resp.content.find((b) => b.type === "text");
