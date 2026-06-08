@@ -10,7 +10,7 @@
  *   NICKS=olena_lugovaya,nadindalinkevich,olboyarshinova \
  *     npx tsx src/scripts/probe-market-whitelist.ts
  *
- * Без NICKS — прогонит всех КА2-клиентов с прода.
+ * Без NICKS — прогонит всех КА3-клиентов с прода.
  */
 
 import "dotenv/config";
@@ -29,7 +29,7 @@ const NICKS = (process.env.NICKS ?? "")
   .split(",")
   .map((s) => normalizeNick(s.trim()))
   .filter(Boolean);
-const ONLY_PROGRAM = process.env.ONLY_PROGRAM ?? "КА2";
+const ONLY_PROGRAM = process.env.ONLY_PROGRAM ?? "КА3";
 
 async function main() {
   console.log(`PROD_URL:     ${PROD_URL}`);

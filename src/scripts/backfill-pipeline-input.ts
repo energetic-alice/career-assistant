@@ -18,7 +18,7 @@
  *   PROD_URL          base URL прода (default: prod render)
  *   WEBHOOK_SECRET    для /api/admin/upsert-states
  *   DRY_RUN=1         показать список, не пушить
- *   ONLY_PROGRAM=КА2  (опционально) починить только клиентов одной программы
+ *   ONLY_PROGRAM=КА3  (опционально) починить только клиентов одной программы
  *   ONLY_NICKS=a,b,c  (опционально) ограничить список ник-ами
  */
 
