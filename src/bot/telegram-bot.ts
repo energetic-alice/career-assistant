@@ -28,6 +28,13 @@ function escapeHtml(s: unknown): string {
 type ClientsFilter = "all" | ProgramLabel;
 
 /**
+ * Фильтр по умолчанию для /clients — текущий активный поток. Куратор всё так
+ * же может переключиться на «Все» или другой поток кнопками-селекторами.
+ * При старте нового потока менять только здесь.
+ */
+const DEFAULT_CLIENTS_FILTER: ClientsFilter = "КА3";
+
+/**
  * Возвращает program-метку из stageOutputs. Безопасно к отсутствию поля.
  */
 function getProgramLabel(state: PipelineState): string | undefined {
@@ -233,7 +240,7 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
   }
 
   bot.command("clients", async (ctx) => {
-    await sendClientsList(ctx, "all");
+    await sendClientsList(ctx, DEFAULT_CLIENTS_FILTER);
   });
 
   /**
