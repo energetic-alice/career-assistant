@@ -556,15 +556,28 @@ export async function sendIntakeNotification(participantId: string): Promise<voi
 
   const nick = normalizeNick(state.telegramNick) || "client";
 
-  await bot.telegram.sendMessage(
-    chatId,
-    `🆕 Новая анкета заполнена: <a href="https://t.me/${nick}">@${nick}</a>`,
-    { parse_mode: "HTML", link_preview_options: { is_disabled: true } },
-  );
+  try {
+    await bot.telegram.sendMessage(
+      chatId,
+      `🆕 Новая анкета заполнена: <a href="https://t.me/${nick}">@${nick}</a>`,
+      { parse_mode: "HTML", link_preview_options: { is_disabled: true } },
+    );
 
-  // Кнопку "Предварительный анализ" подставит sendClientCard автоматически
-  // на основании state.stage (см. buildAnalyzeKeyboard).
-  await sendClientCard(chatId, participantId);
+    // Кнопку "Предварительный анализ" подставит sendClientCard автоматически
+    // на основании state.stage (см. buildAnalyzeKeyboard).
+    await sendClientCard(chatId, participantId);
+  } catch (err) {
+    // Явный лог с chatId: чаще всего здесь «chat not found» из-за неверного
+    // TELEGRAM_ADMIN_CHAT_ID (например, группа стала супергруппой и id сменился).
+    // Без chatId в логе причину не видно. Пробрасываем дальше — вызывающий
+    // код (intake.ts) залогирует и попробует notifyAdminError.
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error(
+      `[AdminReview] Не удалось доставить карточку анкеты @${nick} (${participantId}) ` +
+        `в chatId=${chatId}: ${detail}`,
+    );
+    throw err;
+  }
 }
 
 /**
