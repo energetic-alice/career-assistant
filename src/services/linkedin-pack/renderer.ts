@@ -1,30 +1,10 @@
 import type {
   AuditBlock,
   AuditItem,
-  ContentAudience,
-  ContentFormat,
-  ContentIdea,
   HeadlineCandidate,
   LinkedinPack,
   ProfileContent,
 } from "../../schemas/linkedin-pack.js";
-
-/**
- * Достаёт `contentIdeas` для секции 9 документа.
- *
- * Источник истины — Phase 3b (`pack.contentPlan.contentIdeas`). Для пакетов,
- * сгенерированных до split'а Phase 3 на 3a/3b, контент-план хранится внутри
- * `pack.profileContent.contentIdeas` — оттуда и фолбекаем.
- */
-function pickContentIdeas(pack: LinkedinPack): ContentIdea[] | null {
-  if (pack.contentPlan?.contentIdeas?.length) {
-    return pack.contentPlan.contentIdeas;
-  }
-  if (pack.profileContent?.contentIdeas?.length) {
-    return pack.profileContent.contentIdeas;
-  }
-  return null;
-}
 
 /**
  * Рендер LinkedinPack в Markdown для Google Doc.
@@ -38,7 +18,6 @@ function pickContentIdeas(pack: LinkedinPack): ContentIdea[] | null {
  *   6. Настройки профиля — инструкции (location, URL, open to work, cover, contact).
  *   7. Образование, языки, сертификаты, волонтёрство.
  *   8. План действий — connections, endorsements, recommendations, активность.
- *   9. Контент-план — 4-8 идей постов под охват у рекрутеров и тимлидов.
  *
  * Эмодзи остаются ТОЛЬКО в чек-листе аудита (✅ / ❌ / ❓). Остальной документ
  * — plain text, чтобы клиент мог копировать без подчистки.
@@ -211,22 +190,16 @@ export function renderLinkedinPack(pack: LinkedinPack): string {
     lines.push("");
   });
 
-  // ── Секции 3-8: Profile content (Phase 3a) ──────────────────────────────
+  // ── Секции 3-8: Profile content (Phase 3) ───────────────────────────────
   if (pack.profileContent) {
     lines.push(...renderProfileContent(pack.profileContent));
-  }
-
-  // ── Секция 9: Контент-план (Phase 3b или legacy fallback) ───────────────
-  const ideas = pickContentIdeas(pack);
-  if (ideas) {
-    lines.push(...renderContentPlan(ideas));
   }
 
   // ── Footer ───────────────────────────────────────────────────────────────
   lines.push("---");
   lines.push("");
   lines.push(
-    "*Следующий шаг (вне MVP): индивидуальные посты на основе контент-плана, " +
+    "*Следующий шаг (вне MVP): контент-план с постами под охват у рекрутеров, " +
       "отслеживание роста SSI и помощь с интеграциями (Canva-баннер, оформление Featured).*",
   );
 
@@ -389,104 +362,4 @@ function renderProfileContent(content: ProfileContent): string[] {
   });
 
   return lines;
-}
-
-/**
- * Секция 9 — контент-план. Вынесена из `renderProfileContent` после split'а
- * Phase 3 на 3a (profile content) / 3b (content plan): рендер должен работать
- * и для новых паков (`pack.contentPlan`), и для legacy-паков с
- * `profileContent.contentIdeas` (см. `pickContentIdeas`).
- */
-function renderContentPlan(ideas: ContentIdea[]): string[] {
-  const lines: string[] = [];
-  const ideasCount = ideas.length;
-
-  lines.push(
-    `## 9. Контент-план — ${ideasCount} ${pluralPosts(ideasCount)} под охват у рекрутеров и тимлидов`,
-  );
-  lines.push("");
-  lines.push(
-    `Цель — ${ideasCount} ${pluralPosts(ideasCount)} за 3-5 недель, чтобы попасть в фид target-рекрутеров и hiring-менеджеров. ` +
-      "После публикации сразу ставь сам лайк и попроси 2-3 коллег полайкать в " +
-      "первый час — алгоритм подхватит и начнёт продвигать. **Не пиши «open " +
-      "to work» в самих постах** — это ретритится алгоритмом. Сигнал «меня " +
-      "стоит нанять» идёт через сам контент: достижения, компетенцию, способ думать.",
-  );
-  lines.push("");
-  lines.push(renderFormatBreakdown(ideas));
-  lines.push("");
-
-  ideas.forEach((c, i) => {
-    lines.push(`### Пост ${i + 1}. ${c.topic}`);
-    lines.push("");
-    lines.push(
-      `*Формат: **${formatLabel(c.format)}** · аудитория: **${audienceLabel(c.targetAudience)}***`,
-    );
-    lines.push("");
-    lines.push("**Hook (первая строка поста):**");
-    lines.push("");
-    lines.push(`> ${c.hook}`);
-    lines.push("");
-    lines.push("**Тезисы для раскрытия:**");
-    lines.push("");
-    for (const p of c.keyPoints) {
-      lines.push(`- ${p}`);
-    }
-    lines.push("");
-    lines.push(`**Почему этот пост даст охват:** ${c.whyItWorks}`);
-    lines.push("");
-    lines.push("**CTA в конце поста:**");
-    lines.push("");
-    lines.push(`> ${c.cta}`);
-    lines.push("");
-  });
-
-  return lines;
-}
-
-function pluralPosts(n: number): string {
-  if (n === 1) return "идея";
-  if (n >= 2 && n <= 4) return "идеи";
-  return "идей";
-}
-
-function formatLabel(f: ContentFormat): string {
-  const labels: Record<ContentFormat, string> = {
-    case_study: "кейс с цифрами",
-    technical_deep_dive: "технический разбор",
-    opinion: "hot take / мнение",
-    lessons_learned: "уроки / разбор фейла",
-    list_carousel: "список / карусель",
-    career_story: "карьерная история",
-    poll: "опрос",
-  };
-  return labels[f];
-}
-
-function audienceLabel(a: ContentAudience): string {
-  const labels: Record<ContentAudience, string> = {
-    recruiters: "рекрутеры (HR / talent acquisition)",
-    hiring_managers: "hiring-менеджеры (тимлиды / Head of)",
-    peers: "коллеги по роли (peers)",
-    mixed: "смешанная (рекрутеры + тимлиды + коллеги)",
-  };
-  return labels[a];
-}
-
-function renderFormatBreakdown(ideas: ContentIdea[]): string {
-  const counts: Record<ContentFormat, number> = {
-    case_study: 0,
-    technical_deep_dive: 0,
-    opinion: 0,
-    lessons_learned: 0,
-    list_carousel: 0,
-    career_story: 0,
-    poll: 0,
-  };
-  for (const idea of ideas) counts[idea.format] += 1;
-
-  const used = (Object.entries(counts) as [ContentFormat, number][])
-    .filter(([, n]) => n > 0)
-    .map(([fmt, n]) => `${formatLabel(fmt)} × ${n}`);
-  return `**Микс форматов:** ${used.join(" · ")}`;
 }

@@ -201,7 +201,7 @@ async function handleRun(participantId: string, ctx: Context): Promise<void> {
           const label =
             stage === "headline"
               ? `Аудит готов (${audit.passCount} ✅ · ${audit.failCount} ❌${audit.unknownCount > 0 ? ` · ${audit.unknownCount} ❓` : ""} из ${audit.totalCount}). Фаза 2/3: headline-варианты…`
-              : `Фаза 3/3: готовим полный текст профиля (About, Experience, настройки, контент-план)…`;
+              : `Фаза 3/3: готовим полный текст профиля (About, Experience, настройки)…`;
           try {
             await getBot().telegram.editMessageText(
               chatId,

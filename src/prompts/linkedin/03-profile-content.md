@@ -171,7 +171,7 @@
 - **Каждый `clientGaps`-keyword** — один пункт actionPlan. Примеры: «Освоить Next.js» (→ `details`: «пройти Next.js App Router tutorial + сделать pet-project с SSR»), «Освоить Kubernetes» (→ «CKAD-exam за 2 месяца, практика на killer.sh + перенести pet-project в EKS»). Чем конкретнее действие и проверяемый артефакт (pet-project / сертификат) — тем лучше.
 - **Public portfolio (для engineer-ролей)** — если target-роль = `ML Engineer` / `Data Scientist` / `Data Engineer` / `Backend` / `Frontend` / `Mobile` **и** в данных (LinkedIn `featured`, `accomplishments.projects`, резюме «Projects/Pet-projects») **нет GitHub / open-source / pet-проектов** — добавь отдельный пункт `"Создать публичное портфолио из 3-4 проектов"`. В `details` назови **конкретные проекты из bullets клиента** (если в опыте `fraud detection AUC 0.92` — пиши «toy-демо fraud detection на public Kaggle-dataset», если `recommendation engine +20%` — `recommendation system на MovieLens` и т.п.) и стандарт качества: «README + Docker + публичный демо-endpoint или Jupyter-notebook». Для не-инженерных ролей (Product, Marketing, Design, Sales) — пропусти, для них public portfolio = выступления/публикации, см. `volunteering`.
 
-> **Контент-план (`contentIdeas`) генерируется отдельной фазой 3b** — здесь его НЕ возвращай. Поле `contentIdeas` НЕ должно присутствовать в JSON ответа этой фазы.
+> **Контент-план / идеи постов (`contentIdeas`) — отдельная фича, в этом паке НЕ генерируются.** Поле `contentIdeas` НЕ должно присутствовать в JSON ответа.
 
 ## Обязательный финальный чек-лист перед возвратом JSON
 
