@@ -211,10 +211,12 @@ async function createViaDriveApi(
     throw new Error("Google Drive did not return a file ID");
   }
 
+  // Доступ по ссылке для всех на редактирование — чтобы и второй консультант,
+  // и клиент открывали документ без индивидуального шеринга.
   await drive.permissions.create({
     fileId,
     requestBody: {
-      role: "reader",
+      role: "writer",
       type: "anyone",
     },
   });
