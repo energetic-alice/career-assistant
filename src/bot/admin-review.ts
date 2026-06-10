@@ -215,6 +215,15 @@ function buildAnalyzeKeyboard(
   );
   rows.push(programRow);
 
+  // VIP — независимая от программы метка (toggle). Клиент может быть «КА3 + VIP».
+  const isVip = (outputs as { vip?: boolean }).vip === true;
+  rows.push([
+    Markup.button.callback(
+      isVip ? "⭐ VIP" : "VIP",
+      `prog:vip:${participantId}`,
+    ),
+  ]);
+
   return Markup.inlineKeyboard(rows).reply_markup;
 }
 
@@ -294,6 +303,7 @@ export async function sendClientCard(
     analysisGeneratedAt: finalAnalysis?.generatedAt,
     analysisError: cardAnalysisError,
     program: outputs.program as string | undefined,
+    vip: (outputs as { vip?: boolean }).vip === true,
   });
 
   const replyMarkup =
@@ -455,6 +465,7 @@ export async function refreshClientCard(participantId: string): Promise<void> {
     analysisGeneratedAt: finalAnalysis?.generatedAt,
     analysisError: cardAnalysisError,
     program: outputs.program as string | undefined,
+    vip: (outputs as { vip?: boolean }).vip === true,
   });
 
   const replyMarkup = buildAnalyzeKeyboard(participantId, state.stage, outputs);
@@ -732,6 +743,7 @@ async function handleAnalyzeDeep(participantId: string, ctx: Context): Promise<v
 // ─── Program & Target-role callbacks (prog:…) ──────────────────────────────
 //
 //   prog:set:<id>:<label>    — выставить/сменить метку программы
+//   prog:vip:<id>            — переключить VIP-метку (независимо от программы)
 //   prog:target_menu:<id>    — открыть подменю с top-N + "Своё"
 //   prog:target_custom:<id>  — запросить ввод своего направления реплаем
 //
@@ -751,6 +763,9 @@ async function dispatchProgramCallback(
     case "set":
       if (!payload) return false;
       await handleSetProgram(participantId, payload, ctx);
+      return true;
+    case "vip":
+      await handleToggleVip(participantId, ctx);
       return true;
     case "target_menu":
       await handleTargetMenu(participantId, ctx);
@@ -787,6 +802,26 @@ async function handleSetProgram(
   await ctx.answerCbQuery(
     nextValue ? `📚 Программа: ${nextValue}` : "Метка программы снята",
   );
+  await refreshClientCard(participantId);
+}
+
+/**
+ * VIP — независимая от программы метка (boolean в stageOutputs.vip). Toggle:
+ * клик включает/выключает. Клиент может быть одновременно в потоке и VIP.
+ */
+async function handleToggleVip(
+  participantId: string,
+  ctx: Context,
+): Promise<void> {
+  const state = getPipelineState(participantId);
+  if (!state) {
+    await ctx.answerCbQuery("Клиент не найден.");
+    return;
+  }
+  const current = (state.stageOutputs as { vip?: boolean } | undefined)?.vip === true;
+  const next = !current;
+  updatePipelineStage(participantId, state.stage, { vip: next });
+  await ctx.answerCbQuery(next ? "⭐ VIP включён" : "VIP снят");
   await refreshClientCard(participantId);
 }
 

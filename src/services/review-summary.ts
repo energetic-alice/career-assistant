@@ -466,6 +466,11 @@ export interface ClientCardSource {
    * и не путал тестовых клиентов с реальной активной программой.
    */
   program?: string;
+  /**
+   * VIP-метка — независимый от программы флаг. Клиент может быть «КА3 + VIP».
+   * Показываем рядом с программой в той же строке заголовка.
+   */
+  vip?: boolean;
 }
 
 /**
@@ -481,8 +486,10 @@ export function formatClientCardForTelegram(src: ClientCardSource): string {
     : renderFromRawFallback(src);
 
   const programLine = src.program
-    ? `<b>📚 Программа:</b> ${escapeHtml(src.program)}`
-    : "";
+    ? `<b>📚 Программа:</b> ${escapeHtml(src.program)}${src.vip ? " · <b>⭐ VIP</b>" : ""}`
+    : src.vip
+      ? "<b>⭐ VIP</b>"
+      : "";
   const selectedTargets = formatSelectedTargetRoles(src.selectedTargetRoles);
   const notesBlock = formatClientNotes(src.clientNotes);
   const finalAnalysisBlock = formatFinalAnalysisBlock(src);

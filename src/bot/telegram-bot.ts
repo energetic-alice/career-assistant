@@ -22,10 +22,17 @@ function escapeHtml(s: unknown): string {
 }
 
 /**
- * Фильтр /clients-списка по метке программы. "all" — без фильтра, показываем
- * всех. Остальные значения — конкретная ProgramLabel.
+ * Метка VIP — независимый от программы флаг (`stageOutputs.vip`). Клиент может
+ * быть одновременно в потоке и VIP (например, «КА3, VIP»). В /clients VIP — это
+ * и тег рядом с программой, и отдельный селектор-фильтр.
  */
-type ClientsFilter = "all" | ProgramLabel;
+const VIP_TAG = "VIP";
+
+/**
+ * Фильтр /clients-списка. "all" — без фильтра, показываем всех. ProgramLabel —
+ * конкретный поток. "VIP" — только VIP-клиенты (независимо от потока).
+ */
+type ClientsFilter = "all" | ProgramLabel | typeof VIP_TAG;
 
 /**
  * Фильтр по умолчанию для /clients — текущий активный поток. Куратор всё так
@@ -39,6 +46,25 @@ const DEFAULT_CLIENTS_FILTER: ClientsFilter = "КА3";
  */
 function getProgramLabel(state: PipelineState): string | undefined {
   return (state.stageOutputs as { program?: string } | undefined)?.program;
+}
+
+/**
+ * VIP-флаг из stageOutputs. Независим от программы. Безопасен к отсутствию поля.
+ */
+function isVip(state: PipelineState): boolean {
+  return (state.stageOutputs as { vip?: boolean } | undefined)?.vip === true;
+}
+
+/**
+ * Собирает тег-метку клиента для строки списка: программа + VIP через запятую.
+ * Примеры: `[КА3, VIP] `, `[КА3] `, `[VIP] `, `` (пусто, если меток нет).
+ */
+function buildLabelTag(state: PipelineState): string {
+  const labels: string[] = [];
+  const program = getProgramLabel(state);
+  if (program) labels.push(escapeHtml(program));
+  if (isVip(state)) labels.push(VIP_TAG);
+  return labels.length ? `[${labels.join(", ")}] ` : "";
 }
 
 /**
@@ -75,8 +101,7 @@ function renderClientLine(state: PipelineState): string[] {
 
   const nameStr = name ? ` <b>${escapeHtml(name)}</b>` : "";
   const stageLabel = STAGE_LABELS[state.stage] ?? state.stage;
-  const program = getProgramLabel(state);
-  const programTag = program ? `[${escapeHtml(program)}] ` : "";
+  const programTag = buildLabelTag(state);
 
   // Выбранные направления для упаковки (если есть) — показываем title'ы,
   // чтобы куратор сразу видел кто под что упаковывается.
@@ -130,6 +155,7 @@ function clientsKeyboard(active: ClientsFilter): ReturnType<typeof MarkupNs.inli
   const items: { id: ClientsFilter; label: string }[] = [
     { id: "all", label: "Все" },
     ...PROGRAM_LABELS.map((p) => ({ id: p, label: p }) as { id: ClientsFilter; label: string }),
+    { id: VIP_TAG, label: VIP_TAG },
   ];
   const buttons = items.map((it) =>
     MarkupNs.button.callback(
@@ -137,8 +163,7 @@ function clientsKeyboard(active: ClientsFilter): ReturnType<typeof MarkupNs.inli
       `clients_filter:${it.id}`,
     ),
   );
-  // Один ряд: компактно (5 кнопок ~25 символов суммарно), хорошо помещается
-  // на любой ширине экрана.
+  // Один ряд: компактно (6 кнопок), хорошо помещается на любой ширине экрана.
   return MarkupNs.inlineKeyboard([buttons]);
 }
 
@@ -150,13 +175,20 @@ function renderClientsResponse(states: PipelineState[], filter: ClientsFilter): 
   const filtered =
     filter === "all"
       ? states
-      : states.filter((s) => getProgramLabel(s) === filter);
+      : filter === VIP_TAG
+        ? states.filter((s) => isVip(s))
+        : states.filter((s) => getProgramLabel(s) === filter);
 
   const sorted = [...filtered].sort((a, b) =>
     normalizeNick(a.telegramNick).localeCompare(normalizeNick(b.telegramNick), "ru"),
   );
 
-  const filterLabel = filter === "all" ? "все программы" : `программа ${filter}`;
+  const filterLabel =
+    filter === "all"
+      ? "все программы"
+      : filter === VIP_TAG
+        ? "VIP-клиенты"
+        : `программа ${filter}`;
   const lines: string[] = [
     `<b>Клиенты (${sorted.length}):</b> <i>${escapeHtml(filterLabel)}</i>`,
     "",
@@ -253,7 +285,9 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
   bot.action(/^clients_filter:(.+)$/, async (ctx) => {
     const match = (ctx.match as RegExpMatchArray | undefined)?.[1];
     const filter: ClientsFilter =
-      match === "all" || (PROGRAM_LABELS as readonly string[]).includes(match ?? "")
+      match === "all" ||
+      match === VIP_TAG ||
+      (PROGRAM_LABELS as readonly string[]).includes(match ?? "")
         ? (match as ClientsFilter)
         : "all";
     const filterLabel = filter === "all" ? "все" : filter;
