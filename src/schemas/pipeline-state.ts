@@ -19,12 +19,17 @@ export const pipelineStageEnum = z.enum([
   "shortlist_ready",
   "shortlist_failed",
   "shortlist_approved",
-  // ── Gate 2 — глубокий анализ (после Approve Gate 1) ─────────────────
+  // ── Финальный гейт (после Approve Gate 1) ──────────────────────────
+  // `deep_approved` — shortlist одобрен, готов к генерации финала.
+  // `deep_failed` — подготовка финального гейта упала.
+  // `deep_generating`/`deep_ready` — LEGACY: код их больше не выставляет
+  //   (Gate 2 / Perplexity-дозаполнение убраны и слиты в Gate 1). Оставлены
+  //   в enum только чтобы не падала загрузка старых сохранённых состояний.
   "deep_generating",
   "deep_ready",
   "deep_failed",
   "deep_approved",
-  // ── Final analysis (Phase 3 + Phase 4 + Google Doc, после Approve Gate 2) ──
+  // ── Final analysis (Phase 3 + Phase 4 + Google Doc) ────────────────────────
   "final_generating",
   "final_ready",
   "final_failed",

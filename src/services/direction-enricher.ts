@@ -29,6 +29,31 @@ const WIDE_FAMILY_SLUGS: ReadonlySet<string> = new Set([
 const MAX_DUPES_IN_FAMILY = 3;
 
 /**
+ * Уникальный ключ для одного направления (строки shortlist'а).
+ *
+ * Ключуемся по нормализованному title + bucket, а не по `roleSlug`: иначе
+ * для `WIDE_FAMILY_SLUGS` (`infosecspec`, `devops`, ...) три разных
+ * направления под одним slug схлопываются в одну enriched-запись (Daria —
+ * AppSec / DevSecOps / SOC, все `infosecspec`). Title уникален в пределах
+ * shortlist (это контролирует `postValidateDirections`). Если title пуст
+ * (legacy-записи) — fallback на `slug|bucket`.
+ *
+ * bucket: "ru" → "ru", всё остальное (abroad/usa/null) → "abroad", чтобы
+ * `EnrichedDirection` (`"ru" | "abroad" | null`) и `Direction` (`"ru" |
+ * "abroad" | "usa"`) сходились в один ключ.
+ */
+export function directionKey(d: {
+  title?: string | null;
+  roleSlug?: string | null;
+  bucket?: string | null;
+}): string {
+  const title = (d.title ?? "").trim().toLowerCase();
+  const bucket = d.bucket === "ru" ? "ru" : "abroad";
+  if (title.length > 0) return `${title}|${bucket}`;
+  return `${d.roleSlug || "unknown"}|${bucket}`;
+}
+
+/**
  * Post-validate directions returned by Claude in prompt-02:
  *  - drops empty roleSlug
  *  - drops roles with aiRisk === "extreme" (lookup via market-index)
@@ -362,8 +387,7 @@ export async function enrichDirections(
     // ("usa" нормализуем в "abroad" — это он и есть по данным).
     const enrichBucket: EnrichBucket = d.bucket === "ru" ? "ru" : "abroad";
 
-    // dataSource: для baseline (Phase 1) — market-index если есть данные,
-    // иначе none. Phase 2 enrichGapsForClient может пометить perplexity*.
+    // dataSource: market-index если есть данные, иначе none.
     const hasAnyValue =
       stats?.vacancies !== undefined ||
       stats?.medianSalaryMid !== undefined ||
@@ -623,14 +647,14 @@ export function formatTableHints(params: {
 }
 
 /**
- * Renders Phase 2 EnrichedDirection[] in a markdown shape suitable for
- * substitution into prompt-03's `{{marketData}}` slot. Replaces the
- * `formattedText` from Perplexity Step 5 when caller has decided to skip
- * Step 5 (`runDeepFromShortlist({ skipPerplexityStep5: true })`).
+ * Renders EnrichedDirection[] in a markdown shape suitable for substitution
+ * into prompt-03's `{{marketData}}` slot. Это единственный источник
+ * `marketData` для Phase 3 (живой Perplexity Step 5 удалён).
  *
- * Goal: keep prompt-03 stable, but feed it data that already passed the
- * relevance gate. Each direction gets a clear source badge so Claude in
- * Step 6 knows which numbers to lean on and which to treat as estimates.
+ * Goal: keep prompt-03 stable, feeding it детерминированные данные из
+ * market-index / by-country. Each direction gets a clear source badge so
+ * Claude in Step 6 knows which numbers to lean on and which to treat as
+ * estimates.
  */
 export function formatEnrichedAsMarketData(rows: EnrichedDirection[]): string {
   if (rows.length === 0) return "Данные рынка не предоставлены.";

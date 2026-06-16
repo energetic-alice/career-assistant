@@ -19,8 +19,11 @@ import {
   type ShortlistResult,
   type AnalysisPipelineInput,
 } from "../pipeline/run-analysis.js";
-import { enrichDirections, type EnrichedDirection } from "../services/direction-enricher.js";
-import { directionKey } from "../services/deep-research-service.js";
+import {
+  enrichDirections,
+  directionKey,
+  type EnrichedDirection,
+} from "../services/direction-enricher.js";
 import type {
   CandidateProfile,
   Direction,
@@ -101,7 +104,6 @@ export interface ShortlistState {
 const ACTIVE_SLOTS = 10;
 
 const STORE_KEY = "shortlist";
-const APPROVED_KEY = "approved";
 
 function loadShortlist(participantId: string): ShortlistState | undefined {
   const state = getPipelineState(participantId);
@@ -262,7 +264,7 @@ function headerKeyboard(
   rows.push([
     Markup.button.callback(
       canApprove
-        ? `✓ Одобрить → глубокий анализ (${recommended})`
+        ? `✓ Одобрить → финальный анализ (${recommended})`
         : `✓ Одобрить (нужно ≥ 3 рекоменд., сейчас ${recommended})`,
       canApprove ? `shortlist:approve:${participantId}` : `shortlist:noop:${participantId}`,
     ),
@@ -817,15 +819,6 @@ async function handleApprove(
 
   const recommendedDirections = recommendedSlots.map((s) => s.direction);
   const rejectedDirections = rejectedSlots.map((s) => s.direction);
-  updatePipelineStage(participantId, "shortlist_approved", {
-    [APPROVED_KEY]: {
-      directions: recommendedDirections,
-      slugs: recommendedDirections.map((d) => d.roleSlug),
-      rejectedDirections,
-      rejectedSlugs: rejectedDirections.map((d) => d.roleSlug),
-      approvedAt: new Date().toISOString(),
-    },
-  });
 
   const slugs = recommendedDirections.map((d) => d.roleSlug).join(", ");
   const rejSlugs = rejectedDirections.map((d) => d.roleSlug).join(", ");
@@ -834,38 +827,39 @@ async function handleApprove(
       (rejectedDirections.length > 0 ? ` · rejected ${rejectedDirections.length} (${rejSlugs})` : ""),
   );
 
-  await ctx.answerCbQuery("Запускаю глубокий анализ…");
-  const ackMsg = await ctx.reply(
-    `✅ Shortlist одобрен.\n` +
-      `Рекомендованы (${recommendedDirections.length}): <code>${escapeHtml(slugs)}</code>` +
-      (rejectedDirections.length > 0
-        ? `\n🚫 Отклонено (${rejectedDirections.length}): <code>${escapeHtml(rejSlugs)}</code>`
-        : "") +
-      `\n\n🔬 Запускаю Phase 2 (дозаполнение данных по дырам)…`,
-    { parse_mode: "HTML" },
-  );
+  await ctx.answerCbQuery("Готовлю финальный анализ…");
 
   try {
-    const { startDeepReview } = await import("./deep-review.js");
+    // Gate 2 (Perplexity-дозаполнение + второй tap «Одобрить») убран.
+    // Рыночные данные уже посчитаны детерминированно на Gate 1, поэтому
+    // approve сразу готовит финальный гейт: сохраняет approved + enriched и
+    // рисует компактный header с кнопкой «📄 Сгенерировать финальный анализ».
+    const { startFinalGate } = await import("./deep-review.js");
     const chatId = ctx.chat?.id;
     if (chatId == null) throw new Error("ctx.chat.id missing");
-    // В Phase 2 передаём ВСЕ slots (включая rejected) — они нужны для UI и
-    // финального документа; сам enrichment пропустит rejected, не дёргая Perplexity.
-    const allDirections = shortlist.slots.map((s) => s.direction);
-    await startDeepReview(participantId, chatId, toShortlistResult(shortlist), allDirections);
-    // Удаляем "запускаю..." после того как deep-review нарисовал свои сообщения
-    try {
-      await getBot().telegram.deleteMessage(chatId, ackMsg.message_id);
-    } catch {
-      // ignore
-    }
+    await startFinalGate(
+      participantId,
+      chatId,
+      toShortlistResult(shortlist),
+      recommendedDirections,
+      rejectedDirections,
+    );
+    await ctx.reply(
+      `✅ Shortlist одобрен.\n` +
+        `Рекомендованы (${recommendedDirections.length}): <code>${escapeHtml(slugs)}</code>` +
+        (rejectedDirections.length > 0
+          ? `\n🚫 Отклонено (${rejectedDirections.length}): <code>${escapeHtml(rejSlugs)}</code>`
+          : "") +
+        `\n\nЖми <b>📄 Сгенерировать финальный анализ</b> в шапке — соберём top-3 + документ в Google Docs.`,
+      { parse_mode: "HTML" },
+    );
   } catch (err) {
-    console.error(`[Shortlist] handleApprove → deepReview failed:`, err);
+    console.error(`[Shortlist] handleApprove → finalGate failed:`, err);
     updatePipelineStage(participantId, "deep_failed", {
       deepError: err instanceof Error ? err.message : String(err),
     });
     await ctx.reply(
-      `❌ Глубокий анализ упал: <code>${escapeHtml(String(err))}</code>`,
+      `❌ Подготовка финала упала: <code>${escapeHtml(String(err))}</code>`,
       { parse_mode: "HTML" },
     );
   }

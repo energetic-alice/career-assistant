@@ -17,7 +17,7 @@ import {
   resendShortlist,
   startShortlist,
 } from "./shortlist-review.js";
-import { dispatchDeepCallback, resendDeep } from "./deep-review.js";
+import { dispatchDeepCallback } from "./deep-review.js";
 import {
   dispatchLinkedinCallback,
   linkedinPackKeyboardRows,
@@ -65,18 +65,7 @@ interface ClientCardRef {
  * стадии: админу полезно уметь перегенерить shortlist с нуля на любом этапе
  * (в том числе после того, как анализ уже готов или завершён).
  *
- * Кнопка «🔬 Глубокий анализ» показывается когда у клиента уже есть одобренный
- * shortlist (`shortlist_approved` и далее). Удобно перезапустить Phase 2 если
- * она упала или если бот рестартовал.
  */
-const STAGES_WITH_APPROVED: ReadonlySet<string> = new Set([
-  "shortlist_approved",
-  "deep_generating",
-  "deep_failed",
-  "deep_ready",
-  "deep_approved",
-]);
-
 function buildAnalyzeKeyboard(
   participantId: string,
   stage: string,
@@ -108,28 +97,10 @@ function buildAnalyzeKeyboard(
     ),
   ]);
 
-  // Глубокий анализ: если уже есть готовый Phase 2 — кнопка «открыть»,
-  // иначе (но shortlist одобрен) — «запустить Phase 2».
+  // Deep-слоты (для меню упаковки) — собираются на approve вместе с
+  // финальным гейтом. Отдельной кнопки «открыть/перезапустить Phase 2» больше
+  // нет: ревью рынка теперь на Gate 1, а кнопка генерации финала ниже.
   const deep = outputs.deepReview as { slots?: unknown[] } | undefined;
-  const hasDeep = !!deep?.slots && deep.slots.length > 0;
-  if (hasDeep) {
-    rows.push([
-      Markup.button.callback(
-        "🔬 Открыть глубокий анализ",
-        `show_deep:${participantId}`,
-      ),
-    ]);
-  }
-  if (STAGES_WITH_APPROVED.has(stage)) {
-    rows.push([
-      Markup.button.callback(
-        hasDeep
-          ? "🔄 Перезапустить глубокий анализ (Phase 2)"
-          : "🔬 Глубокий анализ (Phase 2)",
-        `analyze_deep:${participantId}`,
-      ),
-    ]);
-  }
 
   // Финальный анализ: на стадиях final_ready / final_sent / final_failed /
   // final_generating / deep_approved дать прямой доступ к "перегенерировать
@@ -630,120 +601,6 @@ async function handleShowShortlist(
   }
 }
 
-/** То же самое для Phase 2. */
-async function handleShowDeep(
-  participantId: string,
-  ctx: Context,
-): Promise<void> {
-  await ctx.answerCbQuery("Открываю глубокий анализ…").catch(() => undefined);
-  const chatId = ctx.chat?.id;
-  if (chatId == null) return;
-  const ok = await resendDeep(participantId, chatId);
-  if (!ok) {
-    await ctx.reply(
-      "Сохранённого глубокого анализа нет — запусти Phase 2 кнопкой выше.",
-    );
-  }
-}
-
-/**
- * Перезапуск Phase 2 поверх уже одобренного shortlist'а.
- * Используется когда Phase 2 упал, бот рестартанулся, или просто
- * понадобилось переобогатить (Perplexity TTL = 14 дней, дальше — свежий запрос).
- */
-async function handleAnalyzeDeep(participantId: string, ctx: Context): Promise<void> {
-  // U3: тяжёлый Phase 2 уезжает в fire-and-forget — захватываем lock здесь
-  // и отпускаем внутри background task'а в finally. Если уже захвачен —
-  // отвечаем toast'ом и не стартуем.
-  if (!tryAcquireRunLock(participantId, "deep")) {
-    await ctx
-      .answerCbQuery(`⏳ Уже идёт ${RUN_KINDS.deep}, подожди до завершения.`)
-      .catch(() => undefined);
-    return;
-  }
-  await ctx.answerCbQuery().catch(() => undefined);
-  const state = getPipelineState(participantId);
-  if (!state) {
-    releaseRunLock(participantId, "deep");
-    await ctx.reply("Клиент не найден.");
-    return;
-  }
-  const outputs = (state.stageOutputs ?? {}) as Record<string, unknown>;
-  const shortlist = outputs.shortlist as
-    | {
-        slots?: Array<{ direction: unknown; enriched?: unknown }>;
-        profile?: unknown;
-        clientSummary?: unknown;
-        marketOverview?: unknown;
-        regions?: unknown;
-        scorerTop20?: unknown;
-        resumeText?: string;
-        questionnaireHuman?: string;
-      }
-    | undefined;
-  const approved = outputs.approved as
-    | { directions?: unknown[]; rejectedDirections?: unknown[] }
-    | undefined;
-
-  if (!shortlist?.slots || shortlist.slots.length === 0) {
-    releaseRunLock(participantId, "deep");
-    await ctx.reply("Нет shortlist'а — сначала запусти предварительный анализ.");
-    return;
-  }
-  if (!approved?.directions || approved.directions.length === 0) {
-    releaseRunLock(participantId, "deep");
-    await ctx.reply(
-      "Shortlist ещё не одобрен. Открой Phase 1 и нажми «✓ Одобрить» там.",
-    );
-    return;
-  }
-
-  const chatId = ctx.chat?.id;
-  if (chatId == null) {
-    releaseRunLock(participantId, "deep");
-    return;
-  }
-  await ctx.reply(`🔬 Перезапускаю глубокий анализ для @${normalizeNick(state.telegramNick)}…`);
-
-  void (async () => {
-    try {
-      const { startDeepReview } = await import("./deep-review.js");
-      const slots = shortlist.slots ?? [];
-      // Восстанавливаем ShortlistResult из state (зеркало toShortlistResult).
-      const shortlistResult = {
-        profile: shortlist.profile as never,
-        clientSummary: shortlist.clientSummary as never,
-        marketOverview: (shortlist.marketOverview ?? "") as string,
-        scorerTop20: shortlist.scorerTop20 as string | undefined,
-        regions: (shortlist.regions ?? []) as never,
-        directions: {
-          directions: slots.map((s) => s.direction as never),
-        },
-        enriched: slots
-          .map((s) => s.enriched as never)
-          .filter((x) => !!x),
-        timings: {},
-        resumeText: shortlist.resumeText,
-        questionnaireHuman: shortlist.questionnaireHuman,
-      };
-      // В Phase 2 идут все одобренные + отклонённые (как и в shortlist:approve).
-      const allDirections = [
-        ...(approved.directions as never[]),
-        ...((approved.rejectedDirections as never[]) ?? []),
-      ];
-      await startDeepReview(participantId, chatId, shortlistResult as never, allDirections);
-    } catch (err) {
-      console.error("[admin-review] handleAnalyzeDeep failed:", err);
-      await getBot().telegram.sendMessage(
-        chatId,
-        `❌ Глубокий анализ упал: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    } finally {
-      releaseRunLock(participantId, "deep");
-    }
-  })();
-}
-
 // ─── Program & Target-role callbacks (prog:…) ──────────────────────────────
 //
 //   prog:set:<id>:<label>    — выставить/сменить метку программы
@@ -1010,14 +867,8 @@ export function registerAdminReview(bot: Telegraf): void {
       case "analyze":
         await handleAnalyze(participantId, ctx);
         break;
-      case "analyze_deep":
-        await handleAnalyzeDeep(participantId, ctx);
-        break;
       case "show_shortlist":
         await handleShowShortlist(participantId, ctx);
-        break;
-      case "show_deep":
-        await handleShowDeep(participantId, ctx);
         break;
       default:
         // Неизвестный action — гасим loading-индикатор.

@@ -334,15 +334,6 @@ export async function startBot(app?: FastifyInstance): Promise<void> {
             );
             if (ok) await ctx.reply("✓ Причина отклонения сохранена.");
             else await ctx.reply("⚠ Не нашёл слот — возможно был удалён.");
-          } else if (pending.kind === "deep:reject") {
-            const { applyDeepRejectReason } = await import("./deep-review.js");
-            const ok = await applyDeepRejectReason(
-              pending.participantId,
-              pending.slotId,
-              text,
-            );
-            if (ok) await ctx.reply("✓ Причина отклонения сохранена.");
-            else await ctx.reply("⚠ Не нашёл слот — возможно был удалён.");
           } else if (pending.kind === "resume:update") {
             await handleResumeUpdateMessage(ctx, {
               participantId: pending.participantId,

@@ -23,7 +23,6 @@ import {
 } from "./prompt-loader.js";
 import { clientSummarySchema, type ClientSummary } from "../schemas/client-summary.js";
 import { buildReviewSummary, formatReviewForTelegram } from "../services/review-summary.js";
-import { fetchMarketDataForDirections } from "../services/perplexity-service.js";
 import {
   loadMarketOverview,
   computeMarketAccess,
@@ -45,10 +44,9 @@ import {
   buildTableHints,
   formatTableHints,
   resolveCandidateCurrentRoleStats,
+  directionKey,
   type EnrichedDirection,
 } from "../services/direction-enricher.js";
-import { directionKey } from "../services/deep-research-service.js";
-import { getMarketResearchProvider } from "../services/market-research/index.js";
 import { sanitizeRussianText } from "../services/text-sanitize.js";
 
 const client = new Anthropic();
@@ -232,7 +230,6 @@ export interface Phase1Result {
   directions: DirectionsOutput;
   analysis: AnalysisOutput;
   reviewSummaryText: string;
-  perplexityMarketData?: unknown;
   timings: Record<string, number>;
   /**
    * Прокинутый из ShortlistResult clientSummary - нужен в Phase 4 для
@@ -733,196 +730,87 @@ export async function regenerateOneDirection(
   return { direction: candidate, enriched: enrichedRow };
 }
 
-// ─── Phase 2 — Deep Research (Gate 2) ────────────────────────────────────────
-
-export interface DeepResearchResult {
-  /**
-   * Те же одобренные direction'ы что пришли на вход (порядок сохранён).
-   * Phase 2 НЕ перегенерирует и НЕ переранжирует — это работа Phase 3.
-   */
-  directions: Direction[];
-  /** EnrichedDirection с дозаполненными через Perplexity дырами. */
-  enriched: EnrichedDirection[];
-  timings: Record<string, number>;
-  /** Сколько направлений реально дёрнули через Perplexity. */
-  perplexityFills: number;
-  resumeText?: string;
-  questionnaireHuman?: string;
-}
+// ─── Approved → enriched (детерминированно, без внешних запросов) ─────────────
 
 /**
- * Phase 2 — Gate 2: точечное обогащение данных по одобренным после Gate 1 направлениям.
+ * Сопоставляет каждому одобренному направлению его `EnrichedDirection`.
  *
- * Архитектура (anti-hallucination):
- *   - Никакого Claude — только детерминированный merge KB + опциональный Perplexity.
- *   - Perplexity дёргается ТОЛЬКО когда у direction'а есть дыры (vacancies/aiRisk/median = null)
- *     И эти дыры объяснимы внешним фактором: off-index slug или экзотический регион
- *     (latam/asia-pacific/middle-east/global).
- *   - cis = ru-данные (RU как прокси), для них Perplexity не дёргаем.
- *   - Один batch Perplexity-запрос на клиента, baseline = всё что уже есть из market-index.
- *   - Validate-gate: число без citations → drop в null.
+ * Раньше этим занимался `runDeepResearch` (Phase 2 / Gate 2) + Perplexity
+ * `enrichGaps`. Живой Perplexity убран как ненадёжный (фантазировал), а всё
+ * обогащение и так детерминированно считается в Phase 1 (`runShortlist`
+ * Step 2b `enrichDirections`) из `market-index` + статичных by-country файлов.
+ * Здесь мы просто берём готовые enriched из shortlist по `directionKey`
+ * (title|bucket — устойчиво к wide-family slug-ам), а для направлений,
+ * которых в shortlist не было (regen / ручной ввод), считаем enrich на лету.
  *
- * Phase 3 (финальный анализ + позиционирование) — отдельная задача и здесь не делается.
+ * Возвращает массив той же длины и порядка, что `directions` (позиции, для
+ * которых обогащение не удалось/нет clientSummary, будут `undefined`).
  */
-export async function runDeepResearch(
+export async function resolveEnrichedForDirections(
   shortlist: ShortlistResult,
-  approvedDirections: Direction[],
-): Promise<DeepResearchResult> {
-  const timings: Record<string, number> = {};
-  const { clientSummary, resumeText, questionnaireHuman } = shortlist;
-
-  if (!clientSummary) {
-    throw new Error("[DeepResearch] clientSummary is required for Phase 2");
-  }
-  if (approvedDirections.length === 0) {
-    throw new Error("[DeepResearch] approvedDirections is empty");
-  }
-
-  console.log(
-    `[DeepResearch] Starting for ${approvedDirections.length} approved directions: ` +
-    approvedDirections.map((d) => d.roleSlug).join(", "),
-  );
-
-  // Step 1: получаем baseline EnrichedDirection (либо из shortlist.enriched,
-  // либо пересчитываем для approved).
-  //
-  // ВАЖНО: ключ — `directionKey()` (title|bucket), а не `slug|bucket`.
-  // Иначе для wide-family slug-ов (`infosecspec`, `devops`, ...) три разных
-  // approved direction'а с одинаковым slug+bucket (Daria — AppSec / DevSecOps /
-  // SOC, все `infosecspec|usa`) схлопываются в один и берут одну и ту же enriched
-  // запись из shortlist. См. `directionKey` в deep-research-service.
-  let t0 = Date.now();
-  const enrichedByDirKey = new Map<string, EnrichedDirection>();
+  directions: Direction[],
+): Promise<(EnrichedDirection | undefined)[]> {
+  const byKey = new Map<string, EnrichedDirection>();
   for (const e of shortlist.enriched) {
-    enrichedByDirKey.set(directionKey(e), e);
+    byKey.set(directionKey(e), e);
   }
-  // baseline идёт строго в порядке approvedDirections — так Phase 2 enrichment
-  // (`enrichGaps`) и downstream (`formatEnrichedAsMarketData`) видят данные
-  // ровно в том же порядке, что и approved направления.
-  const baseline: (EnrichedDirection | null)[] = approvedDirections.map((d) =>
-    enrichedByDirKey.get(directionKey(d)) ?? null,
+  const result: (EnrichedDirection | undefined)[] = directions.map((d) =>
+    byKey.get(directionKey(d)),
   );
-  const missingFromShortlist: { direction: Direction; index: number }[] = [];
-  for (let i = 0; i < approvedDirections.length; i++) {
-    if (baseline[i] === null) {
-      missingFromShortlist.push({ direction: approvedDirections[i], index: i });
+
+  const missing: { direction: Direction; index: number }[] = [];
+  for (let i = 0; i < directions.length; i++) {
+    if (result[i] === undefined) {
+      missing.push({ direction: directions[i], index: i });
     }
   }
-  if (missingFromShortlist.length > 0) {
-    const fresh = await enrichDirections(
-      missingFromShortlist.map((m) => m.direction),
-      clientSummary,
-    );
-    for (let i = 0; i < missingFromShortlist.length; i++) {
-      baseline[missingFromShortlist[i].index] = fresh[i];
+  if (missing.length > 0 && shortlist.clientSummary) {
+    try {
+      const fresh = await enrichDirections(
+        missing.map((m) => m.direction),
+        shortlist.clientSummary,
+      );
+      for (let i = 0; i < missing.length; i++) {
+        result[missing[i].index] = fresh[i];
+      }
+    } catch (err) {
+      console.error("[resolveEnriched] enrichDirections failed for missing:", err);
     }
   }
-  const baselineFilled: EnrichedDirection[] = baseline.filter(
-    (e): e is EnrichedDirection => e !== null,
-  );
-  timings["baseline"] = Date.now() - t0;
-
-  // Step 2: дозаполняем дыры через выбранный provider (only где нужно)
-  t0 = Date.now();
-  const provider = getMarketResearchProvider();
-  const enriched = await provider.enrichGaps({
-    directions: approvedDirections,
-    baseline: baselineFilled,
-    summary: clientSummary,
-  });
-  timings["market_research_enrich"] = Date.now() - t0;
-
-  // Kept legacy name `perplexityFills` for state/UI compatibility, but it's
-  // actually a generic enrichment-fills counter (any external provider).
-  const perplexityFills = enriched.filter((e) =>
-    [
-      "perplexity",
-      "perplexity-estimate",
-      "claude",
-      "claude-estimate",
-    ].includes(e.dataSource),
-  ).length;
-
-  const totalTime = Object.values(timings).reduce((a, b) => a + b, 0);
-  console.log(
-    `[DeepResearch Total] ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s) · ` +
-    `provider=${provider.name} fills: ${perplexityFills}/${enriched.length}`,
-  );
-
-  return {
-    directions: approvedDirections,
-    enriched,
-    timings,
-    perplexityFills,
-    resumeText,
-    questionnaireHuman,
-  };
+  return result;
 }
 
 /**
  * Phase 2 — Deep analysis. Работает поверх уже готового `ShortlistResult`
  * и принятого админом списка `approvedDirections` (после Gate 1).
  *
- * Шаги: Step 3 (title optimization) → Step 4 (role reports) → Step 5
- * (Perplexity) → Step 5.5 (scraped summary) → Step 6 (prompt-03 analysis).
+ * Шаги: Step 5.5 (scraped summary) → Step 6 (prompt-03 analysis). Точные
+ * цифры по approved направлениям приходят детерминированно из Phase 1
+ * enrichment (`marketData` = `formatEnrichedAsMarketData(enriched)`, передаёт
+ * вызывающий код), широкий рынок — из Step 5.5 `buildFullMarketSummary`.
  */
 export async function runDeepFromShortlist(
   shortlist: ShortlistResult,
   approvedDirections: Direction[],
   opts: {
     marketData?: string;
-    /**
-     * Если true — Step 5 (Perplexity `fetchMarketDataForDirections`) пропускается.
-     * Используется когда вызывающий код уже передал в `marketData` агрегированные
-     * данные Phase 2 enrichment (через `formatEnrichedAsMarketData`), чтобы не
-     * дёргать Perplexity повторно ради тех же чисел.
-     */
-    skipPerplexityStep5?: boolean;
   } = {},
 ): Promise<Phase1Result> {
   const timings: Record<string, number> = { ...shortlist.timings };
   const { profile } = shortlist;
   const directions: DirectionsOutput = { directions: approvedDirections };
   const currentDirections = approvedDirections;
-  let perplexityRawData: unknown = null;
 
-  // Step 3 (Perplexity title optimization) и Step 4 (loadRoleReports
-  // через Perplexity-скрап в `prompts/market-data/role-*.md`) убраны:
-  //   - Step 3 возвращал мусорный markdown с цитатами ("**: **Senior X**
-  //     gives MOST vacancies (604 vs 66)[2][8].") и противоречил данным
-  //     itjobswatch — `bestTitle` не парсился и в prompt-03 не попадал.
-  //   - Step 4 без спроса дёргал Perplexity и писал .md-файлы в repo
-  //     (`role-<slug>-<region>.md`), при этом для US-региона возвращал UK-
-  //     данные. KB о ролях теперь живёт в `uk_<slug>.md` + `niche-aliases.json`.
-  // Точные цифры по approved направлениям приходят из Phase 2 enrichment
+  // Step 3/4/5 (Perplexity title optimization, role-report скрап и
+  // `fetchMarketDataForDirections`) полностью убраны: живой Perplexity
+  // фантазировал и противоречил детерминированным данным itjobswatch.
+  // Точные цифры по approved направлениям приходят из Phase 1 enrichment
   // (`marketData` — `formatEnrichedAsMarketData(enriched)`), широкий рынок —
   // из Step 5.5 `buildFullMarketSummary`.
 
   let t0 = Date.now();
-  let marketData =
+  const marketData =
     opts.marketData ?? "Данные рынка не предоставлены, используй справочник конкуренции.";
-
-  if (opts.skipPerplexityStep5) {
-    console.log(
-      "[Deep/Step 5] Skipped (caller passed market data from Phase 2 enrichment)",
-    );
-    timings["step5_market"] = 0;
-  } else if (process.env.PERPLEXITY_API_KEY) {
-    console.log("[Deep/Step 5] Fetching market data from Perplexity (source-aware)...");
-    t0 = Date.now();
-    try {
-      const perplexityResult = await fetchMarketDataForDirections(currentDirections, profile);
-      marketData = perplexityResult.formattedText;
-      perplexityRawData = perplexityResult.rawData;
-      timings["step5_market"] = Date.now() - t0;
-      console.log(`[Deep/Step 5] Done in ${timings["step5_market"]}ms`);
-    } catch (err) {
-      timings["step5_market"] = Date.now() - t0;
-      console.error("[Deep/Step 5] Perplexity failed, using fallback:", err);
-    }
-  } else {
-    console.log("[Deep/Step 5] PERPLEXITY_API_KEY not set, skipping market data fetch");
-  }
 
   let scrapedMarketData = "";
   try {
@@ -1063,7 +951,6 @@ export async function runDeepFromShortlist(
     directions,
     analysis,
     reviewSummaryText,
-    perplexityMarketData: perplexityRawData,
     timings,
     clientSummary: shortlist.clientSummary,
     enrichedTop3,

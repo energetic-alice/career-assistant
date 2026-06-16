@@ -15,7 +15,7 @@
 
 type PendingReplyMeta =
   | {
-      kind: "shortlist:reject" | "deep:reject";
+      kind: "shortlist:reject";
       participantId: string;
       slotId: string;
     }

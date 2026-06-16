@@ -12,7 +12,7 @@
  *        иначе все directions с recommended !== false (approve-all имитация).
  *   4. enriched = approved.enriched ∪ rejected.enriched (или из shortlist.slots).
  *   5. marketData = formatEnrichedAsMarketData(enriched).
- *   6. runDeepFromShortlist(shortlist, approved, { marketData, skipPerplexityStep5: true })
+ *   6. runDeepFromShortlist(shortlist, approved, { marketData })
  *   7. runAnalysisPhase4(profile, directions, analysis)
  *   8. createGoogleDoc(title, finalDocument)
  *   9. Печатает все ключевые ссылки и сохраняет артефакты в test-output/probe-final.
@@ -32,14 +32,14 @@ import { resolve } from "node:path";
 import {
   runAnalysisPhase4,
   runDeepFromShortlist,
-  runDeepResearch,
+  resolveEnrichedForDirections,
   type ShortlistResult,
 } from "../pipeline/run-analysis.js";
 import {
   formatEnrichedAsMarketData,
+  directionKey,
   type EnrichedDirection,
 } from "../services/direction-enricher.js";
-import { directionKey } from "../services/deep-research-service.js";
 import { createGoogleDoc } from "../services/google-docs-service.js";
 import type { Direction, DirectionsOutput, CandidateProfile } from "../schemas/analysis-outputs.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
@@ -196,33 +196,31 @@ async function probeOne(state: PipeState): Promise<void> {
     );
   }
 
-  // Свежий enrichment локально (Phase 2 заново на approved+rejected),
-  // чтобы Phase 3 видел актуальные числа (после v5-niche-aliases / latest
-  // resolver), а не закэшированные на проде.
+  // Свежий enrichment локально (детерминированный, заново на approved+rejected),
+  // чтобы Phase 3 видел актуальные числа (после latest market-index /
+  // by-country файлов), а не закэшированные на проде.
   if (process.env.REFRESH_PHASE2 === "1") {
-    console.log(`\n  [REFRESH_PHASE2] re-running Phase 2 enrichment locally...`);
+    console.log(`\n  [REFRESH_PHASE2] re-running deterministic enrichment locally...`);
     const t = Date.now();
     const allApproved = [...approvedDirections, ...rejectedDirections];
-    const dr = await runDeepResearch(
+    // enriched:[] → resolveEnrichedForDirections пересчитает всё через
+    // enrichDirections. Возвращает массив 1:1 с allApproved (позиционно),
+    // поэтому slice надёжнее Map по slug|bucket (wide-family slug-и).
+    const resolved = await resolveEnrichedForDirections(
       { ...shortlistResult, enriched: [] },
       allApproved,
     );
-    // `runDeepResearch` сохраняет порядок approvedDirections в `dr.enriched`
-    // (1:1). Используем позиционный slice вместо Map по slug|bucket — иначе
-    // 3 approved direction'а с одинаковым slug+bucket (Daria — AppSec /
-    // DevSecOps / SOC, все `infosecspec|usa`) схлопываются в один. Альтернативный
-    // ключ — `directionKey(title|bucket)`, но позиционный надёжнее.
-    if (dr.enriched.length !== allApproved.length) {
+    const filled = resolved.filter((e): e is EnrichedDirection => Boolean(e));
+    if (filled.length !== allApproved.length) {
       console.warn(
-        `  [REFRESH_PHASE2] WARN: enriched length mismatch ${dr.enriched.length} vs approved ${allApproved.length}`,
+        `  [REFRESH_PHASE2] WARN: enriched length mismatch ${filled.length} vs approved ${allApproved.length}`,
       );
     }
-    approvedEnriched = dr.enriched.slice(0, approvedDirections.length);
-    rejectedEnriched = dr.enriched.slice(approvedDirections.length);
+    approvedEnriched = filled.slice(0, approvedDirections.length);
+    rejectedEnriched = filled.slice(approvedDirections.length);
     console.log(
       `  [REFRESH_PHASE2] done in ${((Date.now() - t) / 1000).toFixed(1)}s · enriched=${approvedEnriched.length}+${rejectedEnriched.length}`,
     );
-    // Cross-check: log unique direction keys to confirm we kept all rows.
     const dirKeys = approvedEnriched.map((e) => directionKey(e));
     console.log(`  [REFRESH_PHASE2] enriched direction keys: ${dirKeys.join(" | ")}`);
   }
@@ -245,14 +243,14 @@ async function probeOne(state: PipeState): Promise<void> {
   }
   console.log(`  enriched count: ${enrichedAll.length}`);
 
-  // marketData из Phase 2 enriched (skip Step 5 в Phase 3).
+  // marketData из детерминированного enriched (Phase 1).
   const marketData =
     enrichedAll.length > 0 ? formatEnrichedAsMarketData(enrichedAll) : undefined;
   if (marketData) {
-    console.log(`  marketData: ${marketData.length} chars (skipPerplexityStep5=true)`);
+    console.log(`  marketData: ${marketData.length} chars`);
     await dumpFile(`${nick}.market-data.md`, marketData);
   } else {
-    console.log("  marketData: NONE — Phase 3 будет дёргать Perplexity Step 5");
+    console.log("  marketData: NONE — Phase 3 пойдёт без точных чисел по ролям");
   }
 
   // Phase 3 — runDeepFromShortlist
@@ -260,7 +258,6 @@ async function probeOne(state: PipeState): Promise<void> {
   const t3 = Date.now();
   const phase1 = await runDeepFromShortlist(shortlistResult, approvedAll, {
     marketData,
-    skipPerplexityStep5: marketData !== undefined,
   });
   const ms3 = Date.now() - t3;
   console.log(`  [Phase 3] done in ${(ms3 / 1000).toFixed(1)}s`);
@@ -326,9 +323,7 @@ async function main(): Promise<void> {
   console.log(`PROD_URL: ${PROD_URL}`);
   console.log(`Probe for: ${NICKS.join(", ")}`);
   console.log(`ANTHROPIC_API_KEY:  ${process.env.ANTHROPIC_API_KEY ? "set" : "NOT SET"}`);
-  console.log(`PERPLEXITY_API_KEY: ${process.env.PERPLEXITY_API_KEY ? "set" : "NOT SET"}`);
   console.log(`APPS_SCRIPT_DOC_URL: ${process.env.APPS_SCRIPT_DOC_URL ? "set" : "NOT SET"}`);
-  console.log(`MARKET_RESEARCH_PROVIDER: ${process.env.MARKET_RESEARCH_PROVIDER ?? "(default: claude)"}`);
 
   const states = await fetchAll();
   console.log(`Загружено ${states.length} клиентов с прода.`);
