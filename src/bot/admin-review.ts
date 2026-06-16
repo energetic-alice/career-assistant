@@ -121,15 +121,15 @@ function buildAnalyzeKeyboard(
           : stage === "final_failed"
             ? "🔁 Повторить"
             : "📄 Собрать финал";
-      const finalRow: Array<CallbackBtn | UrlBtn> = [
-        Markup.button.callback(label, `deep:final:${participantId}`),
-      ];
-      // «📝 HTML» — в ту же строку, когда финал готов (markdown есть).
+      // «📝 HTML Финал» идёт первой (когда финал готов и есть markdown),
+      // затем кнопка действия «🔁 Финал» / «📄 Собрать финал».
+      const finalRow: Array<CallbackBtn | UrlBtn> = [];
       if (hasFinalMarkdown) {
         finalRow.push(
-          Markup.button.callback("📝 HTML", `deep:html:${participantId}`),
+          Markup.button.callback("📝 HTML Финал", `deep:html:${participantId}`),
         );
       }
+      finalRow.push(Markup.button.callback(label, `deep:final:${participantId}`));
       rows.push(finalRow);
     }
     // Кнопку «Открыть Google Doc» не дублируем: ссылка на Doc уже есть
