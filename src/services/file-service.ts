@@ -152,7 +152,7 @@ async function extractPdfWithClaude(buffer: Buffer): Promise<string> {
     const base64 = buffer.toString("base64");
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 8192,
       messages: [
         {
@@ -189,7 +189,7 @@ async function extractImageWithClaude(buffer: Buffer, mimeType: string): Promise
   const base64 = buffer.toString("base64");
 
   const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-6",
     max_tokens: 8192,
     messages: [
       {

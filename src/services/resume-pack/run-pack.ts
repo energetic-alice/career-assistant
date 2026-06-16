@@ -17,7 +17,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPTS_DIR = join(__dirname, "..", "..", "prompts", "resume");
 const AUDIT_PROMPT_PATH = join(PROMPTS_DIR, "01-audit.md");
 
-const MODEL = process.env.RESUME_PACK_MODEL || "claude-sonnet-4-20250514";
+const MODEL = process.env.RESUME_PACK_MODEL || "claude-sonnet-4-6";
 const MAX_OUTPUT_TOKENS = 6000;
 
 // ── helpers ─────────────────────────────────────────────────────────────────

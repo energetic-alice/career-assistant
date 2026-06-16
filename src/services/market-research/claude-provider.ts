@@ -32,7 +32,7 @@ import { resolveCorrectedSlug } from "./slug-validator.js";
 import { resolveNiche, type ResolvedNiche } from "./niche-resolver.js";
 
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = process.env.MARKET_RESEARCH_CLAUDE_MODEL || "claude-sonnet-4-20250514";
+const MODEL = process.env.MARKET_RESEARCH_CLAUDE_MODEL || "claude-sonnet-4-6";
 const ANTHROPIC_VERSION = "2023-06-01";
 const CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 const CACHE_STORE_NAME = "claude-market-research-cache";

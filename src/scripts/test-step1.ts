@@ -33,7 +33,7 @@ function loadRow(rowIndex: number): Record<string, string> {
 const SSI_COLUMN = "Если есть Linkedin, напиши цифру своего SSI-рейтинга, он находится тут справа от большого кружка по ссылке: https://www.linkedin.com/sales/ssi \nНапример, на картинке ниже SSI 56";
 
 const client = new Anthropic();
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-sonnet-4-6";
 
 async function main() {
   const rowIndex = parseInt(process.argv[2] || "0", 10);

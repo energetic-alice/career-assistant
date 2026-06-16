@@ -42,7 +42,7 @@ const NICKS = (process.env.NICKS || "rain_nl,energetic_alice,g_eckert")
   .filter(Boolean);
 
 const client = new Anthropic();
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-sonnet-4-6";
 
 interface PipeStateOutputs {
   clientSummary?: ClientSummary;

@@ -28,7 +28,7 @@ const RAW_DIR = join(__dirname, "..", "..", "data", "resume_helpers_raw");
 const OUT_DIR = join(__dirname, "..", "..", "data", "role_resume_patterns");
 const MARKET_INDEX_PATH = join(__dirname, "..", "..", "data", "market-index.json");
 
-const MODEL = process.env.ROLE_PATTERN_MODEL || "claude-sonnet-4-20250514";
+const MODEL = process.env.ROLE_PATTERN_MODEL || "claude-sonnet-4-6";
 const MAX_OUTPUT_TOKENS = 6000;
 const MAX_RAW_CHARS_PER_FILE = 6000;
 

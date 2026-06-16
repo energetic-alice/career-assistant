@@ -8,7 +8,7 @@ import type { ClientSummary } from "../../schemas/client-summary.js";
 import type { LinkedinProfile } from "../linkedin-fetcher.js";
 import { parseLlmJson } from "../llm-json.js";
 
-const MODEL = process.env.IDEAL_RESUME_FACTS_MODEL || "claude-sonnet-4-20250514";
+const MODEL = process.env.IDEAL_RESUME_FACTS_MODEL || "claude-sonnet-4-6";
 const MAX_OUTPUT_TOKENS = 8000;
 
 export interface ExtractFactsInput {

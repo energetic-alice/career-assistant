@@ -66,7 +66,7 @@ async function loadResumeText(row: Record<string, string>): Promise<string> {
 }
 
 const client = new Anthropic();
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-sonnet-4-6";
 
 async function main() {
   const rowIndex = parseInt(process.argv[2] || "0", 10);

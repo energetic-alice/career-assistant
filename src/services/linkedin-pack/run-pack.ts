@@ -29,7 +29,7 @@ const AUDIT_PROMPT_PATH = join(PROMPTS_DIR, "01-audit.md");
 const HEADLINE_PROMPT_PATH = join(PROMPTS_DIR, "02-headline.md");
 const PROFILE_CONTENT_PROMPT_PATH = join(PROMPTS_DIR, "03-profile-content.md");
 
-const MODEL = process.env.LINKEDIN_PACK_MODEL || "claude-sonnet-4-20250514";
+const MODEL = process.env.LINKEDIN_PACK_MODEL || "claude-sonnet-4-6";
 const MAX_OUTPUT_TOKENS = 6000;
 /** Profile content — тяжёлая фаза (about + experience + actionPlan), нужно больше tokens. */
 const PROFILE_MAX_OUTPUT_TOKENS = 12000;

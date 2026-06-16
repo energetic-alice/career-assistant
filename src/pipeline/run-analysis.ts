@@ -52,7 +52,24 @@ import { getMarketResearchProvider } from "../services/market-research/index.js"
 import { sanitizeRussianText } from "../services/text-sanitize.js";
 
 const client = new Anthropic();
-const MODEL = "claude-sonnet-4-20250514";
+
+/**
+ * Модель карьерного анализа (Phase 0/1/3/4). По умолчанию — `claude-sonnet-4-6`
+ * (прямой преемник снятого с продакшна `claude-sonnet-4-20250514`, ретайр
+ * 15 июня 2026). Переопределяется через env `ANALYSIS_MODEL` либо в рантайме
+ * через `setAnalysisModel()` — это используется probe-скриптом сравнения
+ * моделей, который в одном процессе гоняет несколько моделей подряд.
+ */
+const DEFAULT_ANALYSIS_MODEL = "claude-sonnet-4-6";
+let currentAnalysisModel = process.env.ANALYSIS_MODEL || DEFAULT_ANALYSIS_MODEL;
+
+export function setAnalysisModel(model: string): void {
+  currentAnalysisModel = model;
+}
+
+export function getAnalysisModel(): string {
+  return currentAnalysisModel;
+}
 
 /**
  * Человекочитаемая строка «whitelist рынков» для подстановки в
@@ -111,7 +128,7 @@ async function callClaudeStructured<TOutput, TInput = TOutput>(
       ? `${prompt}\n\n---\n${extraInstruction}`
       : prompt;
     const response = await client.messages.create({
-      model: MODEL,
+      model: currentAnalysisModel,
       max_tokens: maxTokens,
       tools: [
         {
@@ -173,7 +190,7 @@ async function callClaudeStructured<TOutput, TInput = TOutput>(
 
 async function callClaudeText(prompt: string, maxTokens = 16000): Promise<string> {
   const response = await client.messages.create({
-    model: MODEL,
+    model: currentAnalysisModel,
     max_tokens: maxTokens,
     messages: [{ role: "user", content: prompt }],
   });

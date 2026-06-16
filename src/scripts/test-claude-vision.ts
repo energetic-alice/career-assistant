@@ -12,7 +12,7 @@ import Anthropic from "@anthropic-ai/sdk";
  * публично доступен) + fallback на unsplash.
  */
 
-const MODEL = process.env.LINKEDIN_PACK_MODEL || "claude-sonnet-4-20250514";
+const MODEL = process.env.LINKEDIN_PACK_MODEL || "claude-sonnet-4-6";
 
 async function tryUrlMode(url: string): Promise<void> {
   console.log(`\n── VARIANT A: image source "url" ──`);
