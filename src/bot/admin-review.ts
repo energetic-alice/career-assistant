@@ -75,27 +75,29 @@ function buildAnalyzeKeyboard(
   type UrlBtn = ReturnType<typeof Markup.button.url>;
   const rows: Array<Array<CallbackBtn | UrlBtn>> = [];
 
-  // Если уже есть сохранённый shortlist — приоритетная кнопка «открыть
-  // существующий» (re-render из state, без перезапуска анализа).
+  // Если уже есть сохранённый shortlist — «Открыть» (re-render из state) и
+  // «Перегенерировать» (перезапуск Phase 1 с нуля) в одну строку. Перегенерацию
+  // прячем на финальных стадиях (final_ready/final_sent): там пересборка
+  // shortlist'а почти не нужна и только засоряет карточку — оставляем только
+  // «Открыть». Если shortlist'а ещё нет — одна кнопка «Предварительный анализ».
   const shortlist = outputs.shortlist as { slots?: unknown[] } | undefined;
   const hasShortlist = !!shortlist?.slots && shortlist.slots.length > 0;
+  const finalDone = stage === "final_ready" || stage === "final_sent";
   if (hasShortlist) {
+    const shortlistRow: Array<CallbackBtn | UrlBtn> = [
+      Markup.button.callback("📋 Открыть", `show_shortlist:${participantId}`),
+    ];
+    if (!finalDone) {
+      shortlistRow.push(
+        Markup.button.callback("🔄 Пересоздать", `analyze:${participantId}`),
+      );
+    }
+    rows.push(shortlistRow);
+  } else {
     rows.push([
-      Markup.button.callback(
-        "📋 Открыть shortlist",
-        `show_shortlist:${participantId}`,
-      ),
+      Markup.button.callback("🔍 Предварительный анализ", `analyze:${participantId}`),
     ]);
   }
-
-  rows.push([
-    Markup.button.callback(
-      hasShortlist
-        ? "🔄 Перезапустить предварительный анализ"
-        : "🔍 Предварительный анализ",
-      `analyze:${participantId}`,
-    ),
-  ]);
 
   // Deep-слоты (для меню упаковки) — собираются на approve вместе с
   // финальным гейтом. Отдельной кнопки «открыть/перезапустить Phase 2» больше
@@ -118,27 +120,28 @@ function buildAnalyzeKeyboard(
     stage === "deep_approved";
 
   if (isFinalStage) {
-    if (stage === "final_generating") {
-      rows.push([
-        Markup.button.callback("⚙️ Финальный анализ собирается…", `deep:noop:${participantId}`),
-      ]);
-    } else {
+    // Во время генерации кнопку действия не показываем — прогресс виден в
+    // тексте карточки («📄 Карьерный анализ: ⚙️ собирается…»).
+    if (stage !== "final_generating") {
       const label =
         stage === "final_ready" || stage === "final_sent"
-          ? "🔁 Перегенерировать финальный анализ"
+          ? "🔁 Обновить финал"
           : stage === "final_failed"
-            ? "🔁 Повторить финальный анализ"
-            : "📄 Сгенерировать финальный анализ";
-      rows.push([Markup.button.callback(label, `deep:final:${participantId}`)]);
+            ? "🔁 Повторить"
+            : "📄 Собрать финал";
+      const finalRow: Array<CallbackBtn | UrlBtn> = [
+        Markup.button.callback(label, `deep:final:${participantId}`),
+      ];
+      // «📝 HTML» — в ту же строку, когда финал готов (markdown есть).
+      if (hasFinalMarkdown) {
+        finalRow.push(
+          Markup.button.callback("📝 HTML", `deep:html:${participantId}`),
+        );
+      }
+      rows.push(finalRow);
     }
-    if (hasFinalMarkdown) {
-      rows.push([
-        Markup.button.callback("📝 Прислать HTML с анализом", `deep:html:${participantId}`),
-      ]);
-    }
-    if (finalAnalysis?.docUrl) {
-      rows.push([Markup.button.url("📄 Открыть Google Doc", finalAnalysis.docUrl)]);
-    }
+    // Кнопку «Открыть Google Doc» не дублируем: ссылка на Doc уже есть
+    // в тексте карточки клиента (review-summary: «📄 Карьерный анализ»).
     // Маркер "отправлено клиенту" - ручное действие куратора, необратимое.
     // После sent кнопка убирается; если анализ надо перегенерировать, куратор
     // всё равно может нажать "🔁 Перегенерировать" из той же карточки.
@@ -165,7 +168,7 @@ function buildAnalyzeKeyboard(
   if (finalReady && hasFinalTop3 && deep?.slots && deep.slots.length > 0) {
     rows.push([
       Markup.button.callback(
-        "🎯 Выбрать направление для упаковки",
+        "🎯 Направление упаковки",
         `prog:target_menu:${participantId}`,
       ),
     ]);

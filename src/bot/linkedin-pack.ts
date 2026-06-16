@@ -87,25 +87,22 @@ export function linkedinPackKeyboardRows(
 
   const rows: Array<Array<ReturnType<typeof Markup.button.callback> | ReturnType<typeof Markup.button.url>>> = [];
 
+  // Во время сборки кнопку не показываем: прогресс виден в тексте карточки
+  // и в отдельном live-сообщении пакета. Так не плодим кнопку-заглушку и не
+  // оголяем кликабельный «запуск» в середине генерации.
   if (stage === "linkedin_generating") {
-    rows.push([
-      Markup.button.callback(
-        "⚙️ LinkedIn-пак собирается…",
-        `linkedin:noop:${participantId}`,
-      ),
-    ]);
-    return rows;
+    return [];
   }
 
   const runLabel = hasArtifact
-    ? "🔁 Перегенерировать LinkedIn-пак"
-    : "🔗 LinkedIn-пак (аудит + headline)";
+    ? "🔁 Пересобрать LinkedIn"
+    : "🔗 LinkedIn-пак";
   rows.push([
     Markup.button.callback(runLabel, `linkedin:run:${participantId}`),
   ]);
 
   if (hasArtifact && artifact?.url) {
-    rows.push([Markup.button.url("📄 Открыть LinkedIn-пак", artifact.url)]);
+    rows.push([Markup.button.url("📄 Открыть LinkedIn", artifact.url)]);
   }
 
   if (stage === "linkedin_ready") {
