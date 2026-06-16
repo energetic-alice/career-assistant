@@ -70,6 +70,47 @@ export function getAnalysisModel(): string {
 }
 
 /**
+ * Резервная модель на случай, когда основная (`currentAnalysisModel`, обычно
+ * Opus 4.8 через `ANALYSIS_MODEL`) перегружена и Anthropic отдаёт 529
+ * `overloaded_error`. Sonnet 4.6 — прямой и стабильный преемник, держит тот же
+ * контракт промптов, поэтому переключение безопасно и прозрачно для куратора.
+ */
+const FALLBACK_ANALYSIS_MODEL = "claude-sonnet-4-6";
+
+/** Перегрузка Anthropic: HTTP 529 либо `overloaded_error` в теле. */
+function isOverloadedError(err: unknown): boolean {
+  if (err instanceof Anthropic.APIError && err.status === 529) return true;
+  const msg = err instanceof Error ? err.message : String(err);
+  return /overloaded_error|"type"\s*:\s*"overloaded"|\boverloaded\b/i.test(msg);
+}
+
+/**
+ * Обёртка над `client.messages.create`: если основная модель перегружена
+ * (529 overloaded), один раз повторяет запрос на `FALLBACK_ANALYSIS_MODEL`.
+ * SDK сам ретраит 529 несколько раз на той же модели — сюда мы попадаем уже
+ * после исчерпания этих ретраев, поэтому смена модели оправдана.
+ */
+async function createMessageWithFallback(
+  params: Anthropic.MessageCreateParamsNonStreaming,
+): Promise<Anthropic.Message> {
+  try {
+    return await client.messages.create(params);
+  } catch (err) {
+    if (isOverloadedError(err) && params.model !== FALLBACK_ANALYSIS_MODEL) {
+      console.warn(
+        `[claude] модель ${params.model} перегружена (529 overloaded_error) — ` +
+          `фолбэк на ${FALLBACK_ANALYSIS_MODEL}.`,
+      );
+      return await client.messages.create({
+        ...params,
+        model: FALLBACK_ANALYSIS_MODEL,
+      });
+    }
+    throw err;
+  }
+}
+
+/**
  * Человекочитаемая строка «whitelist рынков» для подстановки в
  * `{{allowedMarkets}}`. Содержит список `accessibleMarkets` в порядке,
  * в каком они были вычислены, плюс пометку, что UK — EU-прокси (если так).
@@ -125,7 +166,7 @@ async function callClaudeStructured<TOutput, TInput = TOutput>(
     const fullPrompt = extraInstruction
       ? `${prompt}\n\n---\n${extraInstruction}`
       : prompt;
-    const response = await client.messages.create({
+    const response = await createMessageWithFallback({
       model: currentAnalysisModel,
       max_tokens: maxTokens,
       tools: [
@@ -187,7 +228,7 @@ async function callClaudeStructured<TOutput, TInput = TOutput>(
 }
 
 async function callClaudeText(prompt: string, maxTokens = 16000): Promise<string> {
-  const response = await client.messages.create({
+  const response = await createMessageWithFallback({
     model: currentAnalysisModel,
     max_tokens: maxTokens,
     messages: [{ role: "user", content: prompt }],
