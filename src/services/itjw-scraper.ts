@@ -152,6 +152,8 @@ export function parseIntSafe(raw: string): number | null {
 
 /**
  * Считает trend.ratio = now / twoYearsAgo (fallback на yearAgo если 2y нет).
+ * Это сырая 2-летняя динамика (live-fallback путь). Для финального сигнала
+ * устойчивости используется относительная к рынку метрика (см. market-index).
  * Возвращает null если данных не хватает или знаменатель = 0.
  */
 export function computeTrendRatio(trend: ItjobswatchTrend): number | null {

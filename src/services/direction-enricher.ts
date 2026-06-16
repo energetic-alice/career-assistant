@@ -2,7 +2,7 @@ import { loadMarketIndex } from "./role-scorer.js";
 import type { Direction } from "../schemas/analysis-outputs.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
 import type { MarketIndexEntry, RegionStats } from "../schemas/market-index.js";
-import { competitionLabel, trendLabelPct } from "../schemas/market-index.js";
+import { competitionLabel, trendBucket } from "../schemas/market-index.js";
 import { KNOWN_ROLES, type KnownRoleSlug } from "./known-roles.js";
 import { canonicalizeRoleSlug, matchRoleToSlug } from "./role-matcher.js";
 
@@ -240,6 +240,8 @@ export interface EnrichedDirection {
   aiRisk: MarketIndexEntry["aiRisk"] | null;
   competitionPer100: number | null;
   trendRatio: number | null;
+  /** Динамика относительно рынка (доля рынка). Основной сигнал устойчивости. */
+  trendVsMarket: number | null;
 
   /** Raw market-index entry for downstream use (prompt-03, UI). */
   entry: MarketIndexEntry | null;
@@ -341,6 +343,7 @@ export async function enrichDirections(
       entry?.competitionPer100 ?? stats?.competitionPer100Specialists ?? null;
     const slugTrendRatio =
       entry?.trendRatio ?? stats?.trend?.ratio ?? null;
+    const slugTrendVsMarket = entry?.trendVsMarket ?? null;
 
     return {
       index: i,
@@ -356,6 +359,7 @@ export async function enrichDirections(
       aiRisk: entry?.aiRisk ?? null,
       competitionPer100: slugCompetition,
       trendRatio: slugTrendRatio,
+      trendVsMarket: slugTrendVsMarket,
       entry,
       dataSource,
     };
@@ -379,7 +383,7 @@ export interface DirectionTableHints {
   roleSlug: string;
   /** Ширина рынка: качественно, без цифр. Из vacancies + vacancy_volume. */
   width: "нишевый" | "средний" | "широкий" | null;
-  /** Динамика, готовая строка для таблицы: "+40% за 2 года" / "стабильно" / "-15% за 2 года". */
+  /** Динамика относительно рынка, бакет: "растёт быстрее рынка" / "на уровне рынка" / "слабеет относительно рынка" / "сильно слабеет". */
   trend: string | null;
   /** Конкуренция, готовая метка из competitionLabel(). */
   competition: "низкая" | "средняя" | "высокая" | null;
@@ -425,7 +429,7 @@ export function buildTableHints(rows: EnrichedDirection[]): DirectionTableHints[
     title: r.title,
     roleSlug: r.roleSlug,
     width: widthFromVacancies(r.vacancies),
-    trend: trendLabelPct(r.trendRatio),
+    trend: trendBucket(r.trendVsMarket),
     competition: competitionLabel(r.competitionPer100),
     aiRisk: mapAiRisk(r.aiRisk),
   }));
@@ -622,7 +626,7 @@ export function formatEnrichedAsMarketData(rows: EnrichedDirection[]): string {
       `- vacancies: ${fmtNum(r.vacancies)} · medianSalary: ${fmtNum(r.medianSalaryMid)}${compPart}`,
     );
     lines.push(
-      `- aiRisk: ${r.aiRisk ?? "—"} · trend: ${r.trendRatio !== null ? `${((r.trendRatio - 1) * 100).toFixed(0)}%` : "—"}`,
+      `- aiRisk: ${r.aiRisk ?? "—"} · trend (динамика vs рынок): ${trendBucket(r.trendVsMarket) ?? "—"}`,
     );
     if (r.perplexityReasoning) {
       lines.push(`- reasoning: ${r.perplexityReasoning}`);

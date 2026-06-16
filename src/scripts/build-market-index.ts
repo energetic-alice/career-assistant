@@ -298,7 +298,11 @@ async function buildUk(def: RoleDef): Promise<RegionStats | null> {
 
 /**
  * Преобразовать parsed.trend → RegionStats.trend с посчитанным ratio.
- * Приоритет базы: twoYearsAgo → yearAgo. Если now отсутствует / 0 → null.
+ * ratio = now / twoYearsAgo (raw 2-летняя динамика, для прозрачности).
+ * Сам по себе этот ratio искажён общим обвалом рынка 2024-2025 — поэтому в
+ * индекс/таблицу/скоринг идёт НЕ он, а относительная к рынку метрика
+ * `trendVsMarket` (см. main()), которая нормирует этот общий swing.
+ * Если now отсутствует / 0 → null.
  */
 function buildTrend(
   raw: { now: number; yearAgo: number; twoYearsAgo: number } | null | undefined,
@@ -441,6 +445,42 @@ async function main(): Promise<void> {
     };
     index[def.slug] = entry;
   }
+
+  // ---------------------------------------------------------------------------
+  // Относительная к рынку динамика (trendVsMarket)
+  // ---------------------------------------------------------------------------
+  // Рыночный бейзлайн = 2-летняя динамика «корзины» всех ролей (UK itjobswatch).
+  // Сырой now/twoYearsAgo искажён общим обвалом рынка 2024-2025 (всего IT-вакансий
+  // упало ~−40% и частично восстановилось). Деля динамику роли на динамику рынка,
+  // получаем изменение ДОЛИ рынка роли — sample-независимый сигнал устойчивости.
+  let marketNow = 0;
+  let marketBase = 0;
+  for (const e of Object.values(index)) {
+    const t = e.uk?.trend;
+    if (t && t.now > 0 && t.twoYearsAgo > 0) {
+      marketNow += t.now;
+      marketBase += t.twoYearsAgo;
+    }
+  }
+  const marketRatio = marketBase > 0 ? marketNow / marketBase : null;
+
+  for (const e of Object.values(index)) {
+    const roleRatio = e.uk?.trend?.ratio ?? null;
+    if (marketRatio === null || roleRatio === null) {
+      e.trendVsMarket = null;
+      continue;
+    }
+    // Клампим экстремумы малых баз (напр. marketing_manager): бакет всё равно
+    // обрежет отображение, но для скоринга ограничиваем влияние выбросов.
+    const rel = Math.min(roleRatio / marketRatio, 3);
+    e.trendVsMarket = Math.round(rel * 100) / 100;
+  }
+
+  console.log(
+    `[market-index] Рыночная корзина (2y) = ${
+      marketRatio !== null ? `${((marketRatio - 1) * 100).toFixed(0)}%` : "n/a"
+    } → база для trendVsMarket`,
+  );
 
   await mkdir(dirname(OUT_PATH), { recursive: true });
   await writeFile(OUT_PATH, JSON.stringify(index, null, 2), "utf-8");

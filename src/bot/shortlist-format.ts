@@ -12,7 +12,7 @@
 
 import type { Direction } from "../schemas/analysis-outputs.js";
 import type { EnrichedDirection } from "../services/direction-enricher.js";
-import { competitionLabel } from "../schemas/market-index.js";
+import { competitionLabel, trendBucket } from "../schemas/market-index.js";
 
 export interface DirectionSlotLike {
   direction: Direction;
@@ -134,15 +134,17 @@ export function formatMarketLine(d: Direction, enriched?: EnrichedDirection): st
     if (enriched.competitionPer100 != null && compLabel !== null) {
       parts.push(`конк ${enriched.competitionPer100.toFixed(1)}/100 (${compLabel})`);
     }
-    if (enriched.trendRatio != null && enriched.trendRatio > 0) {
-      // trendRatio = now / twoYearsAgo (например 1.75 = +75%, 0.75 = -25%).
-      // В UI показываем именно изменение, а не абсолютный коэффициент.
-      const pctChange = Math.round((enriched.trendRatio - 1) * 100);
-      if (Math.abs(pctChange) >= 5) {
-        const arrow = pctChange > 0 ? "↑" : "↓";
-        const sign = pctChange > 0 ? "+" : "";
-        parts.push(`тренд ${arrow} ${sign}${pctChange}%`);
-      }
+    // Динамика — относительно рынка (доля рынка), а не сырой % вакансий:
+    // сырые счётчики искажены общим обвалом рынка 2024-2025.
+    const tb = trendBucket(enriched.trendVsMarket);
+    if (tb) {
+      const arrow =
+        enriched.trendVsMarket != null && enriched.trendVsMarket >= 1.2
+          ? "↑"
+          : enriched.trendVsMarket != null && enriched.trendVsMarket < 0.85
+          ? "↓"
+          : "→";
+      parts.push(`тренд ${arrow} ${tb}`);
     }
     // Если ни vacancies/salary/competition нет — это критичный пробел,
     // финал без них бесполезен. Явно сигналим вместо неинформативного "[m] AI high".

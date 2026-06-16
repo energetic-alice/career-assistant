@@ -35,7 +35,10 @@ export function competitionLabel(per100: number | null | undefined): Competition
 }
 
 /**
- * Конвертирует ratio = now/twoYearsAgo в короткий текстовый лейбл для таблицы.
+ * Конвертирует сырой ratio = now/twoYearsAgo в короткий текстовый лейбл.
+ * ВНИМАНИЕ: сырой 2-летний ratio искажён общим обвалом рынка 2024-2025 и
+ * НЕ должен идти в клиентскую таблицу — там используется `trendBucket()` от
+ * относительной к рынку метрики. Эта функция оставлена для отладки/легаси.
  * Примеры:
  *   1.50 → "+50% за 2 года"
  *   0.75 → "-25% за 2 года"
@@ -50,6 +53,36 @@ export function trendLabelPct(ratio: number | null | undefined): string | null {
   if (Math.abs(pct) < 5) return "стабильно";
   const sign = pct > 0 ? "+" : "";
   return `${sign}${pct}% за 2 года`;
+}
+
+export const trendBucketEnum = z.enum([
+  "растёт быстрее рынка",
+  "на уровне рынка",
+  "слабеет относительно рынка",
+  "сильно слабеет",
+]);
+export type TrendBucket = z.infer<typeof trendBucketEnum>;
+
+/**
+ * Качественный бакет динамики ОТНОСИТЕЛЬНО рынка (sample-независимый сигнал).
+ * Аргумент `vsMarket` = (динамика роли) / (динамика всего рынка) за то же окно
+ * — т.е. доля рынка: <1 роль теряет долю (слабеет сильнее рынка), >1 набирает.
+ * Это убирает общий обвал/восстановление рынка, который зашумлял сырые цифры.
+ *
+ * Пороги согласованы с `trendComponent()` в role-scorer (1.0 = «как рынок»):
+ *   >= 1.20 → растёт быстрее рынка
+ *   >= 0.85 → на уровне рынка
+ *   >= 0.55 → слабеет относительно рынка
+ *   <  0.55 → сильно слабеет
+ */
+export function trendBucket(vsMarket: number | null | undefined): TrendBucket | null {
+  if (vsMarket === null || vsMarket === undefined || !Number.isFinite(vsMarket) || vsMarket <= 0) {
+    return null;
+  }
+  if (vsMarket >= 1.2) return "растёт быстрее рынка";
+  if (vsMarket >= 0.85) return "на уровне рынка";
+  if (vsMarket >= 0.55) return "слабеет относительно рынка";
+  return "сильно слабеет";
 }
 
 export const regionStatsSchema = z.object({
@@ -146,15 +179,21 @@ export const marketIndexEntrySchema = z.object({
   competitionPer100: z.number().nullable().optional(),
 
   /**
-   * Slug-level динамика спроса (perm-vacancies, 2-year window, ratio = now/twoYearsAgo).
+   * Slug-level СЫРАЯ динамика спроса (perm-vacancies, 2-year, ratio = now/twoYearsAgo).
    * Источник приоритета: UK itjobswatch (`uk.trend.ratio`) → RU snapshots
-   * (`ru.trend.ratio`) → null. UK-сигнал предпочтительнее, потому что в RU
-   * рынок сильно искажён санкциями последних 2 лет и даёт нерепрезентативную
-   * картину для глобальной роли.
-   *
-   * В финал таблицу отдаём как `динамика ±N% YoY` через `trendLabelPct()`.
+   * (`ru.trend.ratio`) → null. Сырое значение искажено общим обвалом рынка
+   * 2024-2025 — в клиентскую таблицу/скоринг НЕ идёт. Хранится для прозрачности.
    */
   trendRatio: z.number().nullable().optional(),
+
+  /**
+   * Динамика роли ОТНОСИТЕЛЬНО рынка = (динамика роли) / (динамика всего рынка)
+   * за то же 2-летнее окно. Математически = изменение доли рынка роли, поэтому
+   * sample-независимо (общий swing рынка сокращается). Это основной сигнал
+   * устойчивости: <1 роль теряет долю, >1 набирает. Считается в build-market-index
+   * по корзине всех ролей. В таблицу идёт через `trendBucket()`.
+   */
+  trendVsMarket: z.number().nullable().optional(),
 });
 export type MarketIndexEntry = z.infer<typeof marketIndexEntrySchema>;
 

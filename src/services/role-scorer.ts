@@ -98,8 +98,8 @@ export interface ScoredRoleComponents {
   /** 0..100 by role category distance from client current/desired */
   adjacency: number;
   /**
-   * 0..100 по динамике спроса (now/twoYearsAgo). null если истории нет
-   * (типично для RU до накопления snapshot-ов — компонент скипается).
+   * 0..100 по динамике спроса ОТНОСИТЕЛЬНО рынка (trendVsMarket = доля рынка).
+   * null если истории нет (типично для RU до накопления snapshot-ов).
    */
   trend: number | null;
 }
@@ -217,7 +217,8 @@ export function salaryComponent(
 }
 
 /**
- * 0..100 по динамике спроса. ratio = now / twoYearsAgo (или yearAgo-fallback).
+ * 0..100 по динамике спроса. Аргумент — относительная к рынку метрика
+ * (trendVsMarket = доля рынка): 1.0 = «как рынок» → 70. Sample-независима.
  * `null` → данных нет, компонент скипается (вес размазывается).
  */
 export function trendComponent(ratio: number | null | undefined): number | null {
@@ -510,7 +511,7 @@ function scoreOneRole(
       currentSlugs,
       closestItSlugs,
     ),
-    trend: trendComponent(stats?.trend?.ratio),
+    trend: trendComponent(entry.trendVsMarket ?? stats?.trend?.ratio ?? null),
   };
 
   const reasons: string[] = [];
