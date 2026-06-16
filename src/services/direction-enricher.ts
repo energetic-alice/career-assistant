@@ -5,6 +5,7 @@ import type { MarketIndexEntry, RegionStats } from "../schemas/market-index.js";
 import { competitionLabel, trendBucket } from "../schemas/market-index.js";
 import { KNOWN_ROLES, type KnownRoleSlug } from "./known-roles.js";
 import { canonicalizeRoleSlug, matchRoleToSlug } from "./role-matcher.js";
+import { resolveClientGrade } from "./client-grade.js";
 
 /**
  * «Широкие» slug'и — их каталожная запись на деле покрывает семейство
@@ -38,19 +39,29 @@ const MAX_DUPES_IN_FAMILY = 3;
  *    до MAX_DUPES_IN_FAMILY направлений с одним slug (разные ниши одного семейства)
  *  - normalises offIndex flag based on KNOWN_ROLES membership
  *  - junior level → warning (клиент мог явно попросить)
+ *  - лид/менеджмент-роль с тегом middle/middle+ → фикс грейда или дроп
+ *    (зависит от грейда клиента, см. ниже)
  *
  * Returns a NEW array (does not mutate input).
  */
 export async function postValidateDirections(
   directions: Direction[],
-  _opts?: { targetMarketRegions?: string[] },
+  _opts?: { targetMarketRegions?: string[]; clientSummary?: ClientSummary },
 ): Promise<Direction[]> {
   const index = await loadMarketIndex();
   const knownSet: Set<string> = new Set(KNOWN_ROLES);
   const slugCounts = new Map<string, number>();
   const firstPass: Direction[] = [];
+  // Грейд клиента нужен, чтобы решить судьбу лид-ролей с под-senior тегом.
+  const clientGrade = _opts?.clientSummary
+    ? resolveClientGrade(_opts.clientSummary)
+    : null;
 
   const JUNIOR_RE = /[\s,()\[\]\-]+junior[\s,()\[\]\-]*/i;
+  // Лид/менеджмент-титулы — по лестнице (junior→middle→senior→lead→staff) они
+  // ВЫШЕ senior, поэтому тег (middle)/(middle+) для них невозможен.
+  const LEAD_TITLE_RE = /\b(tech\s*lead|team\s*lead|engineering\s*manager|head\s+of|staff\s+engineer|principal)\b/i;
+  const SUB_SENIOR_RE = /\(\s*middle\+?\s*\)/i;
 
   for (const orig of directions) {
     const d: Direction = { ...orig };
@@ -155,6 +166,30 @@ export async function postValidateDirections(
         `[postValidate] DROP "${d.title}" (slug=${slug}): unknown slug without offIndex+marketEvidence`,
       );
       continue;
+    }
+
+    // Лид/менеджмент-роль (Tech Lead, Engineering Manager, Head of, Staff…) по
+    // лестнице junior→middle→senior→lead→staff стоит ВЫШЕ senior, поэтому тег
+    // (middle)/(middle+) для неё невозможен. Решение зависит от грейда клиента:
+    //   - клиент senior/lead → floor (senior) законен, нормализуем тег;
+    //   - клиент ниже senior (или грейд неизвестен) → лид-роль ему сейчас не
+    //     направление: дропаем (промпт должен был дать senior IC-версию вместо
+    //     лид-титула). Грейд клиента НЕ повышаем искусственно.
+    const isLeadRole = slug === "tech_lead" || LEAD_TITLE_RE.test(d.title);
+    if (isLeadRole && SUB_SENIOR_RE.test(d.title)) {
+      if (clientGrade === "senior" || clientGrade === "lead") {
+        const fixed = d.title.replace(SUB_SENIOR_RE, "(senior)");
+        console.warn(
+          `[postValidate] lead-role seniority floor (client=${clientGrade}): "${d.title}" → "${fixed}"`,
+        );
+        d.title = fixed;
+      } else {
+        console.warn(
+          `[postValidate] DROP "${d.title}" (slug=${slug}): лид-роль с тегом middle/middle+, ` +
+            `клиент=${clientGrade ?? "?"} — в лид с под-senior не входят`,
+        );
+        continue;
+      }
     }
 
     const count = slugCounts.get(slug) ?? 0;

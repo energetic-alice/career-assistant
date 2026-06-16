@@ -624,6 +624,7 @@ export async function runShortlist(
 
   directions.directions = await postValidateDirections(directions.directions, {
     targetMarketRegions: profile.careerGoals.targetMarketRegions,
+    clientSummary: input.clientSummary,
   });
   // Страховка от случаев когда Клод проигнорировал «отсортируй по score DESC».
   directions.directions.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
@@ -699,6 +700,7 @@ export async function regenerateOneDirection(
   );
   const validated = await postValidateDirections(fresh.directions, {
     targetMarketRegions: shortlist.profile.careerGoals.targetMarketRegions,
+    clientSummary: shortlist.clientSummary,
   });
   // Сортируем кандидатов по score DESC, чтобы в качестве замены выдать ЛУЧШЕЕ
   // новое направление, а не просто первое по порядку.
