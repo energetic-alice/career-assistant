@@ -121,10 +121,12 @@ function buildAnalyzeKeyboard(
           : stage === "final_failed"
             ? "🔁 Повторить"
             : "📄 Собрать финал";
-      // «📝 HTML Финал» идёт первой (когда финал готов и есть markdown),
-      // затем кнопка действия «🔁 Финал» / «📄 Собрать финал».
+      // «📝 HTML Финал» идёт первой, но ТОЛЬКО когда финал реально собран
+      // (final_ready/final_sent). На deep_approved/final_failed markdown может
+      // остаться от прошлого прогона — кнопку HTML тогда не показываем.
+      const finalAssembled = stage === "final_ready" || stage === "final_sent";
       const finalRow: Array<CallbackBtn | UrlBtn> = [];
-      if (hasFinalMarkdown) {
+      if (hasFinalMarkdown && finalAssembled) {
         finalRow.push(
           Markup.button.callback("📝 HTML Финал", `deep:html:${participantId}`),
         );
