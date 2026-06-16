@@ -837,21 +837,15 @@ async function handleApprove(
     const { startFinalGate } = await import("./deep-review.js");
     const chatId = ctx.chat?.id;
     if (chatId == null) throw new Error("ctx.chat.id missing");
+    // Отдельного «✅ Shortlist одобрен …» сообщения больше не шлём — список
+    // рекомендованных/отклонённых и инструкция теперь в самой шапке финального
+    // гейта (startFinalGate → formatDeepHeader), чтобы не дублировать.
     await startFinalGate(
       participantId,
       chatId,
       toShortlistResult(shortlist),
       recommendedDirections,
       rejectedDirections,
-    );
-    await ctx.reply(
-      `✅ Shortlist одобрен.\n` +
-        `Рекомендованы (${recommendedDirections.length}): <code>${escapeHtml(slugs)}</code>` +
-        (rejectedDirections.length > 0
-          ? `\n🚫 Отклонено (${rejectedDirections.length}): <code>${escapeHtml(rejSlugs)}</code>`
-          : "") +
-        `\n\nЖми <b>📄 Сгенерировать финальный анализ</b> в шапке — соберём top-3 + документ в Google Docs.`,
-      { parse_mode: "HTML" },
     );
   } catch (err) {
     console.error(`[Shortlist] handleApprove → finalGate failed:`, err);

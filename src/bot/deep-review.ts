@@ -168,6 +168,32 @@ function formatDeepHeader(
     );
   }
 
+  // Начальный финальный гейт (deep_approved, финал ещё не собран): списки
+  // направлений и инструкция — прямо в шапке. Кнопка «📄 Сгенерировать
+  // финальный анализ» в клавиатуре встаёт сразу под этим текстом, поэтому
+  // отдельное сообщение «✅ Shortlist одобрен …» больше не нужно.
+  if (stage === "deep_approved") {
+    const recSlugs = state.slots
+      .filter((s) => isRecommended(s.direction))
+      .map((s) => s.direction.roleSlug)
+      .join(", ");
+    const rejSlugs = state.slots
+      .filter((s) => !isRecommended(s.direction))
+      .map((s) => s.direction.roleSlug)
+      .join(", ");
+    lines.push(
+      `\n✅ <b>Рекомендованы (${recommended}):</b> <code>${escapeHtml(recSlugs)}</code>`,
+    );
+    if (rejected > 0) {
+      lines.push(
+        `🚫 <b>Отклонено (${rejected}):</b> <code>${escapeHtml(rejSlugs)}</code>`,
+      );
+    }
+    lines.push(
+      `\nЖми <b>📄 Сгенерировать финальный анализ</b> — соберём top-3 + документ в Google Docs.`,
+    );
+  }
+
   return lines.join("\n");
 }
 
