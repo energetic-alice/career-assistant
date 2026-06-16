@@ -75,24 +75,16 @@ function buildAnalyzeKeyboard(
   type UrlBtn = ReturnType<typeof Markup.button.url>;
   const rows: Array<Array<CallbackBtn | UrlBtn>> = [];
 
-  // Если уже есть сохранённый shortlist — «Открыть» (re-render из state) и
-  // «Перегенерировать» (перезапуск Phase 1 с нуля) в одну строку. Перегенерацию
-  // прячем на финальных стадиях (final_ready/final_sent): там пересборка
-  // shortlist'а почти не нужна и только засоряет карточку — оставляем только
-  // «Открыть». Если shortlist'а ещё нет — одна кнопка «Предварительный анализ».
+  // Если уже есть сохранённый shortlist — «Shortlist» (открыть re-render из
+  // state) и «Обновить» (перезапуск Phase 1 с нуля) в одну строку. Если
+  // shortlist'а ещё нет — одна кнопка «Предварительный анализ».
   const shortlist = outputs.shortlist as { slots?: unknown[] } | undefined;
   const hasShortlist = !!shortlist?.slots && shortlist.slots.length > 0;
-  const finalDone = stage === "final_ready" || stage === "final_sent";
   if (hasShortlist) {
-    const shortlistRow: Array<CallbackBtn | UrlBtn> = [
-      Markup.button.callback("📋 Открыть", `show_shortlist:${participantId}`),
-    ];
-    if (!finalDone) {
-      shortlistRow.push(
-        Markup.button.callback("🔄 Пересоздать", `analyze:${participantId}`),
-      );
-    }
-    rows.push(shortlistRow);
+    rows.push([
+      Markup.button.callback("📋 Shortlist", `show_shortlist:${participantId}`),
+      Markup.button.callback("🔄 Обновить", `analyze:${participantId}`),
+    ]);
   } else {
     rows.push([
       Markup.button.callback("🔍 Предварительный анализ", `analyze:${participantId}`),
@@ -125,7 +117,7 @@ function buildAnalyzeKeyboard(
     if (stage !== "final_generating") {
       const label =
         stage === "final_ready" || stage === "final_sent"
-          ? "🔁 Обновить финал"
+          ? "🔁 Финал"
           : stage === "final_failed"
             ? "🔁 Повторить"
             : "📄 Собрать финал";
