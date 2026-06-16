@@ -9,7 +9,11 @@ import { registerLinkedinPack } from "./linkedin-pack.js";
 import { STAGE_LABELS } from "../services/review-summary.js";
 import type { ClientSummary } from "../schemas/client-summary.js";
 import type { PipelineState } from "../schemas/pipeline-state.js";
-import { PROGRAM_LABELS, type ProgramLabel } from "../schemas/pipeline-state.js";
+import {
+  PROGRAM_LABELS,
+  SELECTABLE_PROGRAM_LABELS,
+  type ProgramLabel,
+} from "../schemas/pipeline-state.js";
 import { normalizeNick } from "../services/intake-mapper.js";
 import { formatRegions } from "../services/market-access.js";
 
@@ -154,7 +158,7 @@ function splitToChunks(text: string, chunkLimit = 3500): string[] {
 function clientsKeyboard(active: ClientsFilter): ReturnType<typeof MarkupNs.inlineKeyboard> {
   const items: { id: ClientsFilter; label: string }[] = [
     { id: "all", label: "Все" },
-    ...PROGRAM_LABELS.map((p) => ({ id: p, label: p }) as { id: ClientsFilter; label: string }),
+    ...SELECTABLE_PROGRAM_LABELS.map((p) => ({ id: p, label: p }) as { id: ClientsFilter; label: string }),
     { id: VIP_TAG, label: VIP_TAG },
   ];
   const buttons = items.map((it) =>

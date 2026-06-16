@@ -7,7 +7,11 @@ import {
   persistPipelineStatesPublic,
   updatePipelineStage,
 } from "../pipeline/intake.js";
-import { PROGRAM_LABELS, type ProgramLabel } from "../schemas/pipeline-state.js";
+import {
+  PROGRAM_LABELS,
+  SELECTABLE_PROGRAM_LABELS,
+  type ProgramLabel,
+} from "../schemas/pipeline-state.js";
 import {
   dispatchShortlistCallback,
   resendShortlist,
@@ -207,7 +211,7 @@ function buildAnalyzeKeyboard(
   // Всегда видимый ряд, чтобы куратор мог как назначить, так и поменять
   // метку на любом этапе (кроме intake, где карточка минимальная).
   const currentProgram = outputs.program as string | undefined;
-  const programRow = PROGRAM_LABELS.map((label) =>
+  const programRow = SELECTABLE_PROGRAM_LABELS.map((label) =>
     Markup.button.callback(
       currentProgram === label ? `✅ ${label}` : label,
       `prog:set:${participantId}:${label}`,

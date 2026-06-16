@@ -60,6 +60,16 @@ export type PipelineStage = z.infer<typeof pipelineStageEnum>;
 export const PROGRAM_LABELS = ["КА1", "КА2", "КА3", "М14", "тест"] as const;
 export type ProgramLabel = (typeof PROGRAM_LABELS)[number];
 
+/**
+ * Метки, доступные для ВЫБОРА в интерфейсе (фильтр /clients + кнопки карточки).
+ * "М14" — закрытый mentoring-трек: остаётся валидной меткой в данных и типе
+ * (старые клиенты сохраняют свой тег, он отображается в списке), но из
+ * интерфейса убран, чтобы не мешать куратору. Валидация prog:set по-прежнему
+ * принимает полный PROGRAM_LABELS (можно снять старую метку, если осталась).
+ */
+export const SELECTABLE_PROGRAM_LABELS: readonly ProgramLabel[] =
+  PROGRAM_LABELS.filter((l) => l !== "М14");
+
 export const pipelineStateSchema = z.object({
   participantId: z.string(),
   telegramNick: z.string(),
