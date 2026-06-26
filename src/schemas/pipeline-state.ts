@@ -52,8 +52,9 @@ export type PipelineStage = z.infer<typeof pipelineStageEnum>;
  * webhook сам ничего не выставляет — куратор решает.
  *
  *   - "КА1"  — первая «живая» программа (legacy-импорт из Google Doc'ов).
- *   - "КА2"  — предыдущая программа (закрыта после старта КА3).
- *   - "КА3"  — текущая активная программа.
+ *   - "КА2"  — ранняя программа (закрыта после старта КА3).
+ *   - "КА3"  — предыдущий поток.
+ *   - "КА4"  — текущая активная программа.
  *   - "М14"  — отдельный mentoring-трек.
  *   - "тест" — тестовые/пилотные клиенты.
  *
@@ -62,7 +63,7 @@ export type PipelineStage = z.infer<typeof pipelineStageEnum>;
  * Проставляется кнопкой в карточке (`prog:vip:*`), показывается тегом в
  * /clients и имеет свой селектор-фильтр. В PROGRAM_LABELS его НЕ добавляем.
  */
-export const PROGRAM_LABELS = ["КА1", "КА2", "КА3", "М14", "тест"] as const;
+export const PROGRAM_LABELS = ["КА1", "КА2", "КА3", "КА4", "М14", "тест"] as const;
 export type ProgramLabel = (typeof PROGRAM_LABELS)[number];
 
 /**
