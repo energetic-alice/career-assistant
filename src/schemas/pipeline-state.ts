@@ -68,13 +68,14 @@ export type ProgramLabel = (typeof PROGRAM_LABELS)[number];
 
 /**
  * Метки, доступные для ВЫБОРА в интерфейсе (фильтр /clients + кнопки карточки).
- * "М14" — закрытый mentoring-трек: остаётся валидной меткой в данных и типе
+ * "М14" и "тест" — служебные метки: остаются валидными в данных и типе
  * (старые клиенты сохраняют свой тег, он отображается в списке), но из
- * интерфейса убран, чтобы не мешать куратору. Валидация prog:set по-прежнему
+ * интерфейса убраны, чтобы не мешать куратору. Валидация prog:set по-прежнему
  * принимает полный PROGRAM_LABELS (можно снять старую метку, если осталась).
  */
+const HIDDEN_PROGRAM_LABELS: readonly ProgramLabel[] = ["М14", "тест"];
 export const SELECTABLE_PROGRAM_LABELS: readonly ProgramLabel[] =
-  PROGRAM_LABELS.filter((l) => l !== "М14");
+  PROGRAM_LABELS.filter((l) => !HIDDEN_PROGRAM_LABELS.includes(l));
 
 export const pipelineStateSchema = z.object({
   participantId: z.string(),
